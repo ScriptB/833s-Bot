@@ -10,6 +10,15 @@ from ..ui.tickets import TicketCreateView
 class TicketsCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
+        self._view_registered = False
+
+    async def cog_load(self) -> None:
+        if not self._view_registered:
+            self._view_registered = True
+            try:
+                self.bot.add_view(TicketCreateView(self.bot, 0))
+            except Exception:
+                pass
 
     @app_commands.command(name="ticket_panel", description="Post a ticket panel in #tickets.")
     @app_commands.checks.has_permissions(administrator=True)
@@ -23,7 +32,29 @@ class TicketsCog(commands.Cog):
             return
 
         view = TicketCreateView(self.bot, interaction.guild.id)
-        self.bot.add_view(view)  # type: ignore[attr-defined]
         embed = discord.Embed(title="Support Tickets", description="Click to open a private ticket channel.")
-        await ch.send(embed=embed, view=view)
-        await interaction.followup.send("✅ Ticket panel posted.", ephemeral=True)
+
+        existing: discord.Message | None = None
+        try:
+            async for m in ch.history(limit=25):
+                if not m.author or not getattr(self.bot, "user", None) or m.author.id != self.bot.user.id:
+                    continue
+                if not m.embeds:
+                    continue
+                if (m.embeds[0].title or "") == "Support Tickets":
+                    existing = m
+                    break
+        except Exception:
+            existing = None
+
+        try:
+            if existing:
+                self.bot.add_view(view, message_id=existing.id)
+                await existing.edit(embed=embed, view=view)
+                await interaction.followup.send("✅ Ticket panel updated.", ephemeral=True)
+            else:
+                msg = await ch.send(embed=embed, view=view)
+                self.bot.add_view(view, message_id=msg.id)
+                await interaction.followup.send("✅ Ticket panel posted.", ephemeral=True)
+        except discord.HTTPException:
+            await interaction.followup.send("❌ Failed to post the ticket panel.", ephemeral=True)

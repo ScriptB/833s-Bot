@@ -17,6 +17,7 @@ class AdminCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def set_welcome_channel(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         cfg = await self.bot.guild_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         new_cfg = GuildConfig(
             guild_id=cfg.guild_id,
@@ -28,7 +29,7 @@ class AdminCog(commands.Cog):
             anti_spam_timeout_seconds=cfg.anti_spam_timeout_seconds,
         )
         await self.bot.guild_store.upsert(new_cfg)  # type: ignore[attr-defined]
-        await interaction.response.send_message(f"Welcome channel set to {channel.mention}", ephemeral=True)
+        await interaction.followup.send(f"Welcome channel set to {channel.mention}", ephemeral=True)
 
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_roles=True)
@@ -36,6 +37,7 @@ class AdminCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_roles=True)
     async def set_autorole(self, interaction: discord.Interaction, role: discord.Role) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         cfg = await self.bot.guild_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         new_cfg = GuildConfig(
             guild_id=cfg.guild_id,
@@ -47,7 +49,7 @@ class AdminCog(commands.Cog):
             anti_spam_timeout_seconds=cfg.anti_spam_timeout_seconds,
         )
         await self.bot.guild_store.upsert(new_cfg)  # type: ignore[attr-defined]
-        await interaction.response.send_message(f"Autorole set to {role.mention}", ephemeral=True)
+        await interaction.followup.send(f"Autorole set to {role.mention}", ephemeral=True)
 
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_guild=True)
@@ -55,6 +57,7 @@ class AdminCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def set_log_channel(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         cfg = await self.bot.guild_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         new_cfg = GuildConfig(
             guild_id=cfg.guild_id,
@@ -66,7 +69,7 @@ class AdminCog(commands.Cog):
             anti_spam_timeout_seconds=cfg.anti_spam_timeout_seconds,
         )
         await self.bot.guild_store.upsert(new_cfg)  # type: ignore[attr-defined]
-        await interaction.response.send_message(f"Log channel set to {channel.mention}", ephemeral=True)
+        await interaction.followup.send(f"Log channel set to {channel.mention}", ephemeral=True)
 
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_guild=True)
@@ -80,6 +83,7 @@ class AdminCog(commands.Cog):
         timeout_seconds: app_commands.Range[int, 5, 3600],
     ) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         cfg = await self.bot.guild_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         new_cfg = GuildConfig(
             guild_id=cfg.guild_id,
@@ -91,7 +95,7 @@ class AdminCog(commands.Cog):
             anti_spam_timeout_seconds=int(timeout_seconds),
         )
         await self.bot.guild_store.upsert(new_cfg)  # type: ignore[attr-defined]
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"Anti-spam updated: max **{max_messages}** msgs / **{window_seconds}s** -> timeout **{timeout_seconds}s**",
             ephemeral=True,
         )
@@ -116,6 +120,9 @@ class AdminCog(commands.Cog):
     @queue_status.error
     async def _on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError) -> None:
         if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message("Missing permissions.", ephemeral=True)
+            if interaction.response.is_done():
+                await interaction.followup.send("Missing permissions.", ephemeral=True)
+            else:
+                await interaction.response.send_message("Missing permissions.", ephemeral=True)
             return
         raise error

@@ -55,6 +55,7 @@ class EconomyCog(commands.Cog):
     @app_commands.command(name="balance", description="Show a user's balance.")
     async def balance(self, interaction: discord.Interaction, user: discord.Member | None = None) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         target = user or interaction.user  # type: ignore[assignment]
         bal, streak, dlast, wlast, _ = await self.bot.economy_store.get_wallet(interaction.guild.id, target.id)  # type: ignore[attr-defined]
 
@@ -62,18 +63,19 @@ class EconomyCog(commands.Cog):
         embed.add_field(name=self.tuning.currency_name, value=f"**{bal:,}**", inline=True)
         embed.add_field(name="Daily streak", value=str(streak), inline=True)
         embed.set_thumbnail(url=target.display_avatar.url)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="daily", description="Claim your daily reward (streak-based).")
     async def daily(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         guild_id = interaction.guild.id
         user_id = interaction.user.id  # type: ignore[assignment]
 
         bal, streak, daily_last_at, *_ = await self.bot.economy_store.get_wallet(guild_id, user_id)  # type: ignore[attr-defined]
         left = _cooldown_left(daily_last_at, self.tuning.daily_cooldown_s)
         if left:
-            await interaction.response.send_message(f"⏳ Daily available in **{_fmt_time(left)}**.", ephemeral=True)
+            await interaction.followup.send(f"⏳ Daily available in **{_fmt_time(left)}**.", ephemeral=True)
             return
 
         # streak update: if last claim within 48h window (cooldown+28h), keep streak; else reset
@@ -98,7 +100,7 @@ class EconomyCog(commands.Cog):
         except Exception:
             pass
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"✅ Claimed **{reward:,}** {self.tuning.currency_name}. New balance: **{new_bal:,}**. Streak: **{new_streak}**.",
             ephemeral=True,
         )
@@ -106,13 +108,14 @@ class EconomyCog(commands.Cog):
     @app_commands.command(name="work", description="Do quick work for a small payout (cooldown).")
     async def work(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         guild_id = interaction.guild.id
         user_id = interaction.user.id  # type: ignore[assignment]
 
         bal, streak, daily_last_at, work_last_at, _ = await self.bot.economy_store.get_wallet(guild_id, user_id)  # type: ignore[attr-defined]
         left = _cooldown_left(work_last_at, self.tuning.work_cooldown_s)
         if left:
-            await interaction.response.send_message(f"⏳ Work available in **{_fmt_time(left)}**.", ephemeral=True)
+            await interaction.followup.send(f"⏳ Work available in **{_fmt_time(left)}**.", ephemeral=True)
             return
 
         amount = random.randint(self.tuning.work_min, self.tuning.work_max)
@@ -127,7 +130,7 @@ class EconomyCog(commands.Cog):
         except Exception:
             pass
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"💼 You earned **{amount:,}** {self.tuning.currency_name}. Balance: **{new_bal:,}**.",
             ephemeral=True,
         )
@@ -136,11 +139,12 @@ class EconomyCog(commands.Cog):
     @app_commands.describe(user="Recipient", amount="Amount to transfer")
     async def give(self, interaction: discord.Interaction, user: discord.Member, amount: app_commands.Range[int, 1, 1_000_000]) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         if user.bot:
-            await interaction.response.send_message("❌ Can't transfer to bots.", ephemeral=True)
+            await interaction.followup.send("❌ Can't transfer to bots.", ephemeral=True)
             return
         if user.id == interaction.user.id:
-            await interaction.response.send_message("❌ Can't transfer to yourself.", ephemeral=True)
+            await interaction.followup.send("❌ Can't transfer to yourself.", ephemeral=True)
             return
 
         guild_id = interaction.guild.id
@@ -149,19 +153,20 @@ class EconomyCog(commands.Cog):
 
         sender_bal, *_ = await self.bot.economy_store.get_wallet(guild_id, sender)  # type: ignore[attr-defined]
         if sender_bal < amount:
-            await interaction.response.send_message("❌ Insufficient balance.", ephemeral=True)
+            await interaction.followup.send("❌ Insufficient balance.", ephemeral=True)
             return
 
         await self.bot.economy_store.add(guild_id, sender, -int(amount), reason="transfer_out", meta=f"to={receiver}")  # type: ignore[attr-defined]
         new_receiver = await self.bot.economy_store.add(guild_id, receiver, int(amount), reason="transfer_in", meta=f"from={sender}")  # type: ignore[attr-defined]
-        await interaction.response.send_message(f"✅ Sent **{amount:,}** to **{user.display_name}**. Their balance: **{new_receiver:,}**.", ephemeral=True)
+        await interaction.followup.send(f"✅ Sent **{amount:,}** to **{user.display_name}**. Their balance: **{new_receiver:,}**.", ephemeral=True)
 
     @app_commands.command(name="money_top", description="Leaderboard: richest members.")
     async def money_top(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         rows = await self.bot.economy_store.top_balances(interaction.guild.id, limit=10)  # type: ignore[attr-defined]
         if not rows:
-            await interaction.response.send_message("No data yet.", ephemeral=True)
+            await interaction.followup.send("No data yet.", ephemeral=True)
             return
 
         lines = []
@@ -170,7 +175,7 @@ class EconomyCog(commands.Cog):
             name = member.display_name if member else f"<@{uid}>"
             lines.append(f"**{i}.** {name} — **{bal:,}**")
         embed = discord.Embed(title=f"Top {self.tuning.currency_name}", description="\n".join(lines))
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
     # --- Casino (simple, fair, fully deterministic odds) ---
 
@@ -178,9 +183,10 @@ class EconomyCog(commands.Cog):
     @app_commands.describe(side="heads or tails", bet="Amount to bet")
     async def coinflip(self, interaction: discord.Interaction, side: str, bet: app_commands.Range[int, 1, 250_000]) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         side = side.strip().lower()
         if side not in {"heads", "tails", "h", "t"}:
-            await interaction.response.send_message("Side must be: heads/tails.", ephemeral=True)
+            await interaction.followup.send("Side must be: heads/tails.", ephemeral=True)
             return
         pick = "heads" if side in {"heads", "h"} else "tails"
 
@@ -188,7 +194,7 @@ class EconomyCog(commands.Cog):
         uid = interaction.user.id  # type: ignore[assignment]
         bal, *_ = await self.bot.economy_store.get_wallet(gid, uid)  # type: ignore[attr-defined]
         if bal < bet:
-            await interaction.response.send_message("❌ Insufficient balance.", ephemeral=True)
+            await interaction.followup.send("❌ Insufficient balance.", ephemeral=True)
             return
 
         result = random.choice(["heads", "tails"])
@@ -196,7 +202,7 @@ class EconomyCog(commands.Cog):
         payout = int(bet) if win else -int(bet)
         new_bal = await self.bot.economy_store.add(gid, uid, payout, reason="coinflip", meta=f"pick={pick},result={result}")  # type: ignore[attr-defined]
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"🪙 Result: **{result}**. You picked **{pick}**. {'✅ Won' if win else '❌ Lost'} **{abs(payout):,}**. Balance: **{new_bal:,}**.",
             ephemeral=True,
         )
@@ -205,11 +211,12 @@ class EconomyCog(commands.Cog):
     @app_commands.describe(bet="Amount to bet")
     async def slots(self, interaction: discord.Interaction, bet: app_commands.Range[int, 1, 50_000]) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         gid = interaction.guild.id
         uid = interaction.user.id  # type: ignore[assignment]
         bal, *_ = await self.bot.economy_store.get_wallet(gid, uid)  # type: ignore[attr-defined]
         if bal < bet:
-            await interaction.response.send_message("❌ Insufficient balance.", ephemeral=True)
+            await interaction.followup.send("❌ Insufficient balance.", ephemeral=True)
             return
 
         # weights tuned: common to rare
@@ -230,7 +237,7 @@ class EconomyCog(commands.Cog):
 
         delta = int(bet) * mult - int(bet)
         new_bal = await self.bot.economy_store.add(gid, uid, delta, reason="slots", meta=f"reels={''.join(reels)},mult={mult}")  # type: ignore[attr-defined]
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"🎰 {' '.join(reels)} — Multiplier: **x{mult}**. {'✅ Win' if mult else '❌ Loss'} **{abs(delta):,}**. Balance: **{new_bal:,}**.",
             ephemeral=True,
         )

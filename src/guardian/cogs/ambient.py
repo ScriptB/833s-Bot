@@ -149,8 +149,9 @@ class AmbientCog(commands.Cog):
         if interaction.guild is None:
             await interaction.response.send_message("This can only be used in a server.", ephemeral=True)
             return
+        await interaction.response.defer(ephemeral=True, thinking=True)
         await self.bot.ambient_store.set_pings_opt_in(interaction.guild.id, interaction.user.id, bool(enabled))  # type: ignore[attr-defined]
-        await interaction.response.send_message("Updated.", ephemeral=True)
+        await interaction.followup.send("Updated.", ephemeral=True)
 
     @app_commands.guild_only()
     @app_commands.command(name="ambient_status", description="Show ambient system status for this server.")
@@ -158,11 +159,12 @@ class AmbientCog(commands.Cog):
         if interaction.guild is None:
             await interaction.response.send_message("This can only be used in a server.", ephemeral=True)
             return
+        await interaction.response.defer(ephemeral=True, thinking=True)
         cfg = await self.bot.server_config_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         key = self._day_key()
         cur = self._guild_counters.get(int(interaction.guild.id))
         sent_today = 0 if (cur is None or cur.day_key != key) else cur.sent_today
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"enabled={bool(self.bot.settings.ambient_enabled)} pings_enabled={bool(self.bot.settings.ambient_pings_enabled)} "
             f"channel_mode={self.bot.settings.ambient_channel_mode} bot_commands_channel_id={cfg.bot_commands_channel_id} "
             f"sent_today={sent_today}/{int(self.bot.settings.ambient_daily_guild_cap)}",

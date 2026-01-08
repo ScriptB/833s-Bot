@@ -27,10 +27,11 @@ class AchievementsCog(commands.Cog):
     @app_commands.command(name="achievements", description="Show your unlocked achievements.")
     async def achievements(self, interaction: discord.Interaction, user: discord.Member | None = None) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         target = user or interaction.user  # type: ignore[assignment]
         rows = await self.bot.achievements_store.list_user(interaction.guild.id, target.id)  # type: ignore[attr-defined]
         if not rows:
-            await interaction.response.send_message("No achievements yet.", ephemeral=True)
+            await interaction.followup.send("No achievements yet.", ephemeral=True)
             return
 
         lines = []
@@ -38,14 +39,15 @@ class AchievementsCog(commands.Cog):
             name, desc = _ACH.get(code, (code, ""))
             lines.append(f"**{name}** — {desc} (`{_fmt_ts(ts)}`)")
         embed = discord.Embed(title=f"Achievements — {target.display_name}", description="\n".join(lines))
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="achievements_top", description="Leaderboard: most achievements.")
     async def achievements_top(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         rows = await self.bot.achievements_store.leaderboard(interaction.guild.id, limit=10)  # type: ignore[attr-defined]
         if not rows:
-            await interaction.response.send_message("No data yet.", ephemeral=True)
+            await interaction.followup.send("No data yet.", ephemeral=True)
             return
         lines = []
         for i, (uid, cnt) in enumerate(rows, 1):
@@ -53,4 +55,4 @@ class AchievementsCog(commands.Cog):
             name = member.display_name if member else f"<@{uid}>"
             lines.append(f"**{i}.** {name} — **{cnt}**")
         embed = discord.Embed(title="Top Achievements", description="\n".join(lines))
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=True)

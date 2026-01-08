@@ -86,6 +86,14 @@ class GiveawaysStore:
             ) as cur:
                 return await cur.fetchall()
 
+    async def list_open(self, limit: int = 200):
+        async with aiosqlite.connect(self._path) as db:
+            async with db.execute(
+                "SELECT guild_id, message_id FROM giveaways WHERE ended=0 ORDER BY ends_ts ASC LIMIT ?",
+                (int(limit),),
+            ) as cur:
+                return await cur.fetchall()
+
     async def mark_ended(self, guild_id: int, message_id: int) -> None:
         async with aiosqlite.connect(self._path) as db:
             await db.execute(

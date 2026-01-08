@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 import discord
+import aiosqlite
 from discord.ext import commands
 
 from .config import Settings
@@ -79,6 +80,7 @@ class GuardianBot(commands.Bot):
             command_prefix=commands.when_mentioned_or("!", "?"),
             intents=intents,
             allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=True),
+            help_command=None,
         )
 
         self.settings = settings
@@ -124,6 +126,16 @@ class GuardianBot(commands.Bot):
         self.guild_logger = GuildLogger(self)
 
     async def setup_hook(self) -> None:
+        try:
+            async with aiosqlite.connect(self.settings.sqlite_path) as db:
+                await db.execute("PRAGMA journal_mode=WAL")
+                await db.execute("PRAGMA synchronous=NORMAL")
+                await db.execute("PRAGMA foreign_keys=ON")
+                await db.commit()
+            log.info("SQLite pragmas applied (journal_mode=WAL)")
+        except Exception:
+            log.exception("Failed to apply SQLite pragmas")
+
         await self.guild_store.init()
         await self.warnings_store.init()
         await self.levels_store.init()
@@ -151,7 +163,9 @@ class GuardianBot(commands.Bot):
         self.drift_verifier.start()
         self.task_queue.start()
 
-        
+        loaded: list[str] = []
+        failed: list[str] = []
+
         # Cogs are loaded defensively so one bad cog cannot prevent command registration.
         async def _load_cog(import_path: str, class_name: str) -> None:
             try:
@@ -159,8 +173,10 @@ class GuardianBot(commands.Bot):
                 cls = getattr(mod, class_name)
                 await self.add_cog(cls(self))
                 log.info("Loaded cog: %s.%s", import_path, class_name)
+                loaded.append(f"{import_path}.{class_name}")
             except Exception:
                 log.exception("Failed to load cog: %s.%s", import_path, class_name)
+                failed.append(f"{import_path}.{class_name}")
 
         # Core configuration + server lifecycle
         await _load_cog("guardian.cogs.admin", "AdminCog")
@@ -214,11 +230,20 @@ class GuardianBot(commands.Bot):
 
         # Diagnostics last
         await _load_cog("guardian.cogs.diagnostics", "DiagnosticsCog")
+
+        log.info("Startup cog load summary: loaded=%d failed=%d", len(loaded), len(failed))
+        if failed:
+            for name in failed:
+                log.warning("Startup cog failed: %s", name)
         await self._sync_mgr.sync_startup()
         log.info("Command sync complete")
 
     async def close(self) -> None:
         try:
+            try:
+                await self.drift_verifier.stop()
+            except Exception:
+                pass
             await self.task_queue.stop()
         finally:
             await super().close()

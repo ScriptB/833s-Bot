@@ -25,22 +25,26 @@ class LevelsCog(commands.Cog):
 
     @app_commands.command(name="rank", description="Show your rank")
     async def rank(self, interaction: discord.Interaction, member: discord.Member | None = None):
+        assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         member = member or interaction.user
         xp, level = await self.bot.levels_store.get(interaction.guild.id, member.id)
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"⭐ {member.display_name}: Level **{level}**, XP **{xp}**",
             ephemeral=True,
         )
 
     @app_commands.command(name="leaderboard", description="XP leaderboard")
     async def leaderboard(self, interaction: discord.Interaction):
+        assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         rows = await self.bot.levels_store.leaderboard(interaction.guild.id)
         if not rows:
-            await interaction.response.send_message("No data yet.", ephemeral=True)
+            await interaction.followup.send("No data yet.", ephemeral=True)
             return
         lines = []
         for i, (uid, lvl, xp) in enumerate(rows, start=1):
             m = interaction.guild.get_member(uid)
             name = m.display_name if m else str(uid)
             lines.append(f"{i}. {name} — L{lvl} ({xp} XP)")
-        await interaction.response.send_message("\n".join(lines), ephemeral=True)
+        await interaction.followup.send("\n".join(lines), ephemeral=True)

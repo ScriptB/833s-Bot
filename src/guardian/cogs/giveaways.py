@@ -4,11 +4,14 @@ import asyncio
 import json
 import random
 import time
+import logging
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from ..ui.giveaways import GiveawayView
+
+log = logging.getLogger("guardian.cogs.giveaways")
 
 
 def _parse_duration(s: str) -> int | None:
@@ -28,10 +31,25 @@ class GiveawaysCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
         self._task: asyncio.Task | None = None
+        self._views_loaded = False
 
     async def cog_load(self) -> None:
         if self._task is None:
             self._task = asyncio.create_task(self._loop(), name="guardian-giveaways")
+
+        if not self._views_loaded:
+            self._views_loaded = True
+            try:
+                rows = await self.bot.giveaways_store.list_open(limit=200)  # type: ignore[attr-defined]
+                for guild_id, message_id in rows:
+                    try:
+                        view = GiveawayView(int(guild_id), int(message_id))
+                        self.bot.add_view(view, message_id=int(message_id))  # type: ignore[attr-defined]
+                    except Exception:
+                        continue
+                log.info("Re-attached giveaway views: %d", len(rows))
+            except Exception:
+                log.exception("Failed to re-attach giveaway views")
 
     async def cog_unload(self) -> None:
         if self._task:
@@ -39,44 +57,49 @@ class GiveawaysCog(commands.Cog):
 
     async def _loop(self) -> None:
         while True:
-            await asyncio.sleep(10)
-            now = int(time.time())
-            due = await self.bot.giveaways_store.due(now)  # type: ignore[attr-defined]
-            for guild_id, channel_id, message_id, ends_ts, winners, prize, entries_json in due:
-                guild = self.bot.get_guild(int(guild_id))  # type: ignore[attr-defined]
-                if not guild:
+            try:
+                await asyncio.sleep(10)
+                now = int(time.time())
+                due = await self.bot.giveaways_store.due(now)  # type: ignore[attr-defined]
+                for guild_id, channel_id, message_id, ends_ts, winners, prize, entries_json in due:
+                    guild = self.bot.get_guild(int(guild_id))  # type: ignore[attr-defined]
+                    if not guild:
+                        await self.bot.giveaways_store.mark_ended(int(guild_id), int(message_id))  # type: ignore[attr-defined]
+                        continue
+                    channel = guild.get_channel(int(channel_id))
+                    if not isinstance(channel, discord.TextChannel):
+                        await self.bot.giveaways_store.mark_ended(int(guild_id), int(message_id))  # type: ignore[attr-defined]
+                        continue
+                    try:
+                        msg = await channel.fetch_message(int(message_id))
+                    except discord.HTTPException:
+                        await self.bot.giveaways_store.mark_ended(int(guild_id), int(message_id))  # type: ignore[attr-defined]
+                        continue
+
+                    entries = [int(x) for x in json.loads(entries_json or "[]")]
+                    entries = list(dict.fromkeys(entries))
+                    chosen = []
+                    if entries:
+                        chosen = random.sample(entries, k=min(int(winners), len(entries)))
+
+                    winners_text = ", ".join(f"<@{uid}>" for uid in chosen) if chosen else "No valid entries"
+                    embed = msg.embeds[0] if msg.embeds else discord.Embed()
+                    embed.title = "🎉 Giveaway Ended"
+                    embed.clear_fields()
+                    embed.add_field(name="Prize", value=str(prize), inline=False)
+                    embed.add_field(name="Winners", value=winners_text, inline=False)
+
+                    try:
+                        await msg.edit(embed=embed, view=None)
+                        await channel.send(f"🎉 Giveaway ended! Winners: {winners_text}")
+                    except discord.HTTPException:
+                        pass
+
                     await self.bot.giveaways_store.mark_ended(int(guild_id), int(message_id))  # type: ignore[attr-defined]
-                    continue
-                channel = guild.get_channel(int(channel_id))
-                if not isinstance(channel, discord.TextChannel):
-                    await self.bot.giveaways_store.mark_ended(int(guild_id), int(message_id))  # type: ignore[attr-defined]
-                    continue
-                try:
-                    msg = await channel.fetch_message(int(message_id))
-                except discord.HTTPException:
-                    await self.bot.giveaways_store.mark_ended(int(guild_id), int(message_id))  # type: ignore[attr-defined]
-                    continue
-
-                entries = [int(x) for x in json.loads(entries_json or "[]")]
-                entries = list(dict.fromkeys(entries))
-                chosen = []
-                if entries:
-                    chosen = random.sample(entries, k=min(int(winners), len(entries)))
-
-                winners_text = ", ".join(f"<@{uid}>" for uid in chosen) if chosen else "No valid entries"
-                embed = msg.embeds[0] if msg.embeds else discord.Embed()
-                embed.title = "🎉 Giveaway Ended"
-                embed.clear_fields()
-                embed.add_field(name="Prize", value=str(prize), inline=False)
-                embed.add_field(name="Winners", value=winners_text, inline=False)
-
-                try:
-                    await msg.edit(embed=embed, view=None)
-                    await channel.send(f"🎉 Giveaway ended! Winners: {winners_text}")
-                except discord.HTTPException:
-                    pass
-
-                await self.bot.giveaways_store.mark_ended(int(guild_id), int(message_id))  # type: ignore[attr-defined]
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                log.exception("Giveaways loop iteration failed")
 
     @app_commands.command(name="giveaway_start", description="Start a giveaway. Duration: 10m, 2h, 1d.")
     @app_commands.checks.has_permissions(manage_guild=True)
@@ -89,14 +112,15 @@ class GiveawaysCog(commands.Cog):
         channel: discord.TextChannel | None = None,
     ) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         secs = _parse_duration(duration)
         if secs is None or secs <= 0:
-            await interaction.response.send_message("❌ Invalid duration. Use 10m, 2h, 1d.", ephemeral=True)
+            await interaction.followup.send("❌ Invalid duration. Use 10m, 2h, 1d.", ephemeral=True)
             return
 
         channel = channel or interaction.channel  # type: ignore
         if not isinstance(channel, discord.TextChannel):
-            await interaction.response.send_message("❌ Invalid channel.", ephemeral=True)
+            await interaction.followup.send("❌ Invalid channel.", ephemeral=True)
             return
 
         ends = int(time.time() + secs)
@@ -111,4 +135,4 @@ class GiveawaysCog(commands.Cog):
         await msg.edit(view=view)
 
         await self.bot.giveaways_store.create(interaction.guild.id, channel.id, msg.id, ends, int(winners), prize)  # type: ignore[attr-defined]
-        await interaction.response.send_message(f"✅ Giveaway started: {msg.jump_url}", ephemeral=True)
+        await interaction.followup.send(f"✅ Giveaway started: {msg.jump_url}", ephemeral=True)

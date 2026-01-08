@@ -47,24 +47,26 @@ class ReactionRolesCog(commands.Cog):
         channel: discord.TextChannel | None = None,
     ) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         channel = channel or interaction.channel  # type: ignore
         if not isinstance(channel, discord.TextChannel):
-            await interaction.response.send_message("❌ Invalid channel.", ephemeral=True)
+            await interaction.followup.send("❌ Invalid channel.", ephemeral=True)
             return
 
         embed = discord.Embed(title=title, description=description)
         msg = await channel.send(embed=embed)  # empty panel until options added
         await self.bot.rr_store.create_panel(interaction.guild.id, channel.id, msg.id, title, description, int(max_values))  # type: ignore[attr-defined]
-        await interaction.response.send_message(f"✅ Panel created: {msg.jump_url}", ephemeral=True)
+        await interaction.followup.send(f"✅ Panel created: {msg.jump_url}", ephemeral=True)
 
     @app_commands.command(name="rr_option_add", description="Add a role option to a reaction-role panel.")
     @app_commands.checks.has_permissions(manage_roles=True)
     async def rr_option_add(self, interaction: discord.Interaction, message_id: str, role: discord.Role, label: str, emoji: str | None = None) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         mid = int(message_id)
         data = await self.bot.rr_store.get_panel(interaction.guild.id, mid)  # type: ignore[attr-defined]
         if not data:
-            await interaction.response.send_message("❌ Panel not found.", ephemeral=True)
+            await interaction.followup.send("❌ Panel not found.", ephemeral=True)
             return
         panel, options = data
         channel_id, title, description, max_values = panel
@@ -75,12 +77,12 @@ class ReactionRolesCog(commands.Cog):
 
         channel = interaction.guild.get_channel(int(channel_id))
         if not isinstance(channel, discord.TextChannel):
-            await interaction.response.send_message("❌ Channel missing.", ephemeral=True)
+            await interaction.followup.send("❌ Channel missing.", ephemeral=True)
             return
         try:
             msg = await channel.fetch_message(mid)
         except discord.HTTPException:
-            await interaction.response.send_message("❌ Message missing.", ephemeral=True)
+            await interaction.followup.send("❌ Message missing.", ephemeral=True)
             return
 
         view = ReactionRoleView(interaction.guild.id, mid, [(int(r), str(l), (str(e) if e else None)) for (r, l, e) in options2], int(panel2[3]))
@@ -88,11 +90,12 @@ class ReactionRolesCog(commands.Cog):
         embed = discord.Embed(title=title, description=description)
         await msg.edit(embed=embed, view=view)
 
-        await interaction.response.send_message("✅ Panel updated.", ephemeral=True)
+        await interaction.followup.send("✅ Panel updated.", ephemeral=True)
 
     @app_commands.command(name="rr_option_remove", description="Remove a role option from a reaction-role panel.")
     @app_commands.checks.has_permissions(manage_roles=True)
     async def rr_option_remove(self, interaction: discord.Interaction, message_id: str, role: discord.Role) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         await self.bot.rr_store.remove_option(interaction.guild.id, int(message_id), role.id)  # type: ignore[attr-defined]
-        await interaction.response.send_message("✅ Option removed.", ephemeral=True)
+        await interaction.followup.send("✅ Option removed.", ephemeral=True)

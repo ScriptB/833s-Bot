@@ -15,8 +15,9 @@ class StarboardCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def starboard_set(self, interaction: discord.Interaction, channel: discord.TextChannel, threshold: app_commands.Range[int, 1, 20] = 3) -> None:
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
         await self.bot.starboard_store.set_config(interaction.guild.id, channel.id, int(threshold))  # type: ignore[attr-defined]
-        await interaction.response.send_message("✅ Starboard configured.", ephemeral=True)
+        await interaction.followup.send("✅ Starboard configured.", ephemeral=True)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:

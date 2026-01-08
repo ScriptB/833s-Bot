@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 import aiosqlite
 from dataclasses import dataclass
 from typing import Sequence
+
+log = logging.getLogger("guardian.events_store")
 
 
 @dataclass(frozen=True)
@@ -110,13 +113,14 @@ class EventsStore:
     async def join(self, guild_id: int, event_id: int, user_id: int) -> bool:
         async with aiosqlite.connect(self._path) as db:
             try:
-                await db.execute(
-                    "INSERT INTO event_participants (event_id, guild_id, user_id) VALUES (?, ?, ?)",
+                cur = await db.execute(
+                    "INSERT OR IGNORE INTO event_participants (event_id, guild_id, user_id) VALUES (?, ?, ?)",
                     (int(event_id), int(guild_id), int(user_id)),
                 )
                 await db.commit()
-                return True
-            except Exception:
+                return (cur.rowcount or 0) > 0
+            except aiosqlite.Error:
+                log.exception("Failed to join event (guild_id=%s event_id=%s user_id=%s)", int(guild_id), int(event_id), int(user_id))
                 return False
 
     async def leave(self, guild_id: int, event_id: int, user_id: int) -> bool:

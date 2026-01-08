@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import difflib
 import random
 from typing import Optional
 
@@ -25,11 +26,22 @@ class PrefixCommunityCog(commands.Cog):
             "Rate today 1-10 and why.",
         ]
 
+        self._help_catalog: dict[str, dict[str, object]] = {
+            "vibe": {"category": "Community", "syntax": "!vibe", "desc": "Get a quick community prompt.", "min_level": 0, "verified": True},
+            "profile": {"category": "Profile", "syntax": "!profile [@member]", "desc": "Show a public community profile.", "min_level": 0, "verified": True},
+            "rank": {"category": "Community", "syntax": "!rank [@member]", "desc": "Show level, XP, reputation, and title.", "min_level": 0, "verified": True},
+            "thanks": {"category": "Community", "syntax": "!thanks @member [reason]", "desc": "Give +1 reputation (cooldown).", "min_level": 1, "verified": True},
+            "prompt": {"category": "Community", "syntax": "!prompt", "desc": "Show the current community prompt.", "min_level": 0, "verified": True},
+            "event": {"category": "Events", "syntax": "!event", "desc": "List active events.", "min_level": 0, "verified": True},
+            "help": {"category": "Utility", "syntax": "!help [command]", "desc": "Show prefix help.", "min_level": 0, "verified": False},
+        }
+
     async def _is_verified(self, guild: discord.Guild, member: discord.Member) -> bool:
         cfg = await self.bot.server_config_store.get(guild.id)  # type: ignore[attr-defined]
         role_id = cfg.autorole_id
         if not role_id:
             return True
+
         return any(r.id == role_id for r in member.roles)
 
     async def _level(self, guild_id: int, user_id: int) -> int:
@@ -77,15 +89,117 @@ class PrefixCommunityCog(commands.Cog):
             return False
         return True
 
+    async def _gate_status(
+        self,
+        ctx: commands.Context,
+        *,
+        min_level: int = 0,
+        requires_verified: bool = True,
+    ) -> tuple[bool, str | None]:
+        if not ctx.guild or not isinstance(ctx.author, discord.Member):
+            return (False, "This command can only be used in a server.")
+
+        if not await self._channel_allowed(ctx.guild, ctx.channel.id):  # type: ignore[union-attr]
+            return (False, "Use this in the bot commands channel.")
+
+        if requires_verified:
+            ok = await self._is_verified(ctx.guild, ctx.author)
+            if not ok:
+                return (False, "You must be verified to use this command.")
+
+        lvl = await self._level(ctx.guild.id, ctx.author.id)
+        if lvl < min_level:
+            return (False, f"Requires level {min_level} (you are level {lvl}).")
+
+        return (True, None)
+
     @commands.command(name="help")
     @commands.cooldown(2, 10.0, commands.BucketType.user)
-    async def help_cmd(self, ctx: commands.Context) -> None:
+    async def help_cmd(self, ctx: commands.Context, *, query: str = "") -> None:
         if not await self._gate(ctx, min_level=0, requires_verified=False):
             return
-        await ctx.reply(
-            "Prefix commands: !vibe, !profile, !rank, !thanks @member [reason], !prompt, !event\n"
-            "Slash commands remain primary. Use /help_commands for the full list."
-        )
+
+        q = (query or "").strip().lower()
+
+        if not q:
+            categories: dict[str, list[str]] = {}
+            for name, meta in self._help_catalog.items():
+                cat = str(meta.get("category") or "Utility")
+                categories.setdefault(cat, []).append(name)
+
+            emb = discord.Embed(
+                title="833s Guardian • Prefix Help",
+                description="Use `!help <command>` for details. Slash commands remain primary; use `/help_commands` for the full list.",
+            )
+
+            for cat in ["Community", "Profile", "Events", "Fun", "Utility"]:
+                cmds = sorted(categories.get(cat, []))
+                if not cmds:
+                    continue
+                lines: list[str] = []
+                for cmd in cmds:
+                    meta = self._help_catalog.get(cmd, {})
+                    min_level = int(meta.get("min_level") or 0)
+                    verified = bool(meta.get("verified") or False)
+                    ok, reason = await self._gate_status(ctx, min_level=min_level, requires_verified=verified)
+                    suffix = ""
+                    if not ok:
+                        suffix = f" — 🔒 {reason}"
+                    elif min_level or verified:
+                        req = []
+                        if verified:
+                            req.append("verified")
+                        if min_level:
+                            req.append(f"lvl {min_level}+")
+                        suffix = f" — ({', '.join(req)})" if req else ""
+                    desc = str(meta.get("desc") or "")
+                    lines.append(f"`{cmd}` — {desc}{suffix}")
+                emb.add_field(name=cat, value="\n".join(lines)[:1024], inline=False)
+
+            try:
+                await ctx.reply(embed=emb)
+            except Exception:
+                pass
+            return
+
+        # Normalize aliases/shortcuts
+        if q.startswith("!"):
+            q = q[1:]
+
+        if q not in self._help_catalog:
+            choices = sorted(self._help_catalog.keys())
+            matches = difflib.get_close_matches(q, choices, n=3, cutoff=0.55)
+            suggestion = (" Did you mean: " + ", ".join(f"`{m}`" for m in matches)) if matches else ""
+            try:
+                await ctx.reply(f"Unknown command `{q}`.{suggestion}")
+            except Exception:
+                pass
+            return
+
+        meta = self._help_catalog[q]
+        min_level = int(meta.get("min_level") or 0)
+        verified = bool(meta.get("verified") or False)
+        ok, reason = await self._gate_status(ctx, min_level=min_level, requires_verified=verified)
+
+        emb = discord.Embed(title=f"Prefix Help: !{q}")
+        emb.add_field(name="Syntax", value=f"`{meta.get('syntax')}`", inline=False)
+        emb.add_field(name="Description", value=str(meta.get("desc") or "—")[:900], inline=False)
+
+        req_lines: list[str] = []
+        if verified:
+            req_lines.append("Verified required")
+        if min_level:
+            req_lines.append(f"Minimum level: {min_level}")
+        if req_lines:
+            emb.add_field(name="Requirements", value="\n".join(req_lines), inline=False)
+
+        if not ok and reason:
+            emb.add_field(name="Why you can't use it right now", value=reason, inline=False)
+
+        try:
+            await ctx.reply(embed=emb)
+        except Exception:
+            pass
 
     @commands.command(name="vibe")
     @commands.cooldown(2, 10.0, commands.BucketType.user)
