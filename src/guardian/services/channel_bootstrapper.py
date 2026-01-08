@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+import asyncio
+import discord
+
+MARKER = "[833s-guardian:bootstrap:v1]"
+
+
+class ChannelBootstrapper:
+    def __init__(self, bot: discord.Client) -> None:
+        self.bot = bot
+
+    async def ensure_first_posts(self, guild: discord.Guild) -> None:
+        targets = {
+            "rules": self._rules_text(),
+            "introductions": self._introductions_text(),
+            "support-start": self._help_text(),
+            "help-verification": self._help_verification_text(),
+            "start-here": self._start_here_text(),
+        }
+        for name, body in targets.items():
+            ch = discord.utils.get(guild.text_channels, name=name)
+            if not isinstance(ch, discord.TextChannel):
+                continue
+            try:
+                already = False
+                async for m in ch.history(limit=15, oldest_first=True):
+                    if m.author == guild.me and m.content and MARKER in m.content:
+                        already = True
+                        break
+                if already:
+                    continue
+                msg = await ch.send(f"{MARKER}\n{body}")
+                try:
+                    await msg.pin(reason="Bootstrap pinned")
+                except discord.HTTPException:
+                    pass
+                await asyncio.sleep(0.4)
+            except discord.HTTPException:
+                continue
+
+    def _rules_text(self) -> str:
+        return (
+            "**Server Rules (Summary)**\n"
+            "1) Respect others.\n"
+            "2) No spam, scams, or malicious links.\n"
+            "3) Keep content in the right channels.\n"
+            "4) Follow staff instructions during moderation.\n"
+            "Use /ticket_panel in #support-start for private support."
+        )
+
+    def _introductions_text(self) -> str:
+        return (
+            "**Introduce Yourself**\n"
+            "Name / nickname, interests, what you play/build, and what you want from 833s.\n"
+            "Optional: add a project link or screenshot."
+        )
+
+    def _help_text(self) -> str:
+        return (
+            "**Help & Support**\n"
+            "Use the buttons in #support-start for private support.\n"
+            "For quick help: describe the issue + screenshots + what you tried."
+        )
+
+    def _start_here_text(self) -> str:
+        return (
+            "**Welcome to 833s**\n"
+            "Complete onboarding in #verify to unlock the server.\n"
+            "After verification: check #community-guide and #announcements."
+        )
