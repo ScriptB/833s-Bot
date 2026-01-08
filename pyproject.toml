@@ -1,6 +1,6 @@
 [project]
 name = "833s-guardian"
-version = "0.5.6"
+version = "1.0.0a1"
 description = "833's Guardian - Discord bot with paced queues, delays, caching, and a clean, maintainable architecture."
 requires-python = ">=3.11"
 dependencies = [
