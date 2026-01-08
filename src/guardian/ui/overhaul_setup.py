@@ -52,7 +52,7 @@ class OverhaulSetupView(ui.View):
 
     # --- UI Elements ---------------------------------------------------------
 
-    @ui.button(label="⚙️ Server Settings", style=discord.ButtonStyle.secondary)
+    @ui.button(label="🛡️ Server Settings", style=discord.ButtonStyle.secondary)
     async def server_settings(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         modal = ServerSettingsModal(self.config)
@@ -106,6 +106,13 @@ class OverhaulSetupView(ui.View):
     @ui.button(label="🚀 Execute Overhaul", style=discord.ButtonStyle.danger)
     async def execute(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
+        # Validate config before proceeding
+        if not self.config["roles"]:
+            await safe_followup(interaction, "❌ No roles configured. Add roles before executing.", ephemeral=True)
+            return
+        if not self.config["categories"]:
+            await safe_followup(interaction, "❌ No categories configured. Add categories before executing.", ephemeral=True)
+            return
         modal = ConfirmModal()
         await interaction.response.send_modal(modal)
         await modal.wait()
@@ -169,6 +176,10 @@ class ServerSettingsModal(ui.Modal, title="Server Settings"):
         super().__init__(title="Server Settings")
         self.config = config
         self.saved = False
+        self.server_name.default = config.get("server_name", "833s")
+        self.verification_level.default = config.get("verification_level", "high")
+        self.default_notifications.default = config.get("default_notifications", "only_mentions")
+        self.content_filter.default = config.get("content_filter", "all_members")
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         self.config["server_name"] = self.server_name.value
@@ -193,6 +204,9 @@ class ReactionRolesModal(ui.Modal, title="Reaction Roles Settings"):
         super().__init__(title="Reaction Roles Settings")
         self.config = config
         self.saved = False
+        self.channel_name.default = config.get("reaction_roles_channel", "reaction-roles")
+        self.message_title.default = config.get("reaction_roles_message_title", "Self-Assignable Roles")
+        self.message_description.default = config.get("reaction_roles_message_description", "Click a button below to get a role. You can remove it any time by clicking again.")
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         self.config["reaction_roles_channel"] = self.channel_name.value

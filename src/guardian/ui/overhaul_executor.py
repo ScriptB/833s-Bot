@@ -10,6 +10,11 @@ from discord.ext import commands
 
 from ..services.discord_safety import safe_followup
 
+# --- Constants -------------------------------------------------
+
+MAX_RETRIES = 3
+RETRY_DELAY = 1.0
+
 
 class OverhaulExecutor:
     """Executes the full server overhaul based on a config dict."""
@@ -24,6 +29,7 @@ class OverhaulExecutor:
     async def run(self) -> str:
         """Run the full overhaul and return a summary string."""
         start = time.time()
+        self.report.append("🛠️ Starting server overhaul...")
         try:
             await self._apply_server_settings()
             await self._nuke_all()
@@ -42,17 +48,23 @@ class OverhaulExecutor:
     # -------------------------------------------------------------------------
 
     async def _apply_server_settings(self) -> None:
-        try:
-            await self.guild.edit(
-                name=self.config["server_name"],
-                verification_level=getattr(discord.VerificationLevel, self.config["verification_level"], discord.VerificationLevel.high),
-                default_notifications=getattr(discord.NotificationLevel, self.config["default_notifications"], discord.NotificationLevel.only_mentions),
-                explicit_content_filter=getattr(discord.ContentFilter, self.config["content_filter"], discord.ContentFilter.all_members),
-                reason="833s Guardian Overhaul",
-            )
-            self.report.append("✅ Server settings applied.")
-        except Exception as e:
-            self.report.append(f"⚠️ Server settings failed: {e}")
+        for attempt in range(MAX_RETRIES):
+            try:
+                await self.guild.edit(
+                    name=self.config["server_name"],
+                    verification_level=getattr(discord.VerificationLevel, self.config["verification_level"], discord.VerificationLevel.high),
+                    default_notifications=getattr(discord.NotificationLevel, self.config["default_notifications"], discord.NotificationLevel.only_mentions),
+                    explicit_content_filter=getattr(discord.ContentFilter, self.config["content_filter"], discord.ContentFilter.all_members),
+                    reason="833s Guardian Overhaul",
+                )
+                self.report.append("✅ Server settings applied.")
+                return
+            except discord.HTTPException as e:
+                if attempt == MAX_RETRIES - 1:
+                    self.report.append(f"⚠️ Server settings failed after {MAX_RETRIES} attempts: {e}")
+                    return
+                self.report.append(f"⚠️ Server settings failed (attempt {attempt + 1}), retrying...")
+                await asyncio.sleep(RETRY_DELAY)
 
     async def _nuke_all(self) -> None:
         """Delete ALL channels and ALL roles (except @everyone and managed/bot top roles)."""
@@ -62,43 +74,53 @@ class OverhaulExecutor:
         top_pos = bot_member.top_role.position
 
         # Delete all channels
+        channel_count = 0
         for ch in list(self.guild.channels):
             try:
                 await ch.delete(reason="833s Guardian Overhaul: nuke")
+                channel_count += 1
                 await asyncio.sleep(0.2)  # avoid rate limit
-            except Exception:
-                continue
-        self.report.append("✅ Deleted all channels.")
+            except discord.HTTPException as e:
+                self.report.append(f"⚠️ Failed to delete channel {ch.name}: {e}")
+        self.report.append(f"✅ Deleted {channel_count} channels.")
 
         # Delete all roles (skip @everyone, managed, and any role >= bot's top role)
+        role_count = 0
         for role in sorted(self.guild.roles, key=lambda r: r.position, reverse=True):
             if role.is_default() or role.managed or role.position >= top_pos:
                 continue
             try:
                 await role.delete(reason="833s Guardian Overhaul: nuke")
+                role_count += 1
                 await asyncio.sleep(0.2)
-            except Exception:
-                continue
-        self.report.append("✅ Deleted all roles.")
+            except discord.HTTPException as e:
+                self.report.append(f"⚠️ Failed to delete role {role.name}: {e}")
+        self.report.append(f"✅ Deleted {role_count} roles.")
 
     async def _create_roles(self) -> dict[str, discord.Role]:
         """Create all roles from config and return a name->role map."""
         role_map: dict[str, discord.Role] = {}
         for r_cfg in self.config["roles"]:
-            try:
-                color_obj = getattr(discord.Color, r_cfg["color"], discord.Color.default)()
-                role = await self.guild.create_role(
-                    name=r_cfg["name"],
-                    color=color_obj,
-                    hoist=r_cfg["hoist"],
-                    mentionable=r_cfg["mentionable"],
-                    reason="833s Guardian Overhaul",
-                )
-                role_map[r_cfg["name"]] = role
-                await asyncio.sleep(0.2)
-            except Exception as e:
-                self.report.append(f"⚠️ Failed to create role '{r_cfg['name']}': {e}")
-        self.report.append("✅ Created roles.")
+            for attempt in range(MAX_RETRIES):
+                try:
+                    color_obj = getattr(discord.Color, r_cfg["color"], discord.Color.default)()
+                    role = await self.guild.create_role(
+                        name=r_cfg["name"],
+                        color=color_obj,
+                        hoist=r_cfg["hoist"],
+                        mentionable=r_cfg["mentionable"],
+                        reason="833s Guardian Overhaul",
+                    )
+                    role_map[r_cfg["name"]] = role
+                    await asyncio.sleep(0.2)
+                    break
+                except discord.HTTPException as e:
+                    if attempt == MAX_RETRIES - 1:
+                        self.report.append(f"⚠️ Failed to create role '{r_cfg['name']}' after {MAX_RETRIES} attempts: {e}")
+                        break
+                    self.report.append(f"⚠️ Role '{r_cfg['name']}' creation failed (attempt {attempt + 1}), retrying...")
+                    await asyncio.sleep(RETRY_DELAY)
+        self.report.append(f"✅ Created {len(role_map)} roles.")
         return role_map
 
     async def _set_role_hierarchy(self) -> None:
@@ -189,7 +211,7 @@ class OverhaulExecutor:
         category = discord.utils.get(self.guild.categories, name="💬 Community")
         try:
             channel = await self.guild.create_text_channel(channel_name, category=category, reason="833s Guardian Overhaul")
-        except Exception as e:
+        except discord.HTTPException as e:
             self.report.append(f"⚠️ Failed to create reaction-roles channel: {e}")
             return
 
@@ -204,7 +226,12 @@ class OverhaulExecutor:
             role = discord.utils.get(self.guild.roles, name=role_name)
             if role:
                 embed.add_field(name=role_name, value=f"Click the button to get {role.mention}.", inline=False)
-        msg = await channel.send(embed=embed, view=view)
+        try:
+            msg = await channel.send(embed=embed, view=view)
+        except discord.HTTPException as e:
+            self.report.append(f"⚠️ Failed to post reaction roles panel: {e}")
+            return
+
         # Store in DB for persistence
         try:
             await self.bot.rr_store.create(self.guild.id, channel.id, msg.id, embed.title, embed.description, max_values=1)  # type: ignore[attr-defined]
@@ -214,9 +241,9 @@ class OverhaulExecutor:
                     await self.bot.rr_store.add_option(self.guild.id, msg.id, role.id, role_name, None)  # type: ignore[attr-defined]
             # Re-attach persistent view
             self.bot.add_view(view, message_id=msg.id)  # type: ignore[attr-defined]
+            self.report.append("✅ Reaction roles panel created and persisted.")
         except Exception as e:
             self.report.append(f"⚠️ Failed to store reaction roles panel: {e}")
-        self.report.append("✅ Reaction roles panel created.")
 
     async def _configure_bot_modules(self) -> None:
         """Configure levels, starboard, and other bot modules."""
@@ -236,11 +263,13 @@ class OverhaulExecutor:
                 )
             )
             level_map = {"Bronze": 5, "Silver": 10, "Gold": 20, "Platinum": 35, "Diamond": 50}
+            rewards_added = 0
             for name, lvl in level_map.items():
                 role = discord.utils.get(self.guild.roles, name=name)
                 if role:
                     await self.bot.level_rewards_store.add(self.guild.id, lvl, role.id)  # type: ignore[attr-defined]
-            self.report.append("✅ Levels enabled and rewards synced.")
+                    rewards_added += 1
+            self.report.append(f"✅ Levels enabled and {rewards_added} level rewards synced.")
         except Exception as e:
             self.report.append(f"⚠️ Levels setup failed: {e}")
 

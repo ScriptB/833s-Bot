@@ -35,6 +35,38 @@ class ReactionRolesCog(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         await self._load_views()
+        # Also reattach our new overhaul reaction roles panels
+        await self._load_overhaul_views()
+
+    async def _load_overhaul_views(self) -> None:
+        """Load persistent reaction roles panels created by the overhaul system."""
+        for g in self.bot.guilds:  # type: ignore[attr-defined]
+            try:
+                # Find reaction-roles channel
+                channel = discord.utils.get(g.text_channels, name=self.bot.rr_store.get_config(g.id).reaction_roles_channel) if hasattr(self.bot.rr_store, "get_config") else None)  # type: ignore[attr-defined]
+                if not channel:
+                    continue
+                # Find the panel message
+                panels = await self.bot.rr_store.list_panels(g.id)  # type: ignore[attr-defined]
+                for channel_id, message_id in panels:
+                    if channel_id != channel.id:
+                        continue
+                    data = await self.bot.rr_store.get_panel(g.id, int(message_id))  # type: ignore[attr-defined]
+                    if not data:
+                        continue
+                    panel, options = data
+                    _ch, title, description, max_values = panel
+                    # Check if this is an overhaul panel (has our standard title)
+                    if title == "Self-Assignable Roles":
+                        # Reattach our persistent view
+                        from ..ui.overhaul_executor import ReactionRolesView
+                        view = ReactionRolesView(g, {})
+                        self.bot.add_view(view, message_id=int(message_id))  # type: ignore[attr-defined]
+                        self.bot.logger.info(f"Reattached overhaul reaction roles panel in {g.name}")
+                        break
+            except Exception as e:
+                self.bot.logger.warning(f"Failed to load overhaul views for {g.name}: {e}")
+        await self._load_views()
 
     @app_commands.command(name="rr_panel_create", description="Create a reaction-role select panel.")
     @app_commands.checks.has_permissions(manage_roles=True)
