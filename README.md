@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Discord](https://img.shields.io/badge/discord-833s%20Guardian-7289da.svg)](https://discord.gg/833s)
 
-A comprehensive Discord moderation and community management bot with advanced features, performance optimizations, and a modern architecture. Render Free ready with all configuration via Discord (slash commands + components).
+A comprehensive Discord moderation and community management bot with advanced features, performance optimizations, and a modern architecture. Render Free ready with all configuration via Discord (slash commands + components) and interactive server overhaul with real-time progress updates.
 
 ## 🚀 What's New in V1.3.6.2
 
@@ -14,6 +14,13 @@ A comprehensive Discord moderation and community management bot with advanced fe
 - **Database Optimization**: Applied SQLite optimizations including WAL mode, memory mapping (256MB), and connection pooling
 - **Performance Monitoring**: Added comprehensive performance tracking with command timing and health metrics
 - **Enhanced Error Handling**: Centralized error handling with automatic recovery and retry logic
+
+### **Interactive Server Overhaul**
+- **Visual Button Interface**: Easy-to-use interactive UI with customization options
+- **Real-Time Progress Updates**: Progress sent directly to command user with visual progress bar
+- **Full Customization**: Toggle features like leveling system, reaction roles, welcome system, VIP lounge
+- **Safety Features**: Multiple confirmation steps, staff role preservation, and backup warnings
+- **Dynamic Server Structure**: Channels and categories created based on selected features
 
 ### **Developer Experience**
 - **Type Safety**: Full type annotations throughout the codebase
@@ -83,7 +90,8 @@ A comprehensive Discord moderation and community management bot with advanced fe
 - `/remind_cancel` - Cancel a reminder
 
 ### **Administration**
-- `/guardian_overhaul` - Complete server overhaul (admin)
+- `/overhaul` - Interactive server overhaul with customizable options and real-time progress (admin)
+- `/guardian_overhaul` - Original server overhaul with interactive configuration UI (admin)
 - `/guardian_setup` - Initial server setup (admin)
 - `/health` - Check bot health (owner)
 - `/stats` - View performance statistics (owner)
