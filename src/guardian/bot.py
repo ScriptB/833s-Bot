@@ -7,6 +7,9 @@ import aiosqlite
 from discord.ext import commands
 
 from .config import Settings
+from .constants import CACHE_TTL_SECONDS
+from .database import initialize_database
+from .error_handlers import setup_error_handlers
 from .services.task_queue import QueuePolicy, TaskQueue
 from .services.guild_store import GuildStore
 from .services.stats import RuntimeStats
@@ -95,73 +98,78 @@ class GuardianBot(commands.Bot):
             stats=self.stats,
         )
 
-        self.guild_store = GuildStore(settings.sqlite_path, settings.cache_default_ttl_seconds)
-        self.warnings_store = WarningsStore(settings.sqlite_path)
-        self.levels_store = LevelsStore(settings.sqlite_path)
-        self.levels_config_store = LevelsConfigStore(settings.sqlite_path)
-        self.levels_ledger_store = LevelsLedgerStore(settings.sqlite_path)
-        self.level_rewards_store = LevelRewardsStore(settings.sqlite_path)
-        self.reminders_store = RemindersStore(settings.sqlite_path)
-        self.starboard_store = StarboardStore(settings.sqlite_path)
-        self.rr_store = ReactionRolesStore(settings.sqlite_path)
-        self.giveaways_store = GiveawaysStore(settings.sqlite_path)
-        self.economy_store = EconomyStore(settings.sqlite_path)
-        self.achievements_store = AchievementsStore(settings.sqlite_path)
-        self.server_config_store = ServerConfigStore(settings.sqlite_path)
-        self.snapshot_store = SnapshotStore(settings.sqlite_path)
-        self.onboarding_store = OnboardingStore(settings.sqlite_path)
+        # Initialize all stores with centralized cache TTL
+        cache_ttl = settings.cache_default_ttl_seconds or CACHE_TTL_SECONDS
+        
+        self.guild_store = GuildStore(settings.sqlite_path, cache_ttl)
+        self.warnings_store = WarningsStore(settings.sqlite_path, cache_ttl)
+        self.levels_store = LevelsStore(settings.sqlite_path, cache_ttl)
+        self.levels_config_store = LevelsConfigStore(settings.sqlite_path, cache_ttl)
+        self.levels_ledger_store = LevelsLedgerStore(settings.sqlite_path, cache_ttl)
+        self.level_rewards_store = LevelRewardsStore(settings.sqlite_path, cache_ttl)
+        self.reminders_store = RemindersStore(settings.sqlite_path, cache_ttl)
+        self.starboard_store = StarboardStore(settings.sqlite_path, cache_ttl)
+        self.rr_store = ReactionRolesStore(settings.sqlite_path, cache_ttl)
+        self.giveaways_store = GiveawaysStore(settings.sqlite_path, cache_ttl)
+        self.economy_store = EconomyStore(settings.sqlite_path, cache_ttl)
+        self.achievements_store = AchievementsStore(settings.sqlite_path, cache_ttl)
+        self.server_config_store = ServerConfigStore(settings.sqlite_path, cache_ttl)
+        self.snapshot_store = SnapshotStore(settings.sqlite_path, cache_ttl)
+        self.onboarding_store = OnboardingStore(settings.sqlite_path, cache_ttl)
+        self.cases_store = CasesStore(settings.sqlite_path, cache_ttl)
+        self.reputation_store = ReputationStore(settings.sqlite_path, cache_ttl)
+        self.suggestions_store = SuggestionsStore(settings.sqlite_path, cache_ttl)
+        self.ambient_store = AmbientStore(settings.sqlite_path, cache_ttl)
+        self.profiles_store = ProfilesStore(settings.sqlite_path, cache_ttl)
+        self.titles_store = TitlesStore(settings.sqlite_path, cache_ttl)
+        self.prompts_store = PromptsStore(settings.sqlite_path, cache_ttl)
+        self.events_store = EventsStore(settings.sqlite_path, cache_ttl)
+        self.community_memory_store = CommunityMemoryStore(settings.sqlite_path, cache_ttl)
+        
+        # Initialize bot-specific services
         self.drift_verifier = DriftVerifier(self)
         self._sync_mgr = _CommandSyncManager(self)
-        self.cases_store = CasesStore(settings.sqlite_path)
-        self.reputation_store = ReputationStore(settings.sqlite_path)
-        self.suggestions_store = SuggestionsStore(settings.sqlite_path)
-        self.ambient_store = AmbientStore(settings.sqlite_path)
-        self.profiles_store = ProfilesStore(settings.sqlite_path)
-        self.titles_store = TitlesStore(settings.sqlite_path)
-        self.prompts_store = PromptsStore(settings.sqlite_path)
-        self.events_store = EventsStore(settings.sqlite_path)
-        self.community_memory_store = CommunityMemoryStore(settings.sqlite_path)
         self.channel_bootstrapper = ChannelBootstrapper(self)
         self.status_reporter = StatusReporter(self)
         self.guild_logger = GuildLogger(self)
 
     async def setup_hook(self) -> None:
-        try:
-            async with aiosqlite.connect(self.settings.sqlite_path) as db:
-                await db.execute("PRAGMA journal_mode=WAL")
-                await db.execute("PRAGMA synchronous=NORMAL")
-                await db.execute("PRAGMA foreign_keys=ON")
-                await db.commit()
-            log.info("SQLite pragmas applied (journal_mode=WAL)")
-        except Exception:
-            log.exception("Failed to apply SQLite pragmas")
-
-        await self.guild_store.init()
-        await self.warnings_store.init()
-        await self.levels_store.init()
-        await self.levels_config_store.init()
-        await self.levels_ledger_store.init()
-        await self.level_rewards_store.init()
-        await self.reminders_store.init()
-        await self.starboard_store.init()
-        await self.rr_store.init()
-        await self.giveaways_store.init()
-        await self.economy_store.init()
-        await self.achievements_store.init()
-        await self.server_config_store.init()
-        await self.snapshot_store.init()
-        await self.onboarding_store.init()
-        await self.cases_store.init()
-        await self.reputation_store.init()
-        await self.suggestions_store.init()
-        await self.ambient_store.init()
-        await self.profiles_store.init()
-        await self.titles_store.init()
-        await self.prompts_store.init()
-        await self.events_store.init()
-        await self.community_memory_store.init()
+        # Initialize all stores with centralized database initialization
+        stores = [
+            self.guild_store,
+            self.warnings_store,
+            self.levels_store,
+            self.levels_config_store,
+            self.levels_ledger_store,
+            self.level_rewards_store,
+            self.reminders_store,
+            self.starboard_store,
+            self.rr_store,
+            self.giveaways_store,
+            self.economy_store,
+            self.achievements_store,
+            self.server_config_store,
+            self.snapshot_store,
+            self.onboarding_store,
+            self.cases_store,
+            self.reputation_store,
+            self.suggestions_store,
+            self.ambient_store,
+            self.profiles_store,
+            self.titles_store,
+            self.prompts_store,
+            self.events_store,
+            self.community_memory_store,
+        ]
+        
+        await initialize_database(self.settings.sqlite_path, stores)
+        
+        # Start background services
         self.drift_verifier.start()
         self.task_queue.start()
+        
+        # Setup error handlers
+        await setup_error_handlers(self)
 
         loaded: list[str] = []
         failed: list[str] = []

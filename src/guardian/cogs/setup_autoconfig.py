@@ -8,25 +8,8 @@ from discord import app_commands
 from discord.ext import commands
 
 from ..ui.overhaul_setup import OverhaulSetupView
-
-
-def _p(*, view: bool, send: bool, history: bool = True, reactions: bool = True, threads: bool = True) -> discord.PermissionOverwrite:
-    return discord.PermissionOverwrite(
-        view_channel=view,
-        send_messages=send,
-        read_message_history=history,
-        add_reactions=reactions,
-        create_public_threads=threads,
-        create_private_threads=threads,
-        send_messages_in_threads=send,
-    )
-
-
-def _safe_embed(title: str, description: str) -> discord.Embed:
-    # hard limit safety
-    if len(description) > 4000:
-        description = description[:3990] + "…"
-    return discord.Embed(title=title, description=description)
+from ..utils import safe_embed, permission_overwrite, get_confirmation
+from ..constants import DEFAULT_TIMEOUT_SECONDS, COLORS
 
 
 class SetupAutoConfigCog(commands.Cog):

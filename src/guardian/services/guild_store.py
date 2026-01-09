@@ -5,7 +5,7 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
-from .cache import TTLCache
+from .base import BaseService
 
 log = logging.getLogger("guardian.guild_store")
 
@@ -22,31 +22,45 @@ class GuildConfig:
     anti_spam_timeout_seconds: int
 
 
-class GuildStore:
+class GuildStore(BaseService[GuildConfig]):
     """SQLite-backed per-guild configuration with a TTL cache front.
 
     Includes basic schema migration to keep deployments painless.
     """
 
-    def __init__(self, sqlite_path: str, cache_ttl_seconds: int) -> None:
-        self._path = sqlite_path
-        self._cache: TTLCache[int, GuildConfig] = TTLCache(default_ttl_seconds=cache_ttl_seconds)
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS guild_config (
+              guild_id INTEGER PRIMARY KEY,
+              welcome_channel_id INTEGER,
+              autorole_id INTEGER,
+              log_channel_id INTEGER,
+              anti_spam_max_msgs INTEGER NOT NULL DEFAULT 5,
+              anti_spam_window_seconds INTEGER NOT NULL DEFAULT 10,
+              anti_spam_timeout_seconds INTEGER NOT NULL DEFAULT 60
+            )
+            """
+        )
+
+    def _from_row(self, row: aiosqlite.Row) -> GuildConfig:
+        return GuildConfig(
+            guild_id=row["guild_id"],
+            welcome_channel_id=row["welcome_channel_id"],
+            autorole_id=row["autorole_id"],
+            log_channel_id=row["log_channel_id"],
+            anti_spam_max_msgs=row["anti_spam_max_msgs"],
+            anti_spam_window_seconds=row["anti_spam_window_seconds"],
+            anti_spam_timeout_seconds=row["anti_spam_timeout_seconds"],
+        )
+
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM guild_config WHERE guild_id = ?"
 
     async def init(self) -> None:
         async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS guild_config (
-                  guild_id INTEGER PRIMARY KEY,
-                  welcome_channel_id INTEGER NULL,
-                  autorole_id INTEGER NULL,
-                  log_channel_id INTEGER NULL,
-                  anti_spam_max_msgs INTEGER NOT NULL DEFAULT 6,
-                  anti_spam_window_seconds INTEGER NOT NULL DEFAULT 5,
-                  anti_spam_timeout_seconds INTEGER NOT NULL DEFAULT 30
-                )
-                """
-            )
+            await self._create_tables(db)
 
             # Best-effort migrations for older databases
             cols = await self._get_columns(db, "guild_config")
@@ -75,14 +89,7 @@ class GuildStore:
             return cached
 
         async with aiosqlite.connect(self._path) as db:
-            async with db.execute(
-                """
-                SELECT welcome_channel_id, autorole_id, log_channel_id,
-                       anti_spam_max_msgs, anti_spam_window_seconds, anti_spam_timeout_seconds
-                FROM guild_config WHERE guild_id = ?
-                """,
-                (guild_id,),
-            ) as cur:
+            async with db.execute(self._get_query, (guild_id,)) as cur:
                 row = await cur.fetchone()
 
         if row is None:
@@ -98,15 +105,7 @@ class GuildStore:
             await self.upsert(cfg)
             return cfg
 
-        cfg = GuildConfig(
-            guild_id=guild_id,
-            welcome_channel_id=row[0],
-            autorole_id=row[1],
-            log_channel_id=row[2],
-            anti_spam_max_msgs=int(row[3]),
-            anti_spam_window_seconds=int(row[4]),
-            anti_spam_timeout_seconds=int(row[5]),
-        )
+        cfg = self._from_row(row)
         self._cache.set(guild_id, cfg)
         return cfg
 

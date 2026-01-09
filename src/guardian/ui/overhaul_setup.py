@@ -9,14 +9,16 @@ from discord import ui
 from discord.ui import Button, Select, TextInput
 from discord.ext import commands
 
-from ..services.discord_safety import safe_defer, safe_followup
+from ..services.discord_safety import safe_defer
+from ..utils import safe_followup, safe_response, get_confirmation, error_embed, success_embed
+from ..constants import LONG_TIMEOUT_SECONDS, COLORS
 
 
 class OverhaulSetupView(ui.View):
     """Interactive UI for configuring and executing a full server overhaul."""
 
     def __init__(self, cog: commands.Cog, guild: discord.Guild) -> None:
-        super().__init__(timeout=600.0)
+        super().__init__(timeout=LONG_TIMEOUT_SECONDS)
         self.cog = cog
         self.guild = guild
         self.config: dict[str, Any] = {
