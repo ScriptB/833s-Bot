@@ -1,12 +1,12 @@
-# 833's Guardian Bot V1.3.6.2
+# 833s Guardian V1.4.0.0
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Discord](https://img.shields.io/badge/discord-833s%20Guardian-7289da.svg)](https://discord.gg/833s)
 
-A comprehensive Discord moderation and community management bot with advanced features, performance optimizations, and a modern architecture. Render Free ready with all configuration via Discord (slash commands + components) and interactive server overhaul with real-time progress updates.
+A comprehensive Discord moderation and community management system with advanced features, performance optimizations, and a modern architecture. Render Free ready with all configuration via Discord (slash commands + components) and interactive server overhaul with real-time progress updates.
 
-## 🚀 What's New in V1.3.6.2
+## 🚀 What's New in V1.4.0.0
 
 ### **Major Restructuring & Performance**
 - **Base Service Architecture**: Implemented unified `BaseService` class for all SQLite-backed services
@@ -167,7 +167,7 @@ docker run -d \
 
 ## 🔄 Updating from Previous Versions
 
-### **From V1.3.6.1**
+### **From V1.3.6.2**
 ```bash
 # Backup your database
 cp data/guardian.db data/guardian.db.backup
@@ -252,4 +252,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**833s Guardian Bot V1.3.6.2** - Enhanced stability, performance, and maintainability. 🛡️
+**833s Guardian V1.4.0.0** - Interactive server overhaul with real-time progress updates. 🚀
