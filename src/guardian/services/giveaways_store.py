@@ -3,30 +3,38 @@ from __future__ import annotations
 import aiosqlite
 import json
 
+from .base import BaseService
 
-class GiveawaysStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS giveaways (
-                    guild_id INTEGER NOT NULL,
-                    channel_id INTEGER NOT NULL,
-                    message_id INTEGER NOT NULL,
-                    ends_ts INTEGER NOT NULL,
-                    winners INTEGER NOT NULL,
-                    prize TEXT NOT NULL,
-                    entries_json TEXT NOT NULL DEFAULT '[]',
-                    ended INTEGER NOT NULL DEFAULT 0,
-                    PRIMARY KEY (guild_id, message_id)
-                )
-                """
+class GiveawaysStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
+
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS giveaways (
+                guild_id INTEGER NOT NULL,
+                channel_id INTEGER NOT NULL,
+                message_id INTEGER NOT NULL,
+                ends_ts INTEGER NOT NULL,
+                winners INTEGER NOT NULL,
+                prize TEXT NOT NULL,
+                entries_json TEXT NOT NULL DEFAULT '[]',
+                ended INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, message_id)
             )
-            await db.execute("CREATE INDEX IF NOT EXISTS idx_giveaways_ends ON giveaways(ends_ts)")
-            await db.commit()
+            """
+        )
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_giveaways_ends ON giveaways(ends_ts)")
+    
+    def _from_row(self, row: aiosqlite.Row) -> None:
+        # Giveaways don't need a specific data class for now
+        return None
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM giveaways WHERE guild_id = ? AND message_id = ?"
 
     async def create(self, guild_id: int, channel_id: int, message_id: int, ends_ts: int, winners: int, prize: str) -> None:
         async with aiosqlite.connect(self._path) as db:

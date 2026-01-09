@@ -3,8 +3,10 @@ from __future__ import annotations
 import time
 import aiosqlite
 
+from .base import BaseService
 
-class EconomyStore:
+
+class EconomyStore(BaseService):
     """SQLite-backed wallet + ledger with cooldown utilities.
 
     Tables:
@@ -12,42 +14,53 @@ class EconomyStore:
       - economy_ledger: immutable transaction history
     """
 
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
 
     async def init(self) -> None:
         async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS economy_wallet (
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    balance INTEGER NOT NULL DEFAULT 0,
-                    daily_streak INTEGER NOT NULL DEFAULT 0,
-                    daily_last_at INTEGER NOT NULL DEFAULT 0,
-                    work_last_at INTEGER NOT NULL DEFAULT 0,
-                    created_at INTEGER NOT NULL DEFAULT 0,
-                    updated_at INTEGER NOT NULL DEFAULT 0,
-                    PRIMARY KEY (guild_id, user_id)
-                )
-                """
-            )
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS economy_ledger (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    amount INTEGER NOT NULL,
-                    reason TEXT NOT NULL,
-                    meta TEXT NOT NULL DEFAULT '',
-                    created_at INTEGER NOT NULL
-                )
-                """
-            )
-            await db.execute("CREATE INDEX IF NOT EXISTS idx_econ_ledger_g_u ON economy_ledger (guild_id, user_id, created_at)")
-            await db.execute("CREATE INDEX IF NOT EXISTS idx_econ_wallet_g_b ON economy_wallet (guild_id, balance)")
+            await self._create_tables(db)
             await db.commit()
+
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS economy_wallet (
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                balance INTEGER NOT NULL DEFAULT 0,
+                daily_streak INTEGER NOT NULL DEFAULT 0,
+                daily_last_at INTEGER NOT NULL DEFAULT 0,
+                work_last_at INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id)
+            )
+            """
+        )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS economy_ledger (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                amount INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                meta TEXT NOT NULL DEFAULT '',
+                created_at INTEGER NOT NULL
+            )
+            """
+        )
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_econ_ledger_g_u ON economy_ledger (guild_id, user_id, created_at)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_econ_wallet_g_b ON economy_wallet (guild_id, balance)")
+
+    def _from_row(self, row: aiosqlite.Row) -> None:
+        # Economy don't need a specific data class for now
+        return None
+
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM economy_wallet WHERE guild_id = ? AND user_id = ?"
 
     async def _ensure_row(self, db: aiosqlite.Connection, guild_id: int, user_id: int) -> None:
         now = int(time.time())

@@ -11,21 +11,27 @@ class LevelsLedgerStore(BaseService):
     def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
         super().__init__(sqlite_path, cache_ttl)
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS xp_ledger (
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    day TEXT NOT NULL,
-                    xp INTEGER NOT NULL DEFAULT 0,
-                    PRIMARY KEY (guild_id, user_id, day)
-                )
-                """
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS xp_ledger (
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                day TEXT NOT NULL,
+                xp INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id, day)
             )
-            await db.execute("CREATE INDEX IF NOT EXISTS idx_xp_ledger_guild_day ON xp_ledger(guild_id, day)")
-            await db.commit()
+            """
+        )
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_xp_ledger_guild_day ON xp_ledger(guild_id, day)")
+    
+    def _from_row(self, row: aiosqlite.Row) -> None:
+        # XP ledger don't need a specific data class for now
+        return None
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM xp_ledger WHERE guild_id = ? AND user_id = ? AND day = ?"
 
     async def add_for_today(self, guild_id: int, user_id: int, amount: int) -> int:
         today = date.today().isoformat()

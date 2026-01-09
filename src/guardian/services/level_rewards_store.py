@@ -2,25 +2,33 @@ from __future__ import annotations
 
 import aiosqlite
 
+from .base import BaseService
 
-class LevelRewardsStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS level_rewards (
-                    guild_id INTEGER NOT NULL,
-                    level INTEGER NOT NULL,
-                    role_id INTEGER NOT NULL,
-                    PRIMARY KEY (guild_id, level, role_id)
-                )
-                """
+class LevelRewardsStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
+
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS level_rewards (
+                guild_id INTEGER NOT NULL,
+                level INTEGER NOT NULL,
+                role_id INTEGER NOT NULL,
+                PRIMARY KEY (guild_id, level, role_id)
             )
-            await db.execute("CREATE INDEX IF NOT EXISTS idx_level_rewards_guild_level ON level_rewards(guild_id, level)")
-            await db.commit()
+            """
+        )
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_level_rewards_guild_level ON level_rewards(guild_id, level)")
+    
+    def _from_row(self, row: aiosqlite.Row) -> None:
+        # Level rewards don't need a specific data class for now
+        return None
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM level_rewards WHERE guild_id = ? AND level = ?"
 
     async def add(self, guild_id: int, level: int, role_id: int) -> None:
         async with aiosqlite.connect(self._path) as db:
