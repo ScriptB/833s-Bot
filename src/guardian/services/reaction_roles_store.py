@@ -2,39 +2,47 @@ from __future__ import annotations
 
 import aiosqlite
 
+from .base import BaseService
 
-class ReactionRolesStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS rr_panels (
-                    guild_id INTEGER NOT NULL,
-                    channel_id INTEGER NOT NULL,
-                    message_id INTEGER NOT NULL,
-                    title TEXT NOT NULL,
-                    description TEXT NOT NULL,
-                    max_values INTEGER NOT NULL DEFAULT 1,
-                    PRIMARY KEY (guild_id, message_id)
-                )
-                """
+class ReactionRolesStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
+
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS rr_panels (
+                guild_id INTEGER NOT NULL,
+                channel_id INTEGER NOT NULL,
+                message_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                max_values INTEGER NOT NULL DEFAULT 1,
+                PRIMARY KEY (guild_id, message_id)
             )
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS rr_options (
-                    guild_id INTEGER NOT NULL,
-                    message_id INTEGER NOT NULL,
-                    role_id INTEGER NOT NULL,
-                    label TEXT NOT NULL,
-                    emoji TEXT NULL,
-                    PRIMARY KEY (guild_id, message_id, role_id)
-                )
-                """
+            """
+        )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS rr_options (
+                guild_id INTEGER NOT NULL,
+                message_id INTEGER NOT NULL,
+                role_id INTEGER NOT NULL,
+                label TEXT NOT NULL,
+                emoji TEXT NULL,
+                PRIMARY KEY (guild_id, message_id, role_id)
             )
-            await db.commit()
+            """
+        )
+    
+    def _from_row(self, row: aiosqlite.Row) -> None:
+        # Reaction roles don't need a specific data class for now
+        return None
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM rr_panels WHERE guild_id = ?"
 
     async def create_panel(self, guild_id: int, channel_id: int, message_id: int, title: str, description: str, max_values: int) -> None:
         async with aiosqlite.connect(self._path) as db:

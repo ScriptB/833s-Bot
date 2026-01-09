@@ -2,27 +2,35 @@ from __future__ import annotations
 
 import aiosqlite
 
+from .base import BaseService
 
-class RemindersStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS reminders (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    channel_id INTEGER NOT NULL,
-                    guild_id INTEGER NULL,
-                    due_ts INTEGER NOT NULL,
-                    message TEXT NOT NULL
-                )
-                """
+class RemindersStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
+
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS reminders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                channel_id INTEGER NOT NULL,
+                guild_id INTEGER NULL,
+                due_ts INTEGER NOT NULL,
+                message TEXT NOT NULL
             )
-            await db.execute("CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders(due_ts)")
-            await db.commit()
+            """
+        )
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders(due_ts)")
+    
+    def _from_row(self, row: aiosqlite.Row) -> None:
+        # Reminders don't need a specific data class for now
+        return None
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM reminders WHERE id = ?"
 
     async def add(self, user_id: int, channel_id: int, guild_id: int | None, due_ts: int, message: str) -> int:
         async with aiosqlite.connect(self._path) as db:
