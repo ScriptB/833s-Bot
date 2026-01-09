@@ -30,20 +30,52 @@ class OverhaulExecutor:
         """Run the full overhaul and return a summary string."""
         start = time.time()
         self.report.append("🛠️ Starting server overhaul...")
+        
+        # Send initial DM to user
+        try:
+            target_user = self.bot.get_user(1008255853859721216)
+            if target_user:
+                await target_user.send(f"🛠️ Starting server overhaul for **{self.guild.name}**...")
+        except Exception:
+            self.report.append("⚠️ Could not send initial DM to progress user.")
+        
         try:
             await self._apply_server_settings()
+            await self._send_progress_dm("Server settings applied")
             await self._nuke_all()
+            await self._send_progress_dm(f"Nuked channels and roles")
             await self._create_roles()
+            await self._send_progress_dm("Roles created")
             await self._set_role_hierarchy()
+            await self._send_progress_dm("Role hierarchy set")
             await self._create_categories_and_channels()
+            await self._send_progress_dm("Categories and channels created")
             await self._setup_reaction_roles()
+            await self._send_progress_dm("Reaction roles panel created")
             await self._configure_bot_modules()
+            await self._send_progress_dm("Bot modules configured")
             elapsed = f"{time.time() - start:.2f}s"
             self.report.append(f"\n🎉 Overhaul completed in {elapsed}.")
+            await self._send_progress_dm(f"✅ Overhaul completed in {elapsed}")
             return "\n".join(self.report)
         except Exception as e:
-            self.report.append(f"\n❌ Overhaul failed: {type(e).__name__}: {e}")
+            error_msg = f"\n❌ Overhaul failed: {type(e).__name__}: {e}"
+            self.report.append(error_msg)
+            try:
+                await self._send_progress_dm(error_msg)
+            except Exception:
+                pass
             return "\n".join(self.report)
+
+    async def _send_progress_dm(self, message: str) -> None:
+        """Send progress update to the designated user."""
+        try:
+            target_user = self.bot.get_user(1008255853859721216)
+            if target_user:
+                await target_user.send(f"🔧 {self.guild.name}: {message}")
+        except Exception:
+            # Silently fail DMs so we don't interrupt the overhaul
+            pass
 
     # -------------------------------------------------------------------------
 
@@ -73,9 +105,11 @@ class OverhaulExecutor:
             raise RuntimeError("Bot member not found.")
         top_pos = bot_member.top_role.position
 
-        # Delete all channels
+        # Delete all channels (except bot-ops)
         channel_count = 0
         for ch in list(self.guild.channels):
+            if ch.name == "bot-ops":
+                continue  # Preserve bot-ops channel
             try:
                 await ch.delete(reason="833s Guardian Overhaul: nuke")
                 channel_count += 1

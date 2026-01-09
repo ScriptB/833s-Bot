@@ -35,15 +35,13 @@ class ReactionRolesCog(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         await self._load_views()
-        # Also reattach our new overhaul reaction roles panels
-        await self._load_overhaul_views()
 
     async def _load_overhaul_views(self) -> None:
         """Load persistent reaction roles panels created by the overhaul system."""
         for g in self.bot.guilds:  # type: ignore[attr-defined]
             try:
                 # Find reaction-roles channel
-                channel = discord.utils.get(g.text_channels, name=self.bot.rr_store.get_config(g.id).reaction_roles_channel) if hasattr(self.bot.rr_store, "get_config") else None)  # type: ignore[attr-defined]
+                channel = discord.utils.get(g.text_channels, name="reaction-roles")
                 if not channel:
                     continue
                 # Find the panel message
@@ -66,7 +64,6 @@ class ReactionRolesCog(commands.Cog):
                         break
             except Exception as e:
                 self.bot.logger.warning(f"Failed to load overhaul views for {g.name}: {e}")
-        await self._load_views()
 
     @app_commands.command(name="rr_panel_create", description="Create a reaction-role select panel.")
     @app_commands.checks.has_permissions(manage_roles=True)

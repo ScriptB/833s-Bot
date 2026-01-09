@@ -5,7 +5,8 @@ import json
 from typing import Any
 
 import discord
-from discord import ui, Button, Select, TextInput
+from discord import ui
+from discord.ui import Button, Select, TextInput
 from discord.ext import commands
 
 from ..services.discord_safety import safe_defer, safe_followup
@@ -143,33 +144,23 @@ class OverhaulSetupView(ui.View):
 
 class ServerSettingsModal(ui.Modal, title="Server Settings"):
     server_name = TextInput(label="Server Name", default="833s")
-    verification_level = Select(
-        placeholder="Verification Level",
-        options=[
-            discord.SelectOption(label="None", value="none"),
-            discord.SelectOption(label="Low", value="low"),
-            discord.SelectOption(label="Medium", value="medium"),
-            discord.SelectOption(label="High", value="high"),
-            discord.SelectOption(label="Highest", value="highest"),
-        ],
+    verification_level = ui.TextInput(
+        label="Verification Level",
+        placeholder="Enter: none, low, medium, high, highest",
         default="high",
+        max_length=10,
     )
-    default_notifications = Select(
-        placeholder="Default Notifications",
-        options=[
-            discord.SelectOption(label="All Messages", value="all_messages"),
-            discord.SelectOption(label="Only @mentions", value="only_mentions"),
-        ],
+    default_notifications = ui.TextInput(
+        label="Default Notifications",
+        placeholder="Enter: all_messages or only_mentions",
         default="only_mentions",
+        max_length=20,
     )
-    content_filter = Select(
-        placeholder="Content Filter",
-        options=[
-            discord.SelectOption(label="Disabled", value="disabled"),
-            discord.SelectOption(label="Members without roles", value="members_without_roles"),
-            discord.SelectOption(label="All members", value="all_members"),
-        ],
+    content_filter = ui.TextInput(
+        label="Content Filter",
+        placeholder="Enter: disabled, members_without_roles, all_members",
         default="all_members",
+        max_length=25,
     )
 
     def __init__(self, config: dict[str, Any]) -> None:
@@ -183,9 +174,16 @@ class ServerSettingsModal(ui.Modal, title="Server Settings"):
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         self.config["server_name"] = self.server_name.value
-        self.config["verification_level"] = self.verification_level.values[0]
-        self.config["default_notifications"] = self.default_notifications.values[0]
-        self.config["content_filter"] = self.content_filter.values[0]
+        # Validate and convert text inputs to proper values
+        vl = self.verification_level.value.strip().lower()
+        self.config["verification_level"] = vl if vl in {"none", "low", "medium", "high", "highest"} else "high"
+        
+        dn = self.default_notifications.value.strip().lower()
+        self.config["default_notifications"] = dn if dn in {"all_messages", "only_mentions"} else "only_mentions"
+        
+        cf = self.content_filter.value.strip().lower()
+        self.config["content_filter"] = cf if cf in {"disabled", "members_without_roles", "all_members"} else "all_members"
+        
         self.saved = True
         await interaction.response.send_message("Saved.", ephemeral=True)
 
@@ -237,9 +235,13 @@ class RoleListView(ui.View):
     def __init__(self, config: dict[str, Any]) -> None:
         super().__init__(timeout=300.0)
         self.config = config
-
-    @ui.select(placeholder="Edit a role", options=[discord.SelectOption(label=r["name"], description=r["name"]) for r in config["roles"]])
-    async def edit_role(self, interaction: discord.Interaction, select: Select) -> None:
+        # Create select with options from config
+        self.edit_role_select = ui.Select(
+            placeholder="Edit a role",
+            options=[discord.SelectOption(label=r["name"], description=r["name"]) for r in config["roles"]]
+        )
+        self.add_item(self.edit_role_select)
+    async def edit_role(self, interaction: discord.Interaction, select: ui.Select) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         role_name = select.values[0]
         role_cfg = next(r for r in self.config["roles"] if r["name"] == role_name)
@@ -281,9 +283,13 @@ class CategoryListView(ui.View):
     def __init__(self, config: dict[str, Any]) -> None:
         super().__init__(timeout=300.0)
         self.config = config
-
-    @ui.select(placeholder="Edit a category", options=[discord.SelectOption(label=cat["name"], description=cat["name"]) for cat in config["categories"]])
-    async def edit_category(self, interaction: discord.Interaction, select: Select) -> None:
+        # Create select with options from config
+        self.edit_category_select = ui.Select(
+            placeholder="Edit a category",
+            options=[discord.SelectOption(label=cat["name"], description=cat["name"]) for cat in config["categories"]]
+        )
+        self.add_item(self.edit_category_select)
+    async def edit_category(self, interaction: discord.Interaction, select: ui.Select) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         cat_name = select.values[0]
         cat_cfg = next(c for c in self.config["categories"] if c["name"] == cat_name)
