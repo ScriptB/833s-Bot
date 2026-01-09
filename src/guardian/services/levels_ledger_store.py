@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-import aiosqlite
 from datetime import date
 
+import aiosqlite
 
-class LevelsLedgerStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+from .base import BaseService
+
+
+class LevelsLedgerStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
 
     async def init(self) -> None:
         async with aiosqlite.connect(self._path) as db:

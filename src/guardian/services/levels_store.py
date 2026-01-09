@@ -2,31 +2,39 @@ from __future__ import annotations
 
 import aiosqlite
 
+from .base import BaseService
 
-class LevelsStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS levels (
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    total_xp INTEGER NOT NULL DEFAULT 0,
-                    xp INTEGER NOT NULL DEFAULT 0,
-                    level INTEGER NOT NULL DEFAULT 0,
-                    PRIMARY KEY (guild_id, user_id)
-                )
-                """
+class LevelsStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
+
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS levels (
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                total_xp INTEGER NOT NULL DEFAULT 0,
+                xp INTEGER NOT NULL DEFAULT 0,
+                level INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id)
             )
-            # best-effort migration from older schema without total_xp
-            async with db.execute("PRAGMA table_info(levels)") as cur:
-                cols = {r[1] for r in await cur.fetchall()}
-            if "total_xp" not in cols:
-                await db.execute("ALTER TABLE levels ADD COLUMN total_xp INTEGER NOT NULL DEFAULT 0")
-            await db.commit()
+            """
+        )
+        # best-effort migration from older schema without total_xp
+        async with db.execute("PRAGMA table_info(levels)") as cur:
+            cols = {r[1] for r in await cur.fetchall()}
+        if "total_xp" not in cols:
+            await db.execute("ALTER TABLE levels ADD COLUMN total_xp INTEGER NOT NULL DEFAULT 0")
+    
+    def _from_row(self, row: aiosqlite.Row) -> None:
+        # Levels don't need a specific data class for now
+        return None
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM levels WHERE guild_id = ? AND user_id = ?"
 
     @staticmethod
     def xp_for_next(level: int) -> int:
