@@ -1,4 +1,4 @@
-# 833s Guardian V1.4.0.0
+# 833s Guardian V1.4.0.1
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -6,7 +6,7 @@
 
 A comprehensive Discord moderation and community management system with advanced features, performance optimizations, and a modern architecture. Render Free ready with all configuration via Discord (slash commands + components) and interactive server overhaul with real-time progress updates.
 
-## 🚀 What's New in V1.4.0.0
+## 🚀 What's New in V1.4.0.1
 
 ### **Major Restructuring & Performance**
 - **Base Service Architecture**: Implemented unified `BaseService` class for all SQLite-backed services
@@ -29,6 +29,9 @@ A comprehensive Discord moderation and community management system with advanced
 - **Configuration Validation**: Comprehensive validation system for server configurations
 
 ### **Critical Bug Fixes**
+- **Store Initialization Errors**: Fixed `TypeError` in WarningsStore, RemindersStore, and ReactionRolesStore constructors
+- **BaseService Integration**: Updated all stores to properly inherit from BaseService architecture
+- **Bot Startup Issues**: Resolved initialization failures preventing bot from starting
 - **NameError Resolution**: Fixed `config` not defined errors in UI components
 - **Import Issues**: Resolved circular import problems in services
 - **Memory Leaks**: Fixed memory leaks in long-running operations
@@ -167,7 +170,7 @@ docker run -d \
 
 ## 🔄 Updating from Previous Versions
 
-### **From V1.3.6.2**
+### **From V1.4.0.0**
 ```bash
 # Backup your database
 cp data/guardian.db data/guardian.db.backup
@@ -252,4 +255,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**833s Guardian V1.4.0.0** - Interactive server overhaul with real-time progress updates. 🚀
+**833s Guardian V1.4.0.1** - Interactive server overhaul with real-time progress updates and critical bug fixes. 🚀
