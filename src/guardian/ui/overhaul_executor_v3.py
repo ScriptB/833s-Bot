@@ -161,7 +161,7 @@ class OverhaulExecutorV3:
         await self.guild.edit(
             verification_level=discord.VerificationLevel.high,
             default_notifications=discord.NotificationLevel.only_mentions,
-            explicit_content_filter=discord.ExplicitContentFilter.all_members,
+            explicit_content_filter=discord.ContentFilter.all_members,
             reason="833s Guardian Overhaul V3"
         )
     
