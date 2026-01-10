@@ -204,30 +204,30 @@ class OverhaulExecutorV2:
         # Main categories
         categories_config = [
             {
-                "name": "📢 INFORMATION",
+                "name": "INFORMATION",
                 "channels": [
-                    {"name": "📋-rules", "type": "text", "permissions": {"@everyone": "read_only"}},
-                    {"name": "📢-announcements", "type": "text", "permissions": {"@everyone": "read_only", "VIP": "full"}},
-                    {"name": "🎉-events", "type": "text", "permissions": {"@everyone": "read_only", "VIP": "full"}},
+                    {"name": "rules", "type": "text", "permissions": {"@everyone": "read_only"}},
+                    {"name": "announcements", "type": "text", "permissions": {"@everyone": "read_only", "VIP": "full"}},
+                    {"name": "events", "type": "text", "permissions": {"@everyone": "read_only", "VIP": "full"}},
                 ]
             },
             {
-                "name": "💬 GENERAL",
+                "name": "GENERAL",
                 "channels": [
-                    {"name": "💬-general", "type": "text", "permissions": {"Bronze": "full"}},
-                    {"name": "🤖-commands", "type": "text", "permissions": {"@everyone": "full"}},
-                    {"name": "📷-media", "type": "text", "permissions": {"Silver": "full"}},
+                    {"name": "general", "type": "text", "permissions": {"Bronze": "full"}},
+                    {"name": "commands", "type": "text", "permissions": {"@everyone": "full"}},
+                    {"name": "media", "type": "text", "permissions": {"Silver": "full"}},
                 ]
             },
             {
-                "name": "🎮 GAMING",
+                "name": "GAMING",
                 "channels": [
-                    {"name": "🎮-gaming", "type": "text", "permissions": {"Gold": "full"}},
-                    {"name": "🏆-tournaments", "type": "text", "permissions": {"Platinum": "full"}},
+                    {"name": "gaming", "type": "text", "permissions": {"Gold": "full"}},
+                    {"name": "tournaments", "type": "text", "permissions": {"Platinum": "full"}},
                 ]
             },
             {
-                "name": "🔊 VOICE",
+                "name": "VOICE",
                 "channels": [
                     {"name": "General", "type": "voice", "permissions": {"Bronze": "full"}},
                     {"name": "Gaming", "type": "voice", "permissions": {"Gold": "full"}},
@@ -301,31 +301,31 @@ class OverhaulExecutorV2:
     async def _setup_reaction_roles(self) -> None:
         """Setup reaction roles panel."""
         # Find or create reaction roles channel
-        channel = discord.utils.get(self.guild.text_channels, name="🎭-reaction-roles")
+        channel = discord.utils.get(self.guild.text_channels, name="reaction-roles")
         if not channel:
-            category = discord.utils.get(self.guild.categories, name="💬 GENERAL")
+            category = discord.utils.get(self.guild.categories, name="GENERAL")
             channel = await category.create_text_channel(
-                name="🎭-reaction-roles",
+                name="reaction-roles",
                 reason="833s Guardian Overhaul V2"
             )
         
         # Create reaction roles message
         embed = discord.Embed(
-            title="🎭 Reaction Roles",
+            title="Reaction Roles",
             description="React to get roles!",
             color=COLORS["info"]
         )
         
-        embed.add_field(name="🔔 Notifications", value="🔵 Announcements\n🟴 Giveaways\n🟣 Events", inline=True)
-        embed.add_field(name="🎮 Gaming", value="🎮 Gaming\n🏆 Tournaments", inline=True)
-        embed.add_field(name="💬 Social", value="💬 General\n📷 Media", inline=True)
+        embed.add_field(name="Notifications", value="Announcements\nGiveaways\nEvents", inline=True)
+        embed.add_field(name="Gaming", value="Gaming\nTournaments", inline=True)
+        embed.add_field(name="Social", value="General\nMedia", inline=True)
         
         embed.set_footer(text="React with emojis to get corresponding roles")
         
         message = await channel.send(embed=embed)
         
         # Add reactions
-        reactions = ["🔵", "🟴", "🟣", "🎮", "🏆", "💬", "📷"]
+        reactions = ["🔵", "🔴", "🟣", "🎮", "🏆", "💬", "📷"]
         for reaction in reactions:
             await message.add_reaction(reaction)
             await asyncio.sleep(0.1)
@@ -350,12 +350,12 @@ class OverhaulExecutorV2:
     async def _configure_bot_modules(self) -> None:
         """Configure all bot modules with new settings."""
         # Configure starboard
-        starboard_channel = discord.utils.get(self.guild.text_channels, name="⭐-starboard")
+        starboard_channel = discord.utils.get(self.guild.text_channels, name="starboard")
         if starboard_channel and hasattr(self.bot, 'starboard_store'):
             await self.bot.starboard_store.set_starboard_channel(self.guild.id, starboard_channel.id)
         
         # Configure welcome channel
-        welcome_channel = discord.utils.get(self.guild.text_channels, name="📋-rules")
+        welcome_channel = discord.utils.get(self.guild.text_channels, name="rules")
         if welcome_channel and hasattr(self.bot, 'guild_store'):
             config = await self.bot.guild_store.get(self.guild.id)
             # Update with new welcome channel
@@ -363,20 +363,20 @@ class OverhaulExecutorV2:
     
     async def _setup_welcome_system(self) -> None:
         """Setup automated welcome system."""
-        welcome_channel = discord.utils.get(self.guild.text_channels, name="📋-rules")
+        welcome_channel = discord.utils.get(self.guild.text_channels, name="rules")
         if not welcome_channel:
             return
         
         # Create welcome message
         embed = discord.Embed(
-            title="🎉 Welcome to the Server!",
+            title="Welcome to the Server!",
             description="Thank you for joining! Please read the rules and enjoy your stay.",
             color=COLORS["success"]
         )
         
-        embed.add_field(name="📋 Rules", value="Check the rules channel for server guidelines.", inline=True)
-        embed.add_field(name="🎭 Roles", value="Get roles in the reaction-roles channel.", inline=True)
-        embed.add_field(name="🎮 Level Up", value="Participate to unlock more features!", inline=True)
+        embed.add_field(name="Rules", value="Check the rules channel for server guidelines.", inline=True)
+        embed.add_field(name="Roles", value="Get roles in the reaction-roles channel.", inline=True)
+        embed.add_field(name="Level Up", value="Participate to unlock more features!", inline=True)
         
         embed.set_footer(text="Enjoy your stay!")
         

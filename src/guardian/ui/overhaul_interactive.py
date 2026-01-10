@@ -213,22 +213,22 @@ class OverhaulInteractiveView(ui.View):
         # Add categories based on features
         categories = [
             {
-                "name": "📢 INFORMATION",
+                "name": "INFORMATION",
                 "channels": [
-                    {"name": "📋-rules", "kind": "text"},
-                    {"name": "📢-announcements", "kind": "text"},
+                    {"name": "rules", "kind": "text"},
+                    {"name": "announcements", "kind": "text"},
                 ]
             },
             {
-                "name": "💬 GENERAL",
+                "name": "GENERAL",
                 "channels": [
-                    {"name": "💬-general", "kind": "text"},
-                    {"name": "🤖-commands", "kind": "text"},
+                    {"name": "general", "kind": "text"},
+                    {"name": "commands", "kind": "text"},
                     {"name": "General", "kind": "voice"},
                 ]
             },
             {
-                "name": "🔊 VOICE",
+                "name": "VOICE",
                 "channels": [
                     {"name": "AFK", "kind": "voice"},
                 ]
@@ -236,17 +236,17 @@ class OverhaulInteractiveView(ui.View):
         ]
         
         if self.config["include_welcome"]:
-            categories[0]["channels"].append({"name": "🎉-welcome", "kind": "text"})
+            categories[0]["channels"].append({"name": "welcome", "kind": "text"})
         
         if self.config["include_reaction_roles"]:
-            categories[1]["channels"].append({"name": "🎭-reaction-roles", "kind": "text"})
+            categories[1]["channels"].append({"name": "reaction-roles", "kind": "text"})
         
         if self.config["create_gaming_category"]:
             categories.append({
-                "name": "🎮 GAMING",
+                "name": "GAMING",
                 "channels": [
-                    {"name": "🎮-gaming", "kind": "text"},
-                    {"name": "🏆-tournaments", "kind": "text"},
+                    {"name": "gaming", "kind": "text"},
+                    {"name": "tournaments", "kind": "text"},
                     {"name": "Gaming", "kind": "voice"},
                 ]
             })
