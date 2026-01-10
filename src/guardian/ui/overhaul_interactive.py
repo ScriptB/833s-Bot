@@ -52,7 +52,7 @@ class OverhaulInteractiveView(ui.View):
         server_text = f"**Name:** {self.config['server_name']}\n"
         server_text += f"**Verification:** {self.config['verification_level'].title()}\n"
         server_text += f"**Filter:** {self.config['content_filter'].title()}"
-        embed.add_field(name="🏰 Server Settings", value=server_text, inline=True)
+        embed.add_field(name="⚙️ Server Settings", value=server_text, inline=True)
         
         # Features
         features_text = ""
@@ -70,7 +70,7 @@ class OverhaulInteractiveView(ui.View):
         if not features_text:
             features_text = "❌ No features selected"
             
-        embed.add_field(name="🎯 Features", value=features_text, inline=True)
+        embed.add_field(name="🌟 Features", value=features_text, inline=True)
         
         # Safety
         safety_text = ""
@@ -79,7 +79,7 @@ class OverhaulInteractiveView(ui.View):
         safety_text += "✅ Backup Recommended\n"
         safety_text += "✅ Confirmation Required"
         
-        embed.add_field(name="🛡️ Safety", value=safety_text, inline=True)
+        embed.add_field(name="🔒 Safety", value=safety_text, inline=True)
         
         # Warning
         if self.confirmed:

@@ -80,7 +80,7 @@ class OverhaulExecutorV2:
     
     async def _init_progress_message(self) -> None:
         """Initialize the progress message."""
-        embed = info_embed("🛠️ Starting Server Overhaul")
+        embed = info_embed("⚙️ Starting Server Overhaul")
         embed.description = "Initializing server rebuild process..."
         embed.add_field(name="Progress", value="0/9 steps completed", inline=True)
         embed.add_field(name="Time Elapsed", value="0.0s", inline=True)
@@ -102,7 +102,7 @@ class OverhaulExecutorV2:
             embed = error_embed("❌ Overhaul Failed")
             embed.description = message
         else:
-            embed = info_embed("🔧 Server Overhaul in Progress")
+            embed = info_embed("⚙️ Server Overhaul in Progress")
             embed.description = message
             embed.add_field(name="Progress", value=f"{step}/9 steps completed", inline=True)
             embed.add_field(name="Time Elapsed", value=elapsed, inline=True)
