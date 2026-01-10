@@ -1,4 +1,4 @@
-# 833s Guardian V1.4.0.9
+# 833s Guardian V1.4.1.0
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -6,7 +6,7 @@
 
 A comprehensive Discord moderation and community management system with advanced features, performance optimizations, and a modern architecture. Render Free ready with all configuration via Discord (slash commands + components) and interactive server overhaul with real-time progress updates.
 
-## 🚀 What's New in V1.4.0.9
+## 🚀 What's New in V1.4.1.0
 
 ### **Major Restructuring & Performance**
 - **Base Service Architecture**: Implemented unified `BaseService` class for all SQLite-backed services
@@ -34,6 +34,8 @@ A comprehensive Discord moderation and community management system with advanced
 - **Constructor Parameter Mismatch**: Fixed `TypeError` in store initialization by adding `cache_ttl` parameter to all store constructors
 - **Command Conflict Resolution**: Fixed `CommandAlreadyRegistered` errors by renaming command groups (profile→user_profile, title→cosmetic_title, prompt→community_prompt, event→community_event, community→community_memory)
 - **Duplicate File Removal**: Removed duplicate levels.py file that was causing import conflicts
+- **Duplicate Command Registration Fix**: Removed manual bot.tree.add_command() calls from cog_load() methods that were causing CommandAlreadyRegistered errors
+- **Automatic Command Registration**: Command groups now rely on discord.py's automatic registration system
 - **Cog Loading Success**: Resolved ALL cog loading failures preventing bot startup
 - **Cog Loading Success**: Resolved ALL cog loading failures preventing bot startup
 - **Missing Import Resolution**: Added missing `BaseService` imports in all store files
@@ -263,4 +265,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**833s Guardian V1.4.0.9** - PERFECT deployment with 100% stores + 100% cog loading + ZERO conflicts. 🏆
+**833s Guardian V1.4.1.0** - PERFECT deployment with 100% stores + 100% cog loading + ZERO conflicts + ZERO duplicate registrations. 🏆
