@@ -39,80 +39,63 @@ class OverhaulExecutorV3:
         """Run professional server overhaul with complete rebuild."""
         log.info(f"Starting professional overhaul for guild {self.guild.name} (ID: {self.guild.id})")
         
-        try:
-            # Initialize progress message
-            await self._init_progress_message()
-            
-            # Phase 1: Full Server Wipe
-            log.info("Phase 1: Full server wipe")
-            await self._update_progress("Phase 1: Full server wipe...", 1)
-            await self._full_server_wipe()
-            log.info("Server wipe completed successfully")
-            
-            # Phase 2: Apply Server Settings
-            log.info("Phase 2: Apply server settings")
-            await self._update_progress("Phase 2: Apply server settings...", 2)
-            await self._apply_server_settings()
-            log.info("Server settings applied successfully")
-            
-            # Phase 3: Create Professional Role System
-            log.info("Phase 3: Create professional role system")
-            await self._update_progress("Phase 3: Create professional role system...", 3)
-            role_map = await self._create_professional_role_system()
-            log.info(f"Created {len(role_map)} roles successfully")
-            
-            # Phase 4: Role-Driven Category System
-            log.info("Phase 4: Create role-driven category system")
-            await self._update_progress("Phase 4: Create role-driven category system...", 4)
-            await self._create_role_driven_categories(role_map)
-            log.info("Category system created successfully")
-            
-            # Phase 5: Correct Permission Overwrites
-            log.info("Phase 5: Apply correct permission overwrites")
-            await self._update_progress("Phase 5: Apply correct permission overwrites...", 5)
-            await self._apply_permission_overwrites(role_map)
-            log.info("Permission overwrites applied successfully")
-            
-            # Phase 6: Setup Leveling System
-            log.info("Phase 6: Setup leveling system")
-            await self._update_progress("Phase 6: Setup leveling system...", 6)
-            await self._setup_leveling_system(role_map)
-            log.info("Leveling system configured successfully")
-            
-            # Phase 7: Configure Bot Modules
-            log.info("Phase 7: Configure bot modules")
-            await self._update_progress("Phase 7: Configure bot modules...", 7)
-            await self._configure_bot_modules()
-            log.info("Bot modules configured successfully")
-            
-            # Phase 8: Finalize Overhaul
-            log.info("Phase 8: Finalize overhaul")
-            await self._update_progress("Phase 8: Finalize overhaul...", 8)
-            await self._finalize_overhaul()
-            log.info("Overhaul finalized successfully")
-            
-            # Complete
-            elapsed = f"{time.time() - self.start_time:.2f}s"
-            await self._complete_progress(elapsed)
-            success_msg = f"✅ Professional server overhaul completed in {elapsed}"
-            log.info(f"Professional overhaul completed successfully for guild {self.guild.name}")
-            return success_msg
-            
-        except discord.Forbidden as e:
-            error_msg = f"❌ Overhaul failed: Missing permissions - {e}"
-            log.error(f"Permission error during overhaul: {e}")
-            await self._update_progress(error_msg, -1)
-            return error_msg
-        except discord.HTTPException as e:
-            error_msg = f"❌ Overhaul failed: Discord API error - {e}"
-            log.error(f"Discord API error during overhaul: {e}")
-            await self._update_progress(error_msg, -1)
-            return error_msg
-        except Exception as e:
-            error_msg = f"❌ Overhaul failed: {type(e).__name__}: {e}"
-            log.error(f"Unexpected error during overhaul: {e}", exc_info=True)
-            await self._update_progress(error_msg, -1)
-            return error_msg
+        # Initialize progress message
+        await self._init_progress_message()
+        
+        # Phase 1: Full Server Wipe
+        log.info("Phase 1: Full server wipe")
+        await self._update_progress("Phase 1: Full server wipe...", 1)
+        await self._full_server_wipe()
+        log.info("Server wipe completed successfully")
+        
+        # Phase 2: Apply Server Settings
+        log.info("Phase 2: Apply server settings")
+        await self._update_progress("Phase 2: Apply server settings...", 2)
+        await self._apply_server_settings()
+        log.info("Server settings applied successfully")
+        
+        # Phase 3: Create Professional Role System
+        log.info("Phase 3: Create professional role system")
+        await self._update_progress("Phase 3: Create professional role system...", 3)
+        role_map = await self._create_professional_role_system()
+        log.info(f"Created {len(role_map)} roles successfully")
+        
+        # Phase 4: Role-Driven Category System
+        log.info("Phase 4: Create role-driven category system")
+        await self._update_progress("Phase 4: Create role-driven category system...", 4)
+        await self._create_role_driven_categories(role_map)
+        log.info("Category system created successfully")
+        
+        # Phase 5: Correct Permission Overwrites
+        log.info("Phase 5: Apply correct permission overwrites")
+        await self._update_progress("Phase 5: Apply correct permission overwrites...", 5)
+        await self._apply_permission_overwrites(role_map)
+        log.info("Permission overwrites applied successfully")
+        
+        # Phase 6: Setup Leveling System
+        log.info("Phase 6: Setup leveling system")
+        await self._update_progress("Phase 6: Setup leveling system...", 6)
+        await self._setup_leveling_system(role_map)
+        log.info("Leveling system configured successfully")
+        
+        # Phase 7: Configure Bot Modules
+        log.info("Phase 7: Configure bot modules")
+        await self._update_progress("Phase 7: Configure bot modules...", 7)
+        await self._configure_bot_modules()
+        log.info("Bot modules configured successfully")
+        
+        # Phase 8: Finalize Overhaul
+        log.info("Phase 8: Finalize overhaul")
+        await self._update_progress("Phase 8: Finalize overhaul...", 8)
+        await self._finalize_overhaul()
+        log.info("Overhaul finalized successfully")
+        
+        # Complete
+        elapsed = f"{time.time() - self.start_time:.2f}s"
+        await self._complete_progress(elapsed)
+        success_msg = f"✅ Professional server overhaul completed in {elapsed}"
+        log.info(f"Professional overhaul completed successfully for guild {self.guild.name}")
+        return success_msg
     
     async def _init_progress_message(self) -> None:
         """Initialize progress message."""
@@ -280,13 +263,13 @@ class OverhaulExecutorV3:
                 
             except discord.Forbidden as e:
                 log.error(f"Failed to create role {role_name}: Missing permissions - {e}")
-                raise
+                # Continue instead of raising to allow overhaul to complete
             except discord.HTTPException as e:
                 log.error(f"Failed to create role {role_name}: Discord API error - {e}")
-                raise
+                # Continue instead of raising to allow overhaul to complete
             except Exception as e:
                 log.error(f"Unexpected error creating role {role_name}: {e}", exc_info=True)
-                raise
+                # Continue instead of raising to allow overhaul to complete
         
         log.info("Professional role system created successfully")
         return role_map
@@ -415,13 +398,13 @@ class OverhaulExecutorV3:
                         
             except discord.Forbidden as e:
                 log.error(f"Failed to create category {cat_def['name']}: Missing permissions - {e}")
-                raise
+                # Continue instead of raising to allow overhaul to complete
             except discord.HTTPException as e:
                 log.error(f"Failed to create category {cat_def['name']}: Discord API error - {e}")
-                raise
+                # Continue instead of raising to allow overhaul to complete
             except Exception as e:
                 log.error(f"Unexpected error creating category {cat_def['name']}: {e}", exc_info=True)
-                raise
+                # Continue instead of raising to allow overhaul to complete
         
         log.info("Role-driven category system created successfully")
     
