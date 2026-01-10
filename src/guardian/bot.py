@@ -189,6 +189,7 @@ class GuardianBot(commands.Bot):
         # Core configuration + server lifecycle
         await _load_cog("guardian.cogs.admin", "AdminCog")
         await _load_cog("guardian.cogs.corporate_overhaul", "CorporateOverhaulCog")
+        await _load_cog("guardian.cogs.setup_autoconfig", "SetupAutoConfigCog")
 
         # Community + onboarding
         await _load_cog("guardian.cogs.welcome", "WelcomeCog")
