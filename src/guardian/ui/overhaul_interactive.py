@@ -9,6 +9,7 @@ from discord.ext import commands
 
 from ..utils import safe_embed, success_embed, error_embed, warning_embed, info_embed
 from ..constants import COLORS, DEFAULT_TIMEOUT_SECONDS
+from .overhaul_executor_v3 import OverhaulExecutorV3
 
 class OverhaulInteractiveView(ui.View):
     """Interactive UI for server overhaul customization and confirmation."""
@@ -144,13 +145,11 @@ class OverhaulInteractiveView(ui.View):
         
         await interaction.response.send_message("🚀 Starting server overhaul...", ephemeral=True)
         
-        # Import and execute overhaul
-        from .overhaul_executor_v2 import OverhaulExecutorV2
-        
+        # Execute overhaul
         try:
             # Create config based on selections
             final_config = self._build_final_config()
-            executor = OverhaulExecutorV2(self.cog, self.guild, final_config)
+            executor = OverhaulExecutorV3(self.cog, self.guild, final_config)
             executor.progress_user = interaction.user  # Set progress recipient
             
             result = await executor.run()

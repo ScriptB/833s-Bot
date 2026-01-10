@@ -324,7 +324,8 @@ class OverhaulExecutorV2:
         if welcome_channel and hasattr(self.bot, 'guild_store'):
             config = await self.bot.guild_store.get(self.guild.id)
             # Update with new welcome channel
-            await self.bot.guild_store.upsert(config._replace(welcome_channel_id=welcome_channel.id))
+            config.welcome_channel_id = welcome_channel.id
+            await self.bot.guild_store.upsert(config)
     
     async def _setup_welcome_system(self) -> None:
         """Setup automated welcome system."""
