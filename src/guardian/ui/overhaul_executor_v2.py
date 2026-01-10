@@ -134,7 +134,7 @@ class OverhaulExecutorV2:
             name=self.config["server_name"],
             verification_level=getattr(discord.VerificationLevel, self.config["verification_level"], discord.VerificationLevel.high),
             default_notifications=getattr(discord.NotificationLevel, self.config["default_notifications"], discord.NotificationLevel.only_mentions),
-            explicit_content_filter=getattr(discord.ContentFilter, self.config["content_filter"], discord.ContentFilter.all_members),
+            explicit_content_filter=getattr(discord.ExplicitContentFilter, self.config["content_filter"], discord.ExplicitContentFilter.all_members),
             reason="833s Guardian Overhaul V2",
         )
     

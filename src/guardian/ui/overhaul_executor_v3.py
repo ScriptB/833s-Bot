@@ -8,6 +8,14 @@ from typing import Any, Optional
 import discord
 from discord.ext import commands
 
+# Runtime debugging - verify LevelsStore has required methods
+try:
+    from ..services.levels_store import LevelsStore
+    log.info(f"LevelsStore loaded from: {LevelsStore.__module__}")
+    log.info(f"LevelsStore has set_role_reward: {hasattr(LevelsStore, 'set_role_reward')}")
+except Exception as e:
+    log.error(f"Failed to import LevelsStore: {e}")
+
 from ..utils import info_embed, error_embed, success_embed
 from ..constants import COLORS
 
@@ -153,7 +161,7 @@ class OverhaulExecutorV3:
         await self.guild.edit(
             verification_level=discord.VerificationLevel.high,
             default_notifications=discord.NotificationLevel.only_mentions,
-            content_filter=discord.ContentFilter.all_members,
+            explicit_content_filter=discord.ExplicitContentFilter.all_members,
             reason="833s Guardian Overhaul V3"
         )
     
@@ -288,8 +296,15 @@ class OverhaulExecutorV3:
         if not hasattr(self.bot, 'levels_store'):
             log.warning("Levels store not available - skipping leveling system setup")
             return
+        
+        # Debug: Verify levels_store has set_role_reward method
+        if not hasattr(self.bot.levels_store, 'set_role_reward'):
+            log.error("Levels store exists but missing set_role_reward method")
+            return
             
         log.info("Setting up leveling system with role rewards")
+        log.info(f"Levels store type: {type(self.bot.levels_store)}")
+        log.info(f"Levels store has set_role_reward: {hasattr(self.bot.levels_store, 'set_role_reward')}")
         level_rewards = {
             1: role_map.get("Bronze"),
             5: role_map.get("Silver"),
