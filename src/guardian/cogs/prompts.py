@@ -74,5 +74,4 @@ class PromptsCog(commands.Cog):
         lines = [f"#{p.prompt_id}: {p.text[:80]}" for p in items]
         await interaction.followup.send("\n".join(lines), ephemeral=True)
 
-    async def cog_load(self) -> None:
-        self.bot.tree.add_command(self.prompt)
+    # Command group is automatically registered by discord.py

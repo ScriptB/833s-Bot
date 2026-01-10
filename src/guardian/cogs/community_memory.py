@@ -42,5 +42,4 @@ class CommunityMemoryCog(commands.Cog):
             lines.append(f"{ts} • {it.kind}")
         await interaction.followup.send("\n".join(lines), ephemeral=True)
 
-    async def cog_load(self) -> None:
-        self.bot.tree.add_command(self.community)
+    # Command group is automatically registered by discord.py

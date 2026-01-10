@@ -101,5 +101,4 @@ class EventsCog(commands.Cog):
         ok = await self.bot.events_store.leave(interaction.guild.id, int(event_id), interaction.user.id)  # type: ignore[attr-defined]
         await interaction.followup.send("Left." if ok else "Not in event.", ephemeral=True)
 
-    async def cog_load(self) -> None:
-        self.bot.tree.add_command(self.event)
+    # Command group is automatically registered by discord.py

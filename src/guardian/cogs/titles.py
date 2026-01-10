@@ -66,5 +66,4 @@ class TitlesCog(commands.Cog):
         await self.bot.titles_store.set_equipped(interaction.guild.id, interaction.user.id, "")  # type: ignore[attr-defined]
         await interaction.followup.send("Title removed.", ephemeral=True)
 
-    async def cog_load(self) -> None:
-        self.bot.tree.add_command(self.title)
+    # Command group is automatically registered by discord.py

@@ -85,6 +85,4 @@ class ProfilesCog(commands.Cog):
         await self.bot.profiles_store.upsert(interaction.guild.id, interaction.user.id, is_public=bool(public))  # type: ignore[attr-defined]
         await interaction.followup.send("Privacy updated.", ephemeral=True)
 
-    async def cog_load(self) -> None:
-        # Register group
-        self.bot.tree.add_command(self.profile)
+    # Command group is automatically registered by discord.py
