@@ -10,7 +10,7 @@ class PromptsCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
-    prompt = app_commands.Group(name="prompt", description="Community prompts.")
+    prompt = app_commands.Group(name="community_prompt", description="Community prompts.")
 
     async def _level(self, guild_id: int, user_id: int) -> int:
         _, _, lvl = await self.bot.levels_store.get(guild_id, user_id)  # type: ignore[attr-defined]

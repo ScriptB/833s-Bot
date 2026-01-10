@@ -11,7 +11,7 @@ class EventsCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
-    event = app_commands.Group(name="event", description="Community events (no pings).")
+    event = app_commands.Group(name="community_event", description="Community events (no pings).")
 
     async def _level(self, guild_id: int, user_id: int) -> int:
         _, _, lvl = await self.bot.levels_store.get(guild_id, user_id)  # type: ignore[attr-defined]

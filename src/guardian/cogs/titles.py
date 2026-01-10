@@ -18,7 +18,7 @@ class TitlesCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
-    title = app_commands.Group(name="title", description="Cosmetic titles (no permissions).")
+    title = app_commands.Group(name="cosmetic_title", description="Cosmetic titles (no permissions).")
 
     async def _level(self, guild_id: int, user_id: int) -> int:
         _, _, lvl = await self.bot.levels_store.get(guild_id, user_id)  # type: ignore[attr-defined]

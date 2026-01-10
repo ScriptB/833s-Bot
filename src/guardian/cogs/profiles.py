@@ -9,7 +9,7 @@ class ProfilesCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
-    profile = app_commands.Group(name="profile", description="Community profile commands.")
+    profile = app_commands.Group(name="user_profile", description="Community profile commands.")
 
     @profile.command(name="view", description="View a member's community profile.")
     async def view(self, interaction: discord.Interaction, member: discord.Member | None = None) -> None:

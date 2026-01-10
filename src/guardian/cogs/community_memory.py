@@ -11,7 +11,7 @@ class CommunityMemoryCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
-    community = app_commands.Group(name="community", description="Community history and memory.")
+    community = app_commands.Group(name="community_memory", description="Community history and memory.")
 
     @community.command(name="timeline", description="Show recent community activity recorded by the bot.")
     async def timeline(self, interaction: discord.Interaction, limit: app_commands.Range[int, 1, 10] = 5) -> None:
