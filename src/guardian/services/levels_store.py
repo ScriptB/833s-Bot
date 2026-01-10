@@ -22,6 +22,17 @@ class LevelsStore(BaseService):
             )
             """
         )
+        # Create role rewards table
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS level_role_rewards (
+                guild_id INTEGER NOT NULL,
+                level INTEGER NOT NULL,
+                role_id INTEGER NOT NULL,
+                PRIMARY KEY (guild_id, level)
+            )
+            """
+        )
         # best-effort migration from older schema without total_xp
         async with db.execute("PRAGMA table_info(levels)") as cur:
             cols = {r[1] for r in await cur.fetchall()}
@@ -109,3 +120,25 @@ class LevelsStore(BaseService):
             ) as cur:
                 rows = await cur.fetchall()
         return [(int(uid), int(lvl), int(txp)) for (uid, lvl, txp) in rows]
+
+    async def set_role_reward(self, guild_id: int, level: int, role_id: int) -> None:
+        """Set a role reward for reaching a specific level."""
+        async with aiosqlite.connect(self._path) as db:
+            await db.execute(
+                """
+                INSERT OR REPLACE INTO level_role_rewards (guild_id, level, role_id)
+                VALUES (?, ?, ?)
+                """,
+                (int(guild_id), int(level), int(role_id))
+            )
+            await db.commit()
+
+    async def get_role_rewards(self, guild_id: int) -> dict[int, int]:
+        """Get all role rewards for a guild."""
+        async with aiosqlite.connect(self._path) as db:
+            async with db.execute(
+                "SELECT level, role_id FROM level_role_rewards WHERE guild_id=?",
+                (int(guild_id),)
+            ) as cur:
+                rows = await cur.fetchall()
+        return {int(level): int(role_id) for level, role_id in rows}
