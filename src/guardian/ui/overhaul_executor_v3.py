@@ -152,7 +152,7 @@ class OverhaulExecutorV3:
         """Apply server-wide settings."""
         await self.guild.edit(
             verification_level=discord.VerificationLevel.high,
-            default_notifications=discord.DefaultNotificationLevel.only_mentions,
+            default_notifications=discord.NotificationLevel.only_mentions,
             content_filter=discord.ContentFilter.all_members,
             reason="833s Guardian Overhaul V3"
         )
