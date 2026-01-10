@@ -8,6 +8,11 @@ from typing import Any, Optional
 import discord
 from discord.ext import commands
 
+from ..utils import info_embed, error_embed, success_embed
+from ..constants import COLORS
+
+log = logging.getLogger("guardian.overhaul_executor_v3")
+
 # Runtime debugging - verify LevelsStore has required methods
 try:
     from ..services.levels_store import LevelsStore
@@ -15,11 +20,6 @@ try:
     log.info(f"LevelsStore has set_role_reward: {hasattr(LevelsStore, 'set_role_reward')}")
 except Exception as e:
     log.error(f"Failed to import LevelsStore: {e}")
-
-from ..utils import info_embed, error_embed, success_embed
-from ..constants import COLORS
-
-log = logging.getLogger("guardian.overhaul_executor_v3")
 
 
 class OverhaulExecutorV3:
