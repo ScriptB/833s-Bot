@@ -208,7 +208,7 @@ class PrefixCommunityCog(commands.Cog):
             return
         await ctx.reply(random.choice(self._vibes))
 
-    @commands.command(name="prompt")
+    @commands.command(name="my_prompt")
     @commands.cooldown(2, 10.0, commands.BucketType.user)
     async def prompt(self, ctx: commands.Context) -> None:
         if not await self._gate(ctx, min_level=0, requires_verified=True):
@@ -221,7 +221,7 @@ class PrefixCommunityCog(commands.Cog):
             return
         await ctx.reply(f"Prompt #{p.prompt_id}: {p.text}")
 
-    @commands.command(name="profile")
+    @commands.command(name="my_profile")
     @commands.cooldown(2, 10.0, commands.BucketType.user)
     async def profile(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
         if not await self._gate(ctx, min_level=0, requires_verified=True):
@@ -262,7 +262,7 @@ class PrefixCommunityCog(commands.Cog):
         title = f" • {title_state.equipped}" if title_state.equipped else ""
         await ctx.reply(f"{member.display_name}: Level {int(lvl)} (XP {int(xp)}), Rep {int(rep)}{title}")
 
-    @commands.command(name="event")
+    @commands.command(name="my_event")
     @commands.cooldown(2, 10.0, commands.BucketType.user)
     async def event(self, ctx: commands.Context) -> None:
         if not await self._gate(ctx, min_level=0, requires_verified=True):
