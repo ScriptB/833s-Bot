@@ -55,7 +55,7 @@ class OverhaulSetupView(ui.View):
 
     # --- UI Elements ---------------------------------------------------------
 
-    @ui.button(label="🛡️ Server Settings", style=discord.ButtonStyle.secondary)
+    @ui.button(label="Server Settings", style=discord.ButtonStyle.secondary)
     async def server_settings(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         modal = ServerSettingsModal(self.config)
@@ -64,21 +64,21 @@ class OverhaulSetupView(ui.View):
         if modal.saved:
             await safe_followup(interaction, "✅ Server settings saved.", ephemeral=True)
 
-    @ui.button(label="👥 Roles", style=discord.ButtonStyle.secondary)
+    @ui.button(label="Roles", style=discord.ButtonStyle.secondary)
     async def edit_roles(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         view = RoleListView(self.config)
         embed = discord.Embed(title="Role Configuration", description="Edit or delete roles below.")
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
-    @ui.button(label="📁 Categories & Channels", style=discord.ButtonStyle.secondary)
+    @ui.button(label="Categories & Channels", style=discord.ButtonStyle.secondary)
     async def edit_categories(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         view = CategoryListView(self.config)
         embed = discord.Embed(title="Categories & Channels", description="Edit structure below.")
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
-    @ui.button(label="🎨 Reaction Roles", style=discord.ButtonStyle.secondary)
+    @ui.button(label="Reaction Roles", style=discord.ButtonStyle.secondary)
     async def edit_reaction_roles(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         modal = ReactionRolesModal(self.config)
@@ -87,7 +87,7 @@ class OverhaulSetupView(ui.View):
         if modal.saved:
             await safe_followup(interaction, "✅ Reaction roles settings saved.", ephemeral=True)
 
-    @ui.button(label="📋 Preview", style=discord.ButtonStyle.secondary)
+    @ui.button(label="Preview", style=discord.ButtonStyle.secondary)
     async def preview(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         lines = ["**Server Settings**"]
@@ -106,7 +106,7 @@ class OverhaulSetupView(ui.View):
         lines.append(f"- Title: {self.config['reaction_roles_message_title']}")
         await safe_followup(interaction, "\n".join(lines), ephemeral=True)
 
-    @ui.button(label="🚀 Execute Overhaul", style=discord.ButtonStyle.danger)
+    @ui.button(label="Execute Overhaul", style=discord.ButtonStyle.danger)
     async def execute(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         # Validate config before proceeding
@@ -253,7 +253,7 @@ class RoleListView(ui.View):
         if modal.saved:
             await safe_followup(interaction, f"✅ Role '{role_name}' updated.", ephemeral=True)
 
-    @ui.button(label="➕ Add Role", style=discord.ButtonStyle.secondary)
+    @ui.button(label="Add Role", style=discord.ButtonStyle.secondary)
     async def add_role(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         new_cfg = {"name": "New Role", "color": "default", "hoist": False, "mentionable": False}
@@ -264,7 +264,7 @@ class RoleListView(ui.View):
             self.config["roles"].append(new_cfg)
             await safe_followup(interaction, f"✅ Role '{new_cfg['name']}' added.", ephemeral=True)
 
-    @ui.button(label="🗑️ Delete Role", style=discord.ButtonStyle.secondary)
+    @ui.button(label="Delete Role", style=discord.ButtonStyle.secondary)
     async def delete_role(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         select = ui.Select(
@@ -301,7 +301,7 @@ class CategoryListView(ui.View):
         if modal.saved:
             await safe_followup(interaction, f"✅ Category '{cat_name}' updated.", ephemeral=True)
 
-    @ui.button(label="➕ Add Category", style=discord.ButtonStyle.secondary)
+    @ui.button(label="Add Category", style=discord.ButtonStyle.secondary)
     async def add_category(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         new_cfg = {"name": "New Category", "channels": []}
@@ -312,7 +312,7 @@ class CategoryListView(ui.View):
             self.config["categories"].append(new_cfg)
             await safe_followup(interaction, f"✅ Category '{new_cfg['name']}' added.", ephemeral=True)
 
-    @ui.button(label="🗑️ Delete Category", style=discord.ButtonStyle.secondary)
+    @ui.button(label="Delete Category", style=discord.ButtonStyle.secondary)
     async def delete_category(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
         select = ui.Select(
