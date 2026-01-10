@@ -1,4 +1,4 @@
-# 833s Guardian V1.4.1.0
+# 833s Guardian V1.4.1.1
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -6,7 +6,7 @@
 
 A comprehensive Discord moderation and community management system with advanced features, performance optimizations, and a modern architecture. Render Free ready with all configuration via Discord (slash commands + components) and interactive server overhaul with real-time progress updates.
 
-## 🚀 What's New in V1.4.1.0
+## 🚀 What's New in V1.4.1.1
 
 ### **Major Restructuring & Performance**
 - **Base Service Architecture**: Implemented unified `BaseService` class for all SQLite-backed services
@@ -36,6 +36,8 @@ A comprehensive Discord moderation and community management system with advanced
 - **Duplicate File Removal**: Removed duplicate levels.py file that was causing import conflicts
 - **Duplicate Command Registration Fix**: Removed manual bot.tree.add_command() calls from cog_load() methods that were causing CommandAlreadyRegistered errors
 - **Automatic Command Registration**: Command groups now rely on discord.py's automatic registration system
+- **Legacy Command Removal**: Removed /guardian_overhaul command, making /overhaul the single unified overhaul interface
+- **Single Command Interface**: Users now have one clean, modern overhaul command with full functionality
 - **Cog Loading Success**: Resolved ALL cog loading failures preventing bot startup
 - **Cog Loading Success**: Resolved ALL cog loading failures preventing bot startup
 - **Missing Import Resolution**: Added missing `BaseService` imports in all store files
@@ -265,4 +267,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**833s Guardian V1.4.1.0** - PERFECT deployment with 100% stores + 100% cog loading + ZERO conflicts + ZERO duplicate registrations. 🏆
+**833s Guardian V1.4.1.1** - PERFECT deployment with 100% stores + 100% cog loading + ZERO conflicts + ZERO duplicate registrations + SINGLE overhaul command. 🏆
