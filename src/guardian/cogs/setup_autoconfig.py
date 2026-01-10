@@ -7,7 +7,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ..ui.overhaul_executor_v2 import OverhaulExecutorV2
 from ..ui.overhaul_interactive import OverhaulInteractiveView
 from ..utils import safe_embed, permission_overwrite, get_confirmation
 from ..constants import DEFAULT_TIMEOUT_SECONDS, COLORS

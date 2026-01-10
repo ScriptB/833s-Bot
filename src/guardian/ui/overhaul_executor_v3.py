@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from typing import Any, Optional
 
@@ -9,6 +10,8 @@ from discord.ext import commands
 
 from ..utils import info_embed, error_embed, success_embed
 from ..constants import COLORS
+
+log = logging.getLogger("guardian.overhaul_executor_v3")
 
 
 class OverhaulExecutorV3:
@@ -27,41 +30,68 @@ class OverhaulExecutorV3:
         
     async def run(self) -> str:
         """Run simplified overhaul with real-time progress updates."""
+        log.info(f"Starting overhaul for guild {self.guild.name} (ID: {self.guild.id})")
+        
         try:
             # Initialize progress message
             await self._init_progress_message()
             
             # Step 1: Apply server settings
+            log.info("Step 1: Applying server settings")
             await self._update_progress("Applying server settings...", 1)
             await self._apply_server_settings()
+            log.info("Server settings applied successfully")
             
             # Step 2: Create roles
+            log.info("Step 2: Creating server roles")
             await self._update_progress("Creating server roles...", 2)
             role_map = await self._create_roles()
+            log.info(f"Created {len(role_map)} roles successfully")
             
             # Step 3: Create categories and channels
+            log.info("Step 3: Creating categories and channels")
             await self._update_progress("Creating categories and channels...", 3)
             await self._create_categories_and_channels(role_map)
+            log.info("Categories and channels created successfully")
             
             # Step 4: Setup leveling system
+            log.info("Step 4: Configuring leveling system")
             await self._update_progress("Configuring leveling system...", 4)
             await self._setup_leveling_system(role_map)
+            log.info("Leveling system configured successfully")
             
             # Step 5: Configure bot modules
+            log.info("Step 5: Configuring bot modules")
             await self._update_progress("Configuring bot modules...", 5)
             await self._configure_bot_modules()
+            log.info("Bot modules configured successfully")
             
             # Step 6: Final cleanup
+            log.info("Step 6: Finalizing overhaul")
             await self._update_progress("Finalizing overhaul...", 6)
             await self._finalize_overhaul()
+            log.info("Overhaul finalized successfully")
             
             # Complete
             elapsed = f"{time.time() - self.start_time:.2f}s"
             await self._complete_progress(elapsed)
-            return f"✅ Server overhaul completed in {elapsed}"
+            success_msg = f"✅ Server overhaul completed in {elapsed}"
+            log.info(f"Overhaul completed successfully for guild {self.guild.name}")
+            return success_msg
             
+        except discord.Forbidden as e:
+            error_msg = f"❌ Overhaul failed: Missing permissions - {e}"
+            log.error(f"Permission error during overhaul: {e}")
+            await self._update_progress(error_msg, -1)
+            return error_msg
+        except discord.HTTPException as e:
+            error_msg = f"❌ Overhaul failed: Discord API error - {e}"
+            log.error(f"Discord API error during overhaul: {e}")
+            await self._update_progress(error_msg, -1)
+            return error_msg
         except Exception as e:
             error_msg = f"❌ Overhaul failed: {type(e).__name__}: {e}"
+            log.error(f"Unexpected error during overhaul: {e}", exc_info=True)
             await self._update_progress(error_msg, -1)
             return error_msg
     
@@ -131,7 +161,7 @@ class OverhaulExecutorV3:
         """Create server roles."""
         role_map = {}
         
-        # Basic roles
+        # Basic roles with proper colors
         roles_to_create = [
             ("Verified", discord.Color.green(), False, False),
             ("Member", discord.Color.dark_green(), False, False),
@@ -145,17 +175,34 @@ class OverhaulExecutorV3:
         ]
         
         for role_name, color, hoist, mentionable in roles_to_create:
-            role = discord.utils.get(self.guild.roles, name=role_name)
-            if not role:
-                role = await self.guild.create_role(
-                    name=role_name,
-                    color=color,
-                    hoist=hoist,
-                    mentionable=mentionable,
-                    reason="833s Guardian Overhaul V3"
-                )
-            role_map[role_name] = role
+            try:
+                role = discord.utils.get(self.guild.roles, name=role_name)
+                if not role:
+                    log.info(f"Creating role: {role_name}")
+                    role = await self.guild.create_role(
+                        name=role_name,
+                        color=color,
+                        hoist=hoist,
+                        mentionable=mentionable,
+                        reason="833s Guardian Overhaul V3"
+                    )
+                    log.info(f"Successfully created role: {role_name} (ID: {role.id})")
+                else:
+                    log.info(f"Role already exists: {role_name} (ID: {role.id})")
+                
+                role_map[role_name] = role
+                
+            except discord.Forbidden as e:
+                log.error(f"Failed to create role {role_name}: Missing permissions - {e}")
+                raise
+            except discord.HTTPException as e:
+                log.error(f"Failed to create role {role_name}: Discord API error - {e}")
+                raise
+            except Exception as e:
+                log.error(f"Unexpected error creating role {role_name}: {e}", exc_info=True)
+                raise
         
+        log.info(f"Role creation completed. Total roles: {len(role_map)}")
         return role_map
     
     async def _create_categories_and_channels(self, role_map: dict[str, discord.Role]) -> None:
@@ -185,30 +232,64 @@ class OverhaulExecutorV3:
         ]
         
         for cat_config in categories_config:
-            category = discord.utils.get(self.guild.categories, name=cat_config["name"])
-            if not category:
-                category = await self.guild.create_category(
-                    name=cat_config["name"],
-                    reason="833s Guardian Overhaul V3"
-                )
-            
-            for channel_config in cat_config["channels"]:
-                if channel_config["type"] == "text":
-                    await category.create_text_channel(
-                        name=channel_config["name"],
+            try:
+                category = discord.utils.get(self.guild.categories, name=cat_config["name"])
+                if not category:
+                    log.info(f"Creating category: {cat_config['name']}")
+                    category = await self.guild.create_category(
+                        name=cat_config["name"],
                         reason="833s Guardian Overhaul V3"
                     )
+                    log.info(f"Successfully created category: {cat_config['name']} (ID: {category.id})")
                 else:
-                    await category.create_voice_channel(
-                        name=channel_config["name"],
-                        reason="833s Guardian Overhaul V3"
-                    )
+                    log.info(f"Category already exists: {cat_config['name']} (ID: {category.id})")
+                
+                for channel_config in cat_config["channels"]:
+                    try:
+                        if channel_config["type"] == "text":
+                            log.info(f"Creating text channel: {channel_config['name']} in category {cat_config['name']}")
+                            channel = await category.create_text_channel(
+                                name=channel_config["name"],
+                                reason="833s Guardian Overhaul V3"
+                            )
+                            log.info(f"Successfully created text channel: {channel_config['name']} (ID: {channel.id})")
+                        else:
+                            log.info(f"Creating voice channel: {channel_config['name']} in category {cat_config['name']}")
+                            channel = await category.create_voice_channel(
+                                name=channel_config["name"],
+                                reason="833s Guardian Overhaul V3"
+                            )
+                            log.info(f"Successfully created voice channel: {channel_config['name']} (ID: {channel.id})")
+                            
+                    except discord.Forbidden as e:
+                        log.error(f"Failed to create channel {channel_config['name']}: Missing permissions - {e}")
+                        raise
+                    except discord.HTTPException as e:
+                        log.error(f"Failed to create channel {channel_config['name']}: Discord API error - {e}")
+                        raise
+                    except Exception as e:
+                        log.error(f"Unexpected error creating channel {channel_config['name']}: {e}", exc_info=True)
+                        raise
+                        
+            except discord.Forbidden as e:
+                log.error(f"Failed to create category {cat_config['name']}: Missing permissions - {e}")
+                raise
+            except discord.HTTPException as e:
+                log.error(f"Failed to create category {cat_config['name']}: Discord API error - {e}")
+                raise
+            except Exception as e:
+                log.error(f"Unexpected error creating category {cat_config['name']}: {e}", exc_info=True)
+                raise
+        
+        log.info("Category and channel creation completed successfully")
     
     async def _setup_leveling_system(self, role_map: dict[str, discord.Role]) -> None:
         """Configure leveling system with role rewards."""
         if not hasattr(self.bot, 'levels_store'):
+            log.warning("Levels store not available - skipping leveling system setup")
             return
             
+        log.info("Setting up leveling system with role rewards")
         level_rewards = {
             1: role_map.get("Bronze"),
             5: role_map.get("Silver"),
@@ -219,22 +300,53 @@ class OverhaulExecutorV3:
         
         for level, role in level_rewards.items():
             if role:
-                await self.bot.levels_store.set_role_reward(self.guild.id, level, role.id)
+                try:
+                    await self.bot.levels_store.set_role_reward(self.guild.id, level, role.id)
+                    log.info(f"Set level reward: Level {level} -> Role {role.name} (ID: {role.id})")
+                except Exception as e:
+                    log.error(f"Failed to set level reward for level {level}: {e}", exc_info=True)
+            else:
+                log.warning(f"Role not found for level {level} - skipping reward setup")
+        
+        log.info("Leveling system setup completed")
     
     async def _configure_bot_modules(self) -> None:
         """Configure bot modules."""
-        # Configure welcome channel
-        welcome_channel = discord.utils.get(self.guild.text_channels, name="rules")
-        if welcome_channel and hasattr(self.bot, 'guild_store'):
-            config = await self.bot.guild_store.get(self.guild.id)
-            config.welcome_channel_id = welcome_channel.id
-            await self.bot.guild_store.upsert(config)
+        try:
+            # Configure welcome channel
+            welcome_channel = discord.utils.get(self.guild.text_channels, name="rules")
+            if welcome_channel and hasattr(self.bot, 'guild_store'):
+                log.info(f"Configuring welcome channel: {welcome_channel.name} (ID: {welcome_channel.id})")
+                config = await self.bot.guild_store.get(self.guild.id)
+                config.welcome_channel_id = welcome_channel.id
+                await self.bot.guild_store.upsert(config)
+                log.info("Welcome channel configured successfully")
+            else:
+                if welcome_channel:
+                    log.warning("Welcome channel found but guild store not available")
+                else:
+                    log.warning("Welcome channel not found - skipping configuration")
+                    
+        except Exception as e:
+            log.error(f"Failed to configure bot modules: {e}", exc_info=True)
+            # Don't raise here - this is not critical for overhaul completion
     
     async def _finalize_overhaul(self) -> None:
         """Final cleanup and optimizations."""
+        log.info("Starting overhaul finalization")
+        
         # Set server icon if available
         if "server_icon" in self.config:
             try:
+                log.info("Setting server icon")
                 await self.guild.edit(icon=self.config["server_icon"])
-            except:
-                pass
+                log.info("Server icon set successfully")
+            except discord.Forbidden as e:
+                log.error(f"Failed to set server icon: Missing permissions - {e}")
+            except discord.HTTPException as e:
+                log.error(f"Failed to set server icon: Discord API error - {e}")
+            except Exception as e:
+                log.error(f"Unexpected error setting server icon: {e}", exc_info=True)
+        
+        # Additional cleanup operations can be added here
+        log.info("Overhaul finalization completed")
