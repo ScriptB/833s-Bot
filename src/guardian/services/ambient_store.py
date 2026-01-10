@@ -2,30 +2,38 @@ from __future__ import annotations
 
 import aiosqlite
 
+from .base import BaseService
 
-class AmbientStore:
+
+class AmbientStore(BaseService):
     """Persistence for ambient feature preferences.
 
     Only stores user opt-in for mentions/pings.
     Cooldowns/counters are enforced in-memory to avoid excessive writes.
     """
 
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS ambient_prefs (
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    pings_opt_in INTEGER NOT NULL DEFAULT 0,
-                    PRIMARY KEY (guild_id, user_id)
-                )
-                """
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ambient_prefs (
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                pings_opt_in INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id)
             )
-            await db.commit()
+            """
+        )
+    
+    def _from_row(self, row: aiosqlite.Row) -> None:
+        # Ambient don't need a specific data class for now
+        return None
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM ambient_prefs WHERE guild_id = ? AND user_id = ?"
 
     async def set_pings_opt_in(self, guild_id: int, user_id: int, enabled: bool) -> None:
         async with aiosqlite.connect(self._path) as db:

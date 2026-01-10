@@ -1,27 +1,35 @@
 from __future__ import annotations
 
-import time
 import aiosqlite
+import time
+
+from .base import BaseService
 
 
-class ReputationStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+class ReputationStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS reputation (
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    score INTEGER NOT NULL DEFAULT 0,
-                    last_given_at INTEGER NOT NULL DEFAULT 0,
-                    PRIMARY KEY (guild_id, user_id)
-                )
-                """
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS reputation (
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                score INTEGER NOT NULL DEFAULT 0,
+                last_given_at INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id)
             )
-            await db.commit()
+            """
+        )
+    
+    def _from_row(self, row: aiosqlite.Row) -> None:
+        # Reputation don't need a specific data class for now
+        return None
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM reputation WHERE guild_id = ? AND user_id = ?"
 
     async def get(self, guild_id: int, user_id: int) -> tuple[int, int]:
         async with aiosqlite.connect(self._path) as db:

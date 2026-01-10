@@ -3,6 +3,8 @@ from __future__ import annotations
 import aiosqlite
 from dataclasses import dataclass
 
+from .base import BaseService
+
 
 @dataclass(frozen=True)
 class Case:
@@ -15,28 +17,41 @@ class Case:
     created_at: int
 
 
-class CasesStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+class CasesStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS cases (
-                    guild_id INTEGER NOT NULL,
-                    case_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    actor_id INTEGER NOT NULL,
-                    action TEXT NOT NULL,
-                    reason TEXT NULL,
-                    created_at INTEGER NOT NULL,
-                    PRIMARY KEY (guild_id, case_id)
-                )
-                """
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS cases (
+                guild_id INTEGER NOT NULL,
+                case_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                actor_id INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                reason TEXT NULL,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (guild_id, case_id)
             )
-            await db.execute("CREATE INDEX IF NOT EXISTS idx_cases_guild_user ON cases (guild_id, user_id, created_at)")
-            await db.commit()
+            """
+        )
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_cases_guild_user ON cases (guild_id, user_id, created_at)")
+    
+    def _from_row(self, row: aiosqlite.Row) -> Case:
+        return Case(
+            row["guild_id"],
+            row["case_id"],
+            row["user_id"],
+            row["actor_id"],
+            row["action"],
+            row["reason"],
+            row["created_at"],
+        )
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM cases WHERE guild_id = ? AND case_id = ?"
 
     async def next_id(self, guild_id: int) -> int:
         async with aiosqlite.connect(self._path) as db:

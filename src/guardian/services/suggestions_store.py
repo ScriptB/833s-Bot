@@ -3,28 +3,36 @@ from __future__ import annotations
 import time
 import aiosqlite
 
+from .base import BaseService
 
-class SuggestionsStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS suggestions (
-                    guild_id INTEGER NOT NULL,
-                    suggestion_id INTEGER NOT NULL,
-                    author_id INTEGER NOT NULL,
-                    content TEXT NOT NULL,
-                    created_at INTEGER NOT NULL,
-                    message_id INTEGER NULL,
-                    status TEXT NOT NULL DEFAULT 'open',
-                    PRIMARY KEY (guild_id, suggestion_id)
-                )
-                """
+class SuggestionsStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
+
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS suggestions (
+                guild_id INTEGER NOT NULL,
+                suggestion_id INTEGER NOT NULL,
+                author_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                message_id INTEGER NULL,
+                status TEXT NOT NULL DEFAULT 'open',
+                PRIMARY KEY (guild_id, suggestion_id)
             )
-            await db.commit()
+            """
+        )
+    
+    def _from_row(self, row: aiosqlite.Row) -> None:
+        # Suggestions don't need a specific data class for now
+        return None
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM suggestions WHERE guild_id = ? AND suggestion_id = ?"
 
     async def next_id(self, guild_id: int) -> int:
         async with aiosqlite.connect(self._path) as db:

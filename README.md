@@ -1,4 +1,4 @@
-# 833s Guardian V1.4.0.4
+# 833s Guardian V1.4.0.6
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -6,7 +6,7 @@
 
 A comprehensive Discord moderation and community management system with advanced features, performance optimizations, and a modern architecture. Render Free ready with all configuration via Discord (slash commands + components) and interactive server overhaul with real-time progress updates.
 
-## 🚀 What's New in V1.4.0.4
+## 🚀 What's New in V1.4.0.6
 
 ### **Major Restructuring & Performance**
 - **Base Service Architecture**: Implemented unified `BaseService` class for all SQLite-backed services
@@ -29,7 +29,7 @@ A comprehensive Discord moderation and community management system with advanced
 - **Configuration Validation**: Comprehensive validation system for server configurations
 
 ### **Critical Bug Fixes**
-- **Critical Store Architecture Fix**: Updated 10/24 stores (WarningsStore, RemindersStore, ReactionRolesStore, LevelsStore, LevelsConfigStore, LevelsLedgerStore, LevelRewardsStore, StarboardStore, GiveawaysStore, EconomyStore) to inherit from BaseService
+- **Major Store Architecture Fix**: Updated 16/24 stores (WarningsStore, RemindersStore, ReactionRolesStore, LevelsStore, LevelsConfigStore, LevelsLedgerStore, LevelRewardsStore, StarboardStore, GiveawaysStore, EconomyStore, AchievementsStore, ServerConfigStore, SnapshotStore, CasesStore, ReputationStore, SuggestionsStore, AmbientStore) to inherit from BaseService
 - **Abstract Method Implementation**: Fixed `TypeError: Can't instantiate abstract class` by implementing required `_create_tables`, `_from_row`, and `_get_query` methods
 - **Constructor Parameter Mismatch**: Fixed `TypeError` in store initialization by adding `cache_ttl` parameter to store constructors
 - **Missing Import Resolution**: Added missing `BaseService` imports in multiple store files
@@ -39,6 +39,7 @@ A comprehensive Discord moderation and community management system with advanced
 - **Memory Leaks**: Fixed memory leaks in long-running operations
 - **Database Locks**: Resolved SQLite locking issues under high load
 - **Production Ready**: Bot now starts successfully and is deployable
+- **Significant Progress**: 66.7% of stores now follow BaseService architecture (16/24)
 
 ## 🛠️ Core Features
 
@@ -173,7 +174,7 @@ docker run -d \
 
 ## 🔄 Updating from Previous Versions
 
-### **From V1.4.0.3**
+### **From V1.4.0.5**
 ```bash
 # Backup your database
 cp data/guardian.db data/guardian.db.backup
@@ -258,4 +259,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**833s Guardian V1.4.0.4** - Critical store architecture fixes for production deployment. 🚀
+**833s Guardian V1.4.0.6** - Major store architecture fixes with 66.7% coverage. 🚀

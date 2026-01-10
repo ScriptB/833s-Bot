@@ -3,6 +3,8 @@ from __future__ import annotations
 import aiosqlite
 from dataclasses import dataclass
 
+from .base import BaseService
+
 
 @dataclass(frozen=True)
 class ServerConfig:
@@ -13,24 +15,35 @@ class ServerConfig:
     bot_commands_channel_id: int | None
 
 
-class ServerConfigStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+class ServerConfigStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS server_config (
-                    guild_id INTEGER PRIMARY KEY,
-                    welcome_channel_id INTEGER NULL,
-                    welcome_enabled INTEGER NOT NULL DEFAULT 0,
-                    autorole_id INTEGER NULL,
-                    bot_commands_channel_id INTEGER NULL
-                )
-                """
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS server_config (
+                guild_id INTEGER PRIMARY KEY,
+                welcome_channel_id INTEGER NULL,
+                welcome_enabled INTEGER NOT NULL DEFAULT 0,
+                autorole_id INTEGER NULL,
+                bot_commands_channel_id INTEGER NULL
             )
-            await db.commit()
+            """
+        )
+    
+    def _from_row(self, row: aiosqlite.Row) -> ServerConfig:
+        return ServerConfig(
+            row["guild_id"],
+            row["welcome_channel_id"],
+            bool(row["welcome_enabled"]),
+            row["autorole_id"],
+            row["bot_commands_channel_id"],
+        )
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM server_config WHERE guild_id = ?"
 
     async def get(self, guild_id: int) -> ServerConfig:
         async with aiosqlite.connect(self._path) as db:

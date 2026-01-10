@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import aiosqlite
+from .base import BaseService
 from dataclasses import dataclass
 
 
@@ -11,9 +12,9 @@ class TitleState:
     equipped: str
 
 
-class TitlesStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+class TitlesStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
 
     async def init(self) -> None:
         async with aiosqlite.connect(self._path) as db:

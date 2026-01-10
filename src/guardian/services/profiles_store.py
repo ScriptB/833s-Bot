@@ -4,6 +4,8 @@ import aiosqlite
 from dataclasses import dataclass
 from typing import Iterable
 
+from .base import BaseService
+
 
 @dataclass(frozen=True)
 class Profile:
@@ -15,27 +17,39 @@ class Profile:
     is_public: bool
 
 
-class ProfilesStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+class ProfilesStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS profiles (
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    about TEXT NOT NULL DEFAULT '',
-                    pronouns TEXT NOT NULL DEFAULT '',
-                    interests TEXT NOT NULL DEFAULT '',
-                    is_public INTEGER NOT NULL DEFAULT 1,
-                    updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-                    PRIMARY KEY (guild_id, user_id)
-                )
-                """
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS profiles (
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                about TEXT NOT NULL DEFAULT '',
+                pronouns TEXT NOT NULL DEFAULT '',
+                interests TEXT NOT NULL DEFAULT '',
+                is_public INTEGER NOT NULL DEFAULT 1,
+                updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+                PRIMARY KEY (guild_id, user_id)
             )
-            await db.commit()
+            """
+        )
+    
+    def _from_row(self, row: aiosqlite.Row) -> Profile:
+        return Profile(
+            row["guild_id"],
+            row["user_id"],
+            row["about"],
+            row["pronouns"],
+            self._split_interests(row["interests"]),
+            bool(row["is_public"]),
+        )
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM profiles WHERE guild_id = ? AND user_id = ?"
 
     def _split_interests(self, raw: str) -> list[str]:
         raw = (raw or "").strip()

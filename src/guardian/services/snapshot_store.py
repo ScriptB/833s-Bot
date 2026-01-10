@@ -7,6 +7,8 @@ from typing import Any, Dict, Optional
 
 import aiosqlite
 
+from .base import BaseService
+
 
 @dataclass(frozen=True)
 class Snapshot:
@@ -16,25 +18,35 @@ class Snapshot:
     payload_json: str
 
 
-class SnapshotStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+class SnapshotStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS snapshots (
-                    guild_id INTEGER NOT NULL,
-                    created_at INTEGER NOT NULL,
-                    kind TEXT NOT NULL,
-                    payload_json TEXT NOT NULL,
-                    PRIMARY KEY (guild_id, created_at, kind)
-                )
-                """
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS snapshots (
+                guild_id INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
+                kind TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                PRIMARY KEY (guild_id, created_at, kind)
             )
-            await db.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_guild_kind ON snapshots (guild_id, kind, created_at)")
-            await db.commit()
+            """
+        )
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_guild_kind ON snapshots (guild_id, kind, created_at)")
+    
+    def _from_row(self, row: aiosqlite.Row) -> Snapshot:
+        return Snapshot(
+            row["guild_id"],
+            row["created_at"],
+            row["kind"],
+            row["payload_json"],
+        )
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM snapshots WHERE guild_id = ? AND kind = ? ORDER BY created_at DESC LIMIT 1"
 
     async def put(self, guild_id: int, kind: str, payload: Dict[str, Any]) -> int:
         created_at = int(time.time())
