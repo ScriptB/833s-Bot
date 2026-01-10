@@ -5,6 +5,8 @@ import aiosqlite
 from dataclasses import dataclass
 from typing import Sequence
 
+from .base import BaseService
+
 log = logging.getLogger("guardian.events_store")
 
 
@@ -21,39 +23,59 @@ class Event:
     active: bool
 
 
-class EventsStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+class EventsStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
+
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS events (
+                event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                creator_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                start_ts INTEGER NOT NULL,
+                channel_id INTEGER NOT NULL,
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+                active INTEGER NOT NULL DEFAULT 1
+            )
+            """
+        )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS event_participants (
+                event_id INTEGER NOT NULL,
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                joined_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+                PRIMARY KEY (event_id, guild_id, user_id),
+                FOREIGN KEY(event_id) REFERENCES events(event_id)
+            )
+            """
+        )
+
+    def _from_row(self, row: aiosqlite.Row) -> Event:
+        return Event(
+            row["event_id"],
+            row["guild_id"],
+            row["creator_id"],
+            row["title"],
+            row["description"],
+            row["start_ts"],
+            row["channel_id"],
+            row["created_at"],
+            bool(row["active"]),
+        )
+
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM events WHERE event_id = ?"
 
     async def init(self) -> None:
         async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS events (
-                    event_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    guild_id INTEGER NOT NULL,
-                    creator_id INTEGER NOT NULL,
-                    title TEXT NOT NULL,
-                    description TEXT NOT NULL DEFAULT '',
-                    start_ts INTEGER NOT NULL,
-                    channel_id INTEGER NOT NULL,
-                    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-                    active INTEGER NOT NULL DEFAULT 1
-                )
-                """
-            )
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS event_participants (
-                    event_id INTEGER NOT NULL,
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    joined_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-                    PRIMARY KEY (event_id, guild_id, user_id),
-                    FOREIGN KEY(event_id) REFERENCES events(event_id)
-                )
-                """
-            )
+            await self._create_tables(db)
             await db.commit()
 
     async def active_count(self, guild_id: int) -> int:

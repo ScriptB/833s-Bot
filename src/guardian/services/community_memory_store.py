@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import json
 from typing import Any, Sequence
 
+from .base import BaseService
+
 
 @dataclass(frozen=True)
 class MemoryEntry:
@@ -15,24 +17,39 @@ class MemoryEntry:
     data: dict[str, Any]
 
 
-class CommunityMemoryStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+class CommunityMemoryStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS community_memory (
-                    entry_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    guild_id INTEGER NOT NULL,
-                    kind TEXT NOT NULL,
-                    ts INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-                    data_json TEXT NOT NULL DEFAULT '{}'
-                )
-                """
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS community_memory (
+                entry_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                kind TEXT NOT NULL,
+                ts INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+                data_json TEXT NOT NULL DEFAULT '{}'
             )
-            await db.commit()
+            """
+        )
+    
+    def _from_row(self, row: aiosqlite.Row) -> MemoryEntry:
+        try:
+            data = json.loads(row["data_json"] or "{}")
+        except Exception:
+            data = {}
+        return MemoryEntry(
+            row["entry_id"],
+            row["guild_id"],
+            row["kind"],
+            row["ts"],
+            data,
+        )
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM community_memory WHERE entry_id = ?"
 
     async def add(self, guild_id: int, kind: str, data: dict[str, Any]) -> int:
         kind = (kind or "").strip()[:32]

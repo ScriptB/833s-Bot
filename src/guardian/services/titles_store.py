@@ -16,20 +16,29 @@ class TitlesStore(BaseService):
     def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
         super().__init__(sqlite_path, cache_ttl)
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS titles (
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    equipped TEXT NOT NULL DEFAULT '',
-                    updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-                    PRIMARY KEY (guild_id, user_id)
-                )
-                """
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS titles (
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                equipped TEXT NOT NULL DEFAULT '',
+                updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+                PRIMARY KEY (guild_id, user_id)
             )
-            await db.commit()
+            """
+        )
+    
+    def _from_row(self, row: aiosqlite.Row) -> TitleState:
+        return TitleState(
+            row["guild_id"],
+            row["user_id"],
+            row["equipped"] or "",
+        )
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM titles WHERE guild_id = ? AND user_id = ?"
 
     async def get(self, guild_id: int, user_id: int) -> TitleState:
         async with aiosqlite.connect(self._path) as db:

@@ -4,6 +4,8 @@ import aiosqlite
 from dataclasses import dataclass
 from typing import Sequence
 
+from .base import BaseService
+
 
 @dataclass(frozen=True)
 class Prompt:
@@ -24,37 +26,43 @@ class PromptAnswer:
     created_at: int
 
 
-class PromptsStore:
-    def __init__(self, sqlite_path: str) -> None:
-        self._path = sqlite_path
+class PromptsStore(BaseService):
+    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl)
 
-    async def init(self) -> None:
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS prompts (
-                    prompt_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    guild_id INTEGER NOT NULL,
-                    author_id INTEGER NOT NULL,
-                    text TEXT NOT NULL,
-                    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
-                )
-                """
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS prompts (
+                prompt_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                author_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
             )
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS prompt_answers (
-                    answer_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    prompt_id INTEGER NOT NULL,
-                    guild_id INTEGER NOT NULL,
-                    author_id INTEGER NOT NULL,
-                    text TEXT NOT NULL,
-                    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-                    FOREIGN KEY(prompt_id) REFERENCES prompts(prompt_id)
-                )
-                """
+            """
+        )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS prompt_answers (
+                answer_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                prompt_id INTEGER NOT NULL,
+                guild_id INTEGER NOT NULL,
+                author_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+                FOREIGN KEY(prompt_id) REFERENCES prompts(prompt_id)
             )
-            await db.commit()
+            """
+        )
+    
+    def _from_row(self, row: aiosqlite.Row) -> None:
+        # Prompts don't need a specific data class for now
+        return None
+    
+    @property
+    def _get_query(self) -> str:
+        return "SELECT * FROM prompts WHERE prompt_id = ?"
 
     async def submit_prompt(self, guild_id: int, author_id: int, text: str) -> int:
         text = (text or "").strip()[:700]
