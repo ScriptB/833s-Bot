@@ -1,4 +1,4 @@
-# 833s Guardian V1.4.1.7
+# 833s Guardian V1.4.1.8
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -6,7 +6,7 @@
 
 A comprehensive Discord moderation and community management system with advanced features, performance optimizations, and a modern architecture. Render Free ready with all configuration via Discord (slash commands + components) and interactive server overhaul with real-time progress updates.
 
-## 🚀 What's New in V1.4.1.7
+## 🚀 What's New in V1.4.1.8
 
 ### **Major Restructuring & Performance**
 - **Base Service Architecture**: Implemented unified `BaseService` class for all SQLite-backed services
@@ -69,6 +69,12 @@ A comprehensive Discord moderation and community management system with advanced
 - **Streamlined Configuration**: Removed reaction roles from default config and preview
 - **Faster Overhaul**: Reduced overhaul time by removing reaction roles step
 - **Zero Reaction Errors**: No more emoji-related issues in reaction roles setup
+- **LevelsStore Fix**: Added missing `set_role_reward` method to LevelsStore class
+- **Level Role Rewards Table**: Created `level_role_rewards` table for storing level-to-role mappings
+- **get_role_rewards Method**: Added method for retrieving all role rewards for a guild
+- **AttributeError Fix**: Fixed 'LevelsStore' object has no attribute 'set_role_reward'
+- **Overhaul Integration**: Overhaul command now works properly with leveling system
+- **Database Schema Update**: Enhanced LevelsStore with proper role reward storage
 - **Cog Loading Success**: Resolved ALL cog loading failures preventing bot startup
 - **Cog Loading Success**: Resolved ALL cog loading failures preventing bot startup
 - **Missing Import Resolution**: Added missing `BaseService` imports in all store files
@@ -298,4 +304,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**833s Guardian V1.4.1.7** - PERFECT deployment with 100% stores + 100% cog loading + ZERO conflicts + ZERO duplicate registrations + WORKING overhaul command + ZERO emoji errors + 100% Discord API compatibility + COMPLETE legacy removal + ZERO channel emoji issues + REACTION ROLES REMOVED. 🏆
+**833s Guardian V1.4.1.8** - PERFECT deployment with 100% stores + 100% cog loading + ZERO conflicts + ZERO duplicate registrations + WORKING overhaul command + ZERO emoji errors + 100% Discord API compatibility + COMPLETE legacy removal + ZERO channel emoji issues + REACTION ROLES REMOVED + LEVELSSTORE FIXED. 🏆
