@@ -249,6 +249,9 @@ class OverhaulInteractiveView(ui.View):
         
         config["categories"] = categories
         
+        # Add interaction channel for progress messages
+        config["interaction_channel"] = self.message.channel
+        
         return config
 
 

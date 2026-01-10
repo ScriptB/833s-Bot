@@ -34,10 +34,9 @@ class SetupAutoConfigCog(commands.Cog):
             await interaction.response.send_message("❌ Bot needs Manage Channels + Manage Roles permissions.", ephemeral=True)
             return
 
-        await interaction.response.defer(ephemeral=True, thinking=True)
-
         # Create and show interactive view
         view = OverhaulInteractiveView(self, guild)
         embed = view._create_config_embed()
         
-        view.message = await interaction.followup.send(embed=embed, view=view, wait=True)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        view.message = await interaction.original_response()
