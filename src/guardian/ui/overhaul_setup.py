@@ -45,11 +45,8 @@ class OverhaulSetupView(ui.View):
                 {"name": "Community", "channels": ["general", "media", "bot-commands"]},
                 {"name": "Support", "channels": ["help"]},
                 {"name": "Events", "channels": ["events", "giveaways"]},
-                {"name": "Staff", "channels": ["staff-chat", "mod-logs"]},
-            ],
-            "reaction_roles_channel": "reaction-roles",
-            "reaction_roles_message_title": "Self-Assignable Roles",
-            "reaction_roles_message_description": "Click a button below to get a role. You can remove it any time by clicking again.",
+                {"name": "Staff", "channels": ["staff-chat", "mod-logs"]},  # Removed trailing comma
+            ]
         }
         self.message: discord.Message | None = None
 
@@ -78,15 +75,6 @@ class OverhaulSetupView(ui.View):
         embed = discord.Embed(title="Categories & Channels", description="Edit structure below.")
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
-    @ui.button(label="Reaction Roles", style=discord.ButtonStyle.secondary)
-    async def edit_reaction_roles(self, interaction: discord.Interaction, button: Button) -> None:
-        await safe_defer(interaction, ephemeral=True, thinking=True)
-        modal = ReactionRolesModal(self.config)
-        await interaction.response.send_modal(modal)
-        await modal.wait()
-        if modal.saved:
-            await safe_followup(interaction, "✅ Reaction roles settings saved.", ephemeral=True)
-
     @ui.button(label="Preview", style=discord.ButtonStyle.secondary)
     async def preview(self, interaction: discord.Interaction, button: Button) -> None:
         await safe_defer(interaction, ephemeral=True, thinking=True)
@@ -101,9 +89,6 @@ class OverhaulSetupView(ui.View):
         lines.append("\n**Categories**")
         for cat in self.config["categories"]:
             lines.append(f"- {cat['name']}: {', '.join(cat['channels'])}")
-        lines.append("\n**Reaction Roles**")
-        lines.append(f"- Channel: {self.config['reaction_roles_channel']}")
-        lines.append(f"- Title: {self.config['reaction_roles_message_title']}")
         await safe_followup(interaction, "\n".join(lines), ephemeral=True)
 
     @ui.button(label="Execute Overhaul", style=discord.ButtonStyle.danger)
@@ -186,32 +171,6 @@ class ServerSettingsModal(ui.Modal, title="Server Settings"):
         cf = self.content_filter.value.strip().lower()
         self.config["content_filter"] = cf if cf in {"disabled", "members_without_roles", "all_members"} else "all_members"
         
-        self.saved = True
-        await interaction.response.send_message("Saved.", ephemeral=True)
-
-
-class ReactionRolesModal(ui.Modal, title="Reaction Roles Settings"):
-    channel_name = TextInput(label="Channel Name", default="reaction-roles")
-    message_title = TextInput(label="Message Title", default="Self-Assignable Roles")
-    message_description = TextInput(
-        label="Message Description",
-        style=discord.TextStyle.paragraph,
-        default="Click a button below to get a role. You can remove it any time by clicking again.",
-        max_length=1000,
-    )
-
-    def __init__(self, config: dict[str, Any]) -> None:
-        super().__init__(title="Reaction Roles Settings")
-        self.config = config
-        self.saved = False
-        self.channel_name.default = config.get("reaction_roles_channel", "reaction-roles")
-        self.message_title.default = config.get("reaction_roles_message_title", "Self-Assignable Roles")
-        self.message_description.default = config.get("reaction_roles_message_description", "Click a button below to get a role. You can remove it any time by clicking again.")
-
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        self.config["reaction_roles_channel"] = self.channel_name.value
-        self.config["reaction_roles_message_title"] = self.message_title.value
-        self.config["reaction_roles_message_description"] = self.message_description.value
         self.saved = True
         await interaction.response.send_message("Saved.", ephemeral=True)
 

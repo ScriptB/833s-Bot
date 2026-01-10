@@ -23,7 +23,6 @@ class OverhaulInteractiveView(ui.View):
             "default_notifications": "only_mentions",
             "content_filter": "all_members",
             "include_leveling": True,
-            "include_reaction_roles": True,
             "include_welcome": True,
             "preserve_staff_roles": True,
             "create_vip_lounge": True,
@@ -58,8 +57,6 @@ class OverhaulInteractiveView(ui.View):
         features_text = ""
         if self.config['include_leveling']:
             features_text += "✅ Leveling System\n"
-        if self.config['include_reaction_roles']:
-            features_text += "✅ Reaction Roles\n"
         if self.config['include_welcome']:
             features_text += "✅ Welcome System\n"
         if self.config['create_vip_lounge']:
@@ -238,9 +235,6 @@ class OverhaulInteractiveView(ui.View):
         if self.config["include_welcome"]:
             categories[0]["channels"].append({"name": "welcome", "kind": "text"})
         
-        if self.config["include_reaction_roles"]:
-            categories[1]["channels"].append({"name": "reaction-roles", "kind": "text"})
-        
         if self.config["create_gaming_category"]:
             categories.append({
                 "name": "GAMING",
@@ -255,14 +249,6 @@ class OverhaulInteractiveView(ui.View):
             categories[2]["channels"].append({"name": "VIP Lounge", "kind": "voice"})
         
         config["categories"] = categories
-        
-        # Add reaction roles config
-        if self.config["include_reaction_roles"]:
-            config.update({
-                "reaction_roles_channel": "🎭-reaction-roles",
-                "reaction_roles_message_title": "🎭 Reaction Roles",
-                "reaction_roles_message_description": "React with emojis to get corresponding roles!",
-            })
         
         return config
 
@@ -326,7 +312,7 @@ class FeaturesModal(ui.Modal, title="Features Selection"):
         
         self.features_text = ui.TextInput(
             label="Features (comma separated)",
-            placeholder="leveling, reaction_roles, welcome, vip_lounge, gaming",
+            placeholder="leveling, welcome, vip_lounge, gaming",
             default=self._get_features_string(),
             required=False,
             max_length=200,
@@ -341,8 +327,6 @@ class FeaturesModal(ui.Modal, title="Features Selection"):
         features = []
         if self.config["include_leveling"]:
             features.append("leveling")
-        if self.config["include_reaction_roles"]:
-            features.append("reaction_roles")
         if self.config["include_welcome"]:
             features.append("welcome")
         if self.config["create_vip_lounge"]:
@@ -357,7 +341,6 @@ class FeaturesModal(ui.Modal, title="Features Selection"):
         features = [f.strip().lower() for f in text.split(",") if f.strip()]
         
         self.config["include_leveling"] = "leveling" in features
-        self.config["include_reaction_roles"] = "reaction_roles" in features
         self.config["include_welcome"] = "welcome" in features
         self.config["create_vip_lounge"] = "vip_lounge" in features
         self.config["create_gaming_category"] = "gaming" in features

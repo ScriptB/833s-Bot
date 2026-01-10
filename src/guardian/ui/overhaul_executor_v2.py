@@ -23,7 +23,7 @@ class OverhaulExecutorV2:
         self.progress_message: Optional[discord.Message] = None
         self.progress_user: Optional[discord.User] = None
         self.start_time = time.time()
-        self.total_steps = 9
+        self.total_steps = 8
         self.current_step = 0
         
     async def run(self) -> str:
@@ -48,24 +48,21 @@ class OverhaulExecutorV2:
             await self._update_progress("Creating categories and channels...", 4)
             await self._create_categories_and_channels(role_map)
             
-            # Step 5: Setup reaction roles
-            await self._update_progress("Setting up reaction roles...", 5)
-            await self._setup_reaction_roles()
-            
-            # Step 6: Configure leveling system
-            await self._update_progress("Configuring leveling system...", 6)
+                        
+            # Step 5: Configure leveling system
+            await self._update_progress("Configuring leveling system...", 5)
             await self._setup_leveling_system(role_map)
             
-            # Step 7: Configure bot modules
-            await self._update_progress("Configuring bot modules...", 7)
+            # Step 6: Configure bot modules
+            await self._update_progress("Configuring bot modules...", 6)
             await self._configure_bot_modules()
             
-            # Step 8: Setup welcome system
-            await self._update_progress("Setting up welcome system...", 8)
+            # Step 7: Setup welcome system
+            await self._update_progress("Setting up welcome system...", 7)
             await self._setup_welcome_system()
             
-            # Step 9: Final cleanup
-            await self._update_progress("Finalizing overhaul...", 9)
+            # Step 8: Final cleanup
+            await self._update_progress("Finalizing overhaul...", 8)
             await self._finalize_overhaul()
             
             # Complete
@@ -82,7 +79,7 @@ class OverhaulExecutorV2:
         """Initialize the progress message."""
         embed = info_embed("⚙️ Starting Server Overhaul")
         embed.description = "Initializing server rebuild process..."
-        embed.add_field(name="Progress", value="0/9 steps completed", inline=True)
+        embed.add_field(name="Progress", value="0/8 steps completed", inline=True)
         embed.add_field(name="Time Elapsed", value="0.0s", inline=True)
         
         try:
@@ -104,11 +101,11 @@ class OverhaulExecutorV2:
         else:
             embed = info_embed("⚙️ Server Overhaul in Progress")
             embed.description = message
-            embed.add_field(name="Progress", value=f"{step}/9 steps completed", inline=True)
+            embed.add_field(name="Progress", value=f"{step}/8 steps completed", inline=True)
             embed.add_field(name="Time Elapsed", value=elapsed, inline=True)
             
             # Progress bar
-            progress_bar = "█" * step + "░" * (9 - step)
+            progress_bar = "█" * step + "░" * (8 - step)
             embed.add_field(name="Status", value=f"`{progress_bar}` {step*11:.0f}%", inline=False)
         
         try:
@@ -122,8 +119,8 @@ class OverhaulExecutorV2:
         embed = success_embed("✅ Server Overhaul Complete")
         embed.description = f"Server has been successfully rebuilt!"
         embed.add_field(name="Total Time", value=elapsed, inline=True)
-        embed.add_field(name="Steps Completed", value="9/9", inline=True)
-        embed.add_field(name="Status", value="`█████████` 100%", inline=False)
+        embed.add_field(name="Steps Completed", value="8/8", inline=True)
+        embed.add_field(name="Status", value="`████████` 100%", inline=False)
         
         try:
             if self.progress_message:
@@ -297,38 +294,6 @@ class OverhaulExecutorV2:
                     )
         
         return overwrites
-    
-    async def _setup_reaction_roles(self) -> None:
-        """Setup reaction roles panel."""
-        # Find or create reaction roles channel
-        channel = discord.utils.get(self.guild.text_channels, name="reaction-roles")
-        if not channel:
-            category = discord.utils.get(self.guild.categories, name="GENERAL")
-            channel = await category.create_text_channel(
-                name="reaction-roles",
-                reason="833s Guardian Overhaul V2"
-            )
-        
-        # Create reaction roles message
-        embed = discord.Embed(
-            title="Reaction Roles",
-            description="React to get roles!",
-            color=COLORS["info"]
-        )
-        
-        embed.add_field(name="Notifications", value="Announcements\nGiveaways\nEvents", inline=True)
-        embed.add_field(name="Gaming", value="Gaming\nTournaments", inline=True)
-        embed.add_field(name="Social", value="General\nMedia", inline=True)
-        
-        embed.set_footer(text="React with emojis to get corresponding roles")
-        
-        message = await channel.send(embed=embed)
-        
-        # Add reactions
-        reactions = ["🔵", "🔴", "🟣", "🎮", "🏆", "💬", "📷"]
-        for reaction in reactions:
-            await message.add_reaction(reaction)
-            await asyncio.sleep(0.1)
     
     async def _setup_leveling_system(self, role_map: dict[str, discord.Role]) -> None:
         """Configure the leveling system with role rewards."""
