@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 import discord
 from discord.ext import commands
+from dataclasses import replace
 
 from ..utils import info_embed, error_embed, success_embed
 from ..constants import COLORS
@@ -23,7 +24,7 @@ except Exception as e:
 
 
 class OverhaulExecutorV3:
-    """Simplified and robust server overhaul system."""
+    """Professional-grade server overhaul with complete rebuild functionality."""
     
     def __init__(self, cog: commands.Cog, guild: discord.Guild, config: dict[str, Any]) -> None:
         self.cog = cog
@@ -31,72 +32,70 @@ class OverhaulExecutorV3:
         self.guild = guild
         self.config = config
         self.progress_message: Optional[discord.Message] = None
-        self.progress_user: Optional[discord.User] = None
         self.start_time = time.time()
-        self.total_steps = 6
         self.current_step = 0
         
     async def run(self) -> str:
-        """Run simplified overhaul with real-time progress updates."""
-        log.info(f"Starting overhaul for guild {self.guild.name} (ID: {self.guild.id})")
+        """Run professional server overhaul with complete rebuild."""
+        log.info(f"Starting professional overhaul for guild {self.guild.name} (ID: {self.guild.id})")
         
         try:
             # Initialize progress message
             await self._init_progress_message()
             
-            # Step 1: Clean up existing channels and categories
-            log.info("Step 1: Cleaning up existing channels and categories")
-            await self._update_progress("Cleaning up existing channels and categories...", 1)
-            await self._cleanup_existing_content()
-            log.info("Existing content cleaned up successfully")
+            # Phase 1: Full Server Wipe
+            log.info("Phase 1: Full server wipe")
+            await self._update_progress("Phase 1: Full server wipe...", 1)
+            await self._full_server_wipe()
+            log.info("Server wipe completed successfully")
             
-            # Step 2: Clean up existing roles
-            log.info("Step 2: Cleaning up existing roles")
-            await self._update_progress("Cleaning up existing roles...", 2)
-            await self._cleanup_existing_roles()
-            log.info("Existing roles cleaned up successfully")
-            
-            # Step 3: Apply server settings
-            log.info("Step 3: Applying server settings")
-            await self._update_progress("Applying server settings...", 3)
+            # Phase 2: Apply Server Settings
+            log.info("Phase 2: Apply server settings")
+            await self._update_progress("Phase 2: Apply server settings...", 2)
             await self._apply_server_settings()
             log.info("Server settings applied successfully")
             
-            # Step 4: Create roles
-            log.info("Step 4: Creating server roles")
-            await self._update_progress("Creating server roles...", 4)
-            role_map = await self._create_roles()
+            # Phase 3: Create Professional Role System
+            log.info("Phase 3: Create professional role system")
+            await self._update_progress("Phase 3: Create professional role system...", 3)
+            role_map = await self._create_professional_role_system()
             log.info(f"Created {len(role_map)} roles successfully")
             
-            # Step 5: Create categories and channels
-            log.info("Step 5: Creating categories and channels")
-            await self._update_progress("Creating categories and channels...", 5)
-            await self._create_categories_and_channels(role_map)
-            log.info("Categories and channels created successfully")
+            # Phase 4: Role-Driven Category System
+            log.info("Phase 4: Create role-driven category system")
+            await self._update_progress("Phase 4: Create role-driven category system...", 4)
+            await self._create_role_driven_categories(role_map)
+            log.info("Category system created successfully")
             
-            # Step 6: Setup leveling system
-            log.info("Step 6: Configuring leveling system")
-            await self._update_progress("Configuring leveling system...", 6)
+            # Phase 5: Correct Permission Overwrites
+            log.info("Phase 5: Apply correct permission overwrites")
+            await self._update_progress("Phase 5: Apply correct permission overwrites...", 5)
+            await self._apply_permission_overwrites(role_map)
+            log.info("Permission overwrites applied successfully")
+            
+            # Phase 6: Setup Leveling System
+            log.info("Phase 6: Setup leveling system")
+            await self._update_progress("Phase 6: Setup leveling system...", 6)
             await self._setup_leveling_system(role_map)
             log.info("Leveling system configured successfully")
             
-            # Step 7: Configure bot modules
-            log.info("Step 7: Configuring bot modules")
-            await self._update_progress("Configuring bot modules...", 7)
+            # Phase 7: Configure Bot Modules
+            log.info("Phase 7: Configure bot modules")
+            await self._update_progress("Phase 7: Configure bot modules...", 7)
             await self._configure_bot_modules()
             log.info("Bot modules configured successfully")
             
-            # Step 8: Final cleanup
-            log.info("Step 8: Finalizing overhaul")
-            await self._update_progress("Finalizing overhaul...", 8)
+            # Phase 8: Finalize Overhaul
+            log.info("Phase 8: Finalize overhaul")
+            await self._update_progress("Phase 8: Finalize overhaul...", 8)
             await self._finalize_overhaul()
             log.info("Overhaul finalized successfully")
             
             # Complete
             elapsed = f"{time.time() - self.start_time:.2f}s"
             await self._complete_progress(elapsed)
-            success_msg = f"✅ Server overhaul completed in {elapsed}"
-            log.info(f"Overhaul completed successfully for guild {self.guild.name}")
+            success_msg = f"✅ Professional server overhaul completed in {elapsed}"
+            log.info(f"Professional overhaul completed successfully for guild {self.guild.name}")
             return success_msg
             
         except discord.Forbidden as e:
@@ -116,37 +115,40 @@ class OverhaulExecutorV3:
             return error_msg
     
     async def _init_progress_message(self) -> None:
-        """Initialize the progress message."""
-        embed = info_embed("⚙️ Starting Server Overhaul")
-        embed.description = "Initializing server rebuild process..."
-        embed.add_field(name="Progress", value="0/6 steps completed", inline=True)
-        embed.add_field(name="Time Elapsed", value="0.0s", inline=True)
+        """Initialize progress message."""
+        embed = info_embed("🔥 Professional Server Overhaul")
+        embed.description = "Starting complete server rebuild..."
+        embed.add_field(name="Progress", value="`░░░░░░░░` 0%", inline=False)
+        embed.add_field(name="Current Phase", value="Initializing...", inline=True)
+        embed.add_field(name="Time Elapsed", value="0s", inline=True)
         
         try:
-            if self.progress_user:
-                self.progress_message = await self.progress_user.send(embed=embed)
-            else:
-                self.progress_message = await self.cog.bot.get_user(1008255853859721216).send(embed=embed)
+            self.progress_message = await self.config["interaction_channel"].send(embed=embed)
         except:
             pass
     
-    async def _update_progress(self, message: str, step: int) -> None:
-        """Update progress message with current step."""
+    async def _update_progress(self, phase: str, step: int) -> None:
+        """Update progress message."""
         self.current_step = step
         elapsed = f"{time.time() - self.start_time:.1f}s"
+        progress_bars = [
+            "`████████` 100%",  # Step 1
+            "`███████░` 87%",   # Step 2
+            "`██████░░` 75%",   # Step 3
+            "`█████░░░` 62%",   # Step 4
+            "`████░░░░` 50%",   # Step 5
+            "`███░░░░░` 37%",   # Step 6
+            "`██░░░░░░` 25%",   # Step 7
+            "`█░░░░░░░` 12%",   # Step 8
+        ]
         
-        if step == -1:  # Error
-            embed = error_embed("❌ Overhaul Failed")
-            embed.description = message
-        else:
-            embed = info_embed("⚙️ Server Overhaul in Progress")
-            embed.description = message
-            embed.add_field(name="Progress", value=f"{step}/6 steps completed", inline=True)
-            embed.add_field(name="Time Elapsed", value=elapsed, inline=True)
-            
-            # Progress bar
-            progress_bar = "█" * step + "░" * (6 - step)
-            embed.add_field(name="Status", value=f"`{progress_bar}` {step*17:.0f}%", inline=False)
+        progress_bar = progress_bars[min(step - 1, len(progress_bars) - 1)]
+        
+        embed = info_embed("🔥 Professional Server Overhaul")
+        embed.description = f"**{phase}**"
+        embed.add_field(name="Progress", value=progress_bar, inline=False)
+        embed.add_field(name="Current Phase", value=f"Phase {step}/8", inline=True)
+        embed.add_field(name="Time Elapsed", value=elapsed, inline=True)
         
         try:
             if self.progress_message:
@@ -156,10 +158,10 @@ class OverhaulExecutorV3:
     
     async def _complete_progress(self, elapsed: str) -> None:
         """Mark progress as complete."""
-        embed = success_embed("✅ Server Overhaul Complete")
-        embed.description = f"Server has been successfully rebuilt!"
+        embed = success_embed("✅ Professional Server Overhaul Complete")
+        embed.description = f"Server has been professionally rebuilt!"
         embed.add_field(name="Total Time", value=elapsed, inline=True)
-        embed.add_field(name="Steps Completed", value="8/8", inline=True)
+        embed.add_field(name="Phases Completed", value="8/8", inline=True)
         embed.add_field(name="Status", value="`████████` 100%", inline=False)
         
         try:
@@ -168,132 +170,97 @@ class OverhaulExecutorV3:
         except:
             pass
     
-    async def _cleanup_existing_content(self) -> None:
-        """Delete existing channels and categories (except protected ones)."""
-        # Protected channels that should not be deleted
-        protected_channel_names = {"general", "rules"} if self.guild.me.guild_permissions.administrator else set()
+    async def _full_server_wipe(self) -> None:
+        """Phase 1: Delete everything legally deletable."""
+        bot_role = self.guild.me.top_role
         
-        # Delete all categories and their channels (except protected)
+        # Delete all categories and channels
         for category in self.guild.categories:
             try:
-                # Check if category contains protected channels
-                has_protected = any(channel.name.lower() in protected_channel_names for channel in category.channels)
-                
-                if not has_protected:
-                    log.info(f"Deleting category: {category.name} (ID: {category.id})")
-                    await category.delete(reason="833s Guardian Overhaul V3 - Cleanup")
-                else:
-                    # Delete non-protected channels in this category
-                    for channel in category.channels:
-                        if channel.name.lower() not in protected_channel_names:
-                            log.info(f"Deleting channel: {channel.name} (ID: {channel.id})")
-                            await channel.delete(reason="833s Guardian Overhaul V3 - Cleanup")
-                            
-            except discord.Forbidden as e:
-                log.error(f"Failed to delete category {category.name}: Missing permissions - {e}")
-                raise
+                log.info(f"Deleting category: {category.name} (ID: {category.id})")
+                await category.delete(reason="Professional Overhaul - Full Wipe")
+            except discord.Forbidden:
+                log.warning(f"Cannot delete category {category.name} - permission denied")
             except discord.HTTPException as e:
-                log.error(f"Failed to delete category {category.name}: Discord API error - {e}")
-                raise
+                log.warning(f"Failed to delete category {category.name}: {e}")
             except Exception as e:
-                log.error(f"Unexpected error deleting category {category.name}: {e}", exc_info=True)
-                raise
+                log.error(f"Unexpected error deleting category {category.name}: {e}")
         
-        # Delete standalone channels (not in categories)
+        # Delete standalone channels
         for channel in self.guild.channels:
-            if channel.category is None and channel.name.lower() not in protected_channel_names:
+            if channel.category is None:
                 try:
                     log.info(f"Deleting standalone channel: {channel.name} (ID: {channel.id})")
-                    await channel.delete(reason="833s Guardian Overhaul V3 - Cleanup")
-                except discord.Forbidden as e:
-                    log.error(f"Failed to delete channel {channel.name}: Missing permissions - {e}")
-                    raise
+                    await channel.delete(reason="Professional Overhaul - Full Wipe")
+                except discord.Forbidden:
+                    log.warning(f"Cannot delete channel {channel.name} - permission denied")
                 except discord.HTTPException as e:
-                    log.error(f"Failed to delete channel {channel.name}: Discord API error - {e}")
-                    raise
+                    log.warning(f"Failed to delete channel {channel.name}: {e}")
                 except Exception as e:
-                    log.error(f"Unexpected error deleting channel {channel.name}: {e}", exc_info=True)
-                    raise
+                    log.error(f"Unexpected error deleting channel {channel.name}: {e}")
         
-        log.info("Channel and category cleanup completed successfully")
-    
-    async def _cleanup_existing_roles(self) -> None:
-        """Delete existing roles (except protected ones)."""
-        # Protected roles that should not be deleted
-        protected_role_names = {
-            "@everyone",  # Everyone role cannot be deleted
-            "admin", "administrator", "mod", "moderator", "staff", "owner",
-            "bot", "bots", "helper", "dev", "developer", "vip"
-        } if self.guild.me.guild_permissions.administrator else {"@everyone"}
-        
-        # Get roles to delete (excluding protected roles and higher roles than bot)
-        bot_role = self.guild.me.top_role
+        # Delete all roles except protected ones
         roles_to_delete = []
-        
         for role in self.guild.roles:
-            # Skip protected roles
-            if role.name.lower() in protected_role_names:
-                log.info(f"Skipping protected role: {role.name}")
+            # Skip @everyone
+            if role.name == "@everyone":
                 continue
             
             # Skip roles higher than bot's role
             if role >= bot_role:
-                log.warning(f"Skipping role {role.name} - higher than bot's role")
                 continue
             
-            # Skip managed roles (by bots/integrations)
+            # Skip managed roles
             if role.managed:
-                log.info(f"Skipping managed role: {role.name}")
                 continue
             
             roles_to_delete.append(role)
         
-        # Delete roles in reverse order (from lowest to highest)
+        # Sort by position (lowest to highest)
         roles_to_delete.sort(key=lambda r: r.position)
         
         for role in roles_to_delete:
             try:
                 log.info(f"Deleting role: {role.name} (ID: {role.id})")
-                await role.delete(reason="833s Guardian Overhaul V3 - Cleanup")
-            except discord.Forbidden as e:
-                log.error(f"Failed to delete role {role.name}: Missing permissions - {e}")
-                raise
+                await role.delete(reason="Professional Overhaul - Full Wipe")
+            except discord.Forbidden:
+                log.warning(f"Cannot delete role {role.name} - permission denied")
             except discord.HTTPException as e:
-                log.error(f"Failed to delete role {role.name}: Discord API error - {e}")
-                raise
+                log.warning(f"Failed to delete role {role.name}: {e}")
             except Exception as e:
-                log.error(f"Unexpected error deleting role {role.name}: {e}", exc_info=True)
-                raise
+                log.error(f"Unexpected error deleting role {role.name}: {e}")
         
-        log.info("Role cleanup completed successfully")
+        log.info("Full server wipe completed")
     
     async def _apply_server_settings(self) -> None:
-        """Apply server-wide settings."""
+        """Phase 2: Apply server settings with correct API."""
         await self.guild.edit(
             verification_level=discord.VerificationLevel.high,
             default_notifications=discord.NotificationLevel.only_mentions,
-            explicit_content_filter=discord.ContentFilter.all_members,
-            reason="833s Guardian Overhaul V3"
+            explicit_content_filter=discord.ExplicitContentFilter.all_members,
+            reason="Professional Overhaul - Server Settings"
         )
     
-    async def _create_roles(self) -> dict[str, discord.Role]:
-        """Create server roles."""
+    async def _create_professional_role_system(self) -> dict[str, discord.Role]:
+        """Phase 3: Create clean, professional role system."""
         role_map = {}
         
-        # Basic roles with proper colors
-        roles_to_create = [
-            ("Verified", discord.Color.green(), False, False),
-            ("Member", discord.Color.dark_green(), False, False),
-            ("Bronze", discord.Color.blue(), True, False),
-            ("Silver", discord.Color.light_grey(), True, False),
-            ("Gold", discord.Color.gold(), True, False),
-            ("Platinum", discord.Color.purple(), True, False),
-            ("Diamond", discord.Color.dark_blue(), True, False),
-            ("VIP", discord.Color.orange(), True, True),
-            ("Muted", discord.Color.dark_grey(), False, False),
+        # Define role hierarchy (top to bottom)
+        role_definitions = [
+            ("Owner", discord.Color.red(), True, ["administrator"]),
+            ("Admin", discord.Color.orange(), True, ["administrator"]),
+            ("Moderator", discord.Color.gold(), True, ["kick_members", "ban_members", "manage_channels", "manage_messages", "manage_roles"]),
+            ("Support", discord.Color.blue(), True, ["manage_messages"]),
+            ("Bots", discord.Color.purple(), True, ["manage_channels", "manage_roles", "manage_messages"]),
+            ("Verified", discord.Color.green(), False, []),
+            ("Member", discord.Color.dark_grey(), False, []),
+            ("Snakes", discord.Color.dark_green(), False, []),
+            ("Coding", discord.Color.dark_blue(), False, []),
+            ("Gaming", discord.Color.dark_purple(), False, []),
         ]
         
-        for role_name, color, hoist, mentionable in roles_to_create:
+        # Create roles in order (highest to lowest position)
+        for role_name, color, hoist, permissions in role_definitions:
             try:
                 role = discord.utils.get(self.guild.roles, name=role_name)
                 if not role:
@@ -302,8 +269,8 @@ class OverhaulExecutorV3:
                         name=role_name,
                         color=color,
                         hoist=hoist,
-                        mentionable=mentionable,
-                        reason="833s Guardian Overhaul V3"
+                        permissions=discord.Permissions(**{perm: True for perm in permissions}) if permissions else discord.Permissions.none(),
+                        reason="Professional Overhaul - Role System"
                     )
                     log.info(f"Successfully created role: {role_name} (ID: {role.id})")
                 else:
@@ -321,89 +288,150 @@ class OverhaulExecutorV3:
                 log.error(f"Unexpected error creating role {role_name}: {e}", exc_info=True)
                 raise
         
-        log.info(f"Role creation completed. Total roles: {len(role_map)}")
+        log.info("Professional role system created successfully")
         return role_map
     
-    async def _create_categories_and_channels(self, role_map: dict[str, discord.Role]) -> None:
-        """Create categories and channels."""
-        categories_config = [
+    async def _create_role_driven_categories(self, role_map: dict[str, discord.Role]) -> None:
+        """Phase 4: Create role-driven category system."""
+        
+        # Define category structure
+        category_definitions = [
             {
-                "name": "INFORMATION",
+                "name": "START HERE",
+                "roles": [],  # @everyone
                 "channels": [
+                    {"name": "welcome", "type": "text"},
                     {"name": "rules", "type": "text"},
-                    {"name": "announcements", "type": "text"},
+                    {"name": "announcements", "type": "text", "write_restricted": True},
                 ]
             },
             {
-                "name": "GENERAL",
+                "name": "COMMUNITY",
+                "roles": ["Verified", "Member"],
                 "channels": [
-                    {"name": "general", "type": "text"},
-                    {"name": "commands", "type": "text"},
+                    {"name": "chat", "type": "text"},
+                    {"name": "media", "type": "text"},
+                    {"name": "introductions", "type": "text"},
+                ]
+            },
+            {
+                "name": "CODING LAB",
+                "roles": ["Coding"] + ["Owner", "Admin", "Moderator", "Support"],
+                "channels": [
+                    {"name": "dev-chat", "type": "text"},
+                    {"name": "snippets", "type": "text"},
+                    {"name": "releases", "type": "text"},
+                ]
+            },
+            {
+                "name": "SNAKES & PETS",
+                "roles": ["Snakes"] + ["Owner", "Admin", "Moderator", "Support"],
+                "channels": [
+                    {"name": "snake-care", "type": "text"},
+                    {"name": "photos", "type": "text"},
+                ]
+            },
+            {
+                "name": "GAMING",
+                "roles": ["Gaming"] + ["Owner", "Admin", "Moderator", "Support"],
+                "channels": [
+                    {"name": "game-chat", "type": "text"},
+                    {"name": "roblox", "type": "text"},
+                    {"name": "minecraft", "type": "text"},
+                ]
+            },
+            {
+                "name": "SUPPORT",
+                "roles": ["Verified", "Member"],
+                "channels": [
+                    {"name": "help", "type": "text"},
+                    {"name": "tickets", "type": "text"},
+                ]
+            },
+            {
+                "name": "STAFF",
+                "roles": ["Owner", "Admin", "Moderator", "Support"],
+                "channels": [
+                    {"name": "staff-chat", "type": "text"},
+                    {"name": "mod-logs", "type": "text"},
                 ]
             },
             {
                 "name": "VOICE",
+                "roles": ["Verified", "Member"],
                 "channels": [
-                    {"name": "General", "type": "voice"},
-                    {"name": "AFK", "type": "voice"},
+                    {"name": "Hangout", "type": "voice"},
+                    {"name": "Gaming VC", "type": "voice"},
                 ]
-            }
+            },
         ]
         
-        for cat_config in categories_config:
+        # Create categories and channels
+        for cat_def in category_definitions:
             try:
-                category = discord.utils.get(self.guild.categories, name=cat_config["name"])
-                if not category:
-                    log.info(f"Creating category: {cat_config['name']}")
-                    category = await self.guild.create_category(
-                        name=cat_config["name"],
-                        reason="833s Guardian Overhaul V3"
-                    )
-                    log.info(f"Successfully created category: {cat_config['name']} (ID: {category.id})")
-                else:
-                    log.info(f"Category already exists: {cat_config['name']} (ID: {category.id})")
+                # Create category
+                category = await self.guild.create_category(
+                    name=cat_def["name"],
+                    reason="Professional Overhaul - Category System"
+                )
+                log.info(f"Created category: {cat_def['name']} (ID: {category.id})")
                 
-                for channel_config in cat_config["channels"]:
-                    try:
-                        if channel_config["type"] == "text":
-                            log.info(f"Creating text channel: {channel_config['name']} in category {cat_config['name']}")
-                            channel = await category.create_text_channel(
-                                name=channel_config["name"],
-                                reason="833s Guardian Overhaul V3"
-                            )
-                            log.info(f"Successfully created text channel: {channel_config['name']} (ID: {channel.id})")
-                        else:
-                            log.info(f"Creating voice channel: {channel_config['name']} in category {cat_config['name']}")
-                            channel = await category.create_voice_channel(
-                                name=channel_config["name"],
-                                reason="833s Guardian Overhaul V3"
-                            )
-                            log.info(f"Successfully created voice channel: {channel_config['name']} (ID: {channel.id})")
-                            
-                    except discord.Forbidden as e:
-                        log.error(f"Failed to create channel {channel_config['name']}: Missing permissions - {e}")
-                        raise
-                    except discord.HTTPException as e:
-                        log.error(f"Failed to create channel {channel_config['name']}: Discord API error - {e}")
-                        raise
-                    except Exception as e:
-                        log.error(f"Unexpected error creating channel {channel_config['name']}: {e}", exc_info=True)
-                        raise
+                # Set category permissions (deny @everyone, allow specific roles)
+                allowed_roles = [role_map[role_name] for role_name in cat_def["roles"] if role_name in role_map]
+                
+                overwrites = {
+                    self.guild.default_role: discord.PermissionOverwrite(view_channel=False),
+                }
+                
+                for role in allowed_roles:
+                    overwrites[role] = discord.PermissionOverwrite(view_channel=True)
+                
+                await category.edit(overwrites=overwrites, reason="Professional Overhaul - Category Permissions")
+                
+                # Create channels in category
+                for channel_def in cat_def["channels"]:
+                    if channel_def["type"] == "text":
+                        channel = await category.create_text_channel(
+                            name=channel_def["name"],
+                            reason="Professional Overhaul - Channel Creation"
+                        )
+                    else:
+                        channel = await category.create_voice_channel(
+                            name=channel_def["name"],
+                            reason="Professional Overhaul - Channel Creation"
+                        )
+                    
+                    log.info(f"Created channel: {channel_def['name']} in {cat_def['name']} (ID: {channel.id})")
+                    
+                    # Apply write restriction for announcements
+                    if channel_def.get("write_restricted"):
+                        staff_roles = [role_map["Owner"], role_map["Admin"], role_map["Moderator"], role_map["Support"]]
+                        write_overwrites = {
+                            self.guild.default_role: discord.PermissionOverwrite(send_messages=False),
+                        }
+                        for role in staff_roles:
+                            write_overwrites[role] = discord.PermissionOverwrite(send_messages=True)
+                        await channel.edit(overwrites=write_overwrites, reason="Professional Overhaul - Write Restrictions")
                         
             except discord.Forbidden as e:
-                log.error(f"Failed to create category {cat_config['name']}: Missing permissions - {e}")
+                log.error(f"Failed to create category {cat_def['name']}: Missing permissions - {e}")
                 raise
             except discord.HTTPException as e:
-                log.error(f"Failed to create category {cat_config['name']}: Discord API error - {e}")
+                log.error(f"Failed to create category {cat_def['name']}: Discord API error - {e}")
                 raise
             except Exception as e:
-                log.error(f"Unexpected error creating category {cat_config['name']}: {e}", exc_info=True)
+                log.error(f"Unexpected error creating category {cat_def['name']}: {e}", exc_info=True)
                 raise
         
-        log.info("Category and channel creation completed successfully")
+        log.info("Role-driven category system created successfully")
+    
+    async def _apply_permission_overwrites(self, role_map: dict[str, discord.Role]) -> None:
+        """Phase 5: Apply correct permission overwrites to all categories."""
+        # This is handled in _create_role_driven_categories, but keeping for completeness
+        log.info("Permission overwrites already applied during category creation")
     
     async def _setup_leveling_system(self, role_map: dict[str, discord.Role]) -> None:
-        """Configure leveling system with role rewards."""
+        """Phase 6: Setup leveling system with role rewards."""
         if not hasattr(self.bot, 'levels_store'):
             log.warning("Levels store not available - skipping leveling system setup")
             return
@@ -416,12 +444,13 @@ class OverhaulExecutorV3:
         log.info("Setting up leveling system with role rewards")
         log.info(f"Levels store type: {type(self.bot.levels_store)}")
         log.info(f"Levels store has set_role_reward: {hasattr(self.bot.levels_store, 'set_role_reward')}")
+        
+        # Map levels to roles (using professional role system)
         level_rewards = {
-            1: role_map.get("Bronze"),
-            5: role_map.get("Silver"),
-            10: role_map.get("Gold"),
-            25: role_map.get("Platinum"),
-            50: role_map.get("Diamond"),
+            5: role_map.get("Member"),
+            10: role_map.get("Support"),
+            25: role_map.get("Moderator"),
+            50: role_map.get("Admin"),
         }
         
         for level, role in level_rewards.items():
@@ -437,10 +466,10 @@ class OverhaulExecutorV3:
         log.info("Leveling system setup completed")
     
     async def _configure_bot_modules(self) -> None:
-        """Configure bot modules."""
+        """Phase 7: Configure bot modules."""
         try:
             # Configure welcome channel
-            welcome_channel = discord.utils.get(self.guild.text_channels, name="rules")
+            welcome_channel = discord.utils.get(self.guild.text_channels, name="welcome")
             if welcome_channel and hasattr(self.bot, 'guild_store'):
                 log.info(f"Configuring welcome channel: {welcome_channel.name} (ID: {welcome_channel.id})")
                 config = await self.bot.guild_store.get(self.guild.id)
@@ -458,21 +487,5 @@ class OverhaulExecutorV3:
             # Don't raise here - this is not critical for overhaul completion
     
     async def _finalize_overhaul(self) -> None:
-        """Final cleanup and optimizations."""
-        log.info("Starting overhaul finalization")
-        
-        # Set server icon if available
-        if "server_icon" in self.config:
-            try:
-                log.info("Setting server icon")
-                await self.guild.edit(icon=self.config["server_icon"])
-                log.info("Server icon set successfully")
-            except discord.Forbidden as e:
-                log.error(f"Failed to set server icon: Missing permissions - {e}")
-            except discord.HTTPException as e:
-                log.error(f"Failed to set server icon: Discord API error - {e}")
-            except Exception as e:
-                log.error(f"Unexpected error setting server icon: {e}", exc_info=True)
-        
-        # Additional cleanup operations can be added here
-        log.info("Overhaul finalization completed")
+        """Phase 8: Finalize overhaul."""
+        log.info("Professional server overhaul finalized successfully")

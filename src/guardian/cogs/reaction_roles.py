@@ -57,7 +57,7 @@ class ReactionRolesCog(commands.Cog):
                     # Check if this is an overhaul panel (has our standard title)
                     if title == "Self-Assignable Roles":
                         # Reattach our persistent view
-                        from ..ui.overhaul_executor import ReactionRolesView
+                        from ..ui.reaction_roles import ReactionRolesView
                         view = ReactionRolesView(g, {})
                         self.bot.add_view(view, message_id=int(message_id))  # type: ignore[attr-defined]
                         self.bot.logger.info(f"Reattached overhaul reaction roles panel in {g.name}")
