@@ -29,10 +29,15 @@ async def send_safe_message(
     try:
         if len(content) <= 1900:
             # Send normally
-            if interaction.response.is_done():
-                return await interaction.followup.send(content, ephemeral=ephemeral)
-            else:
-                return await interaction.response.send_message(content, ephemeral=ephemeral)
+            try:
+                if interaction.response.is_done():
+                    return await interaction.followup.send(content, ephemeral=ephemeral)
+                else:
+                    return await interaction.response.send_message(content, ephemeral=ephemeral)
+            except discord.NotFound:
+                # Interaction expired - can't send anything
+                log.warning("Interaction expired before safe message could be sent")
+                return None
         
         # Content is too long - send summary + file
         summary = content[:1900] + "\n\n... (full report attached)"
@@ -45,26 +50,36 @@ async def send_safe_message(
                 filename=filename
             )
             
-            if interaction.response.is_done():
-                return await interaction.followup.send(
-                    content=summary,
-                    file=file,
-                    ephemeral=ephemeral
-                )
-            else:
-                return await interaction.response.send_message(
-                    content=summary,
-                    file=file,
-                    ephemeral=ephemeral
-                )
+            try:
+                if interaction.response.is_done():
+                    return await interaction.followup.send(
+                        content=summary,
+                        file=file,
+                        ephemeral=ephemeral
+                    )
+                else:
+                    return await interaction.response.send_message(
+                        content=summary,
+                        file=file,
+                        ephemeral=ephemeral
+                    )
+            except discord.NotFound:
+                # Interaction expired - can't send anything
+                log.warning("Interaction expired before file attachment could be sent")
+                return None
             
         except Exception as file_error:
             log.warning(f"Failed to attach file, sending truncated message: {file_error}")
             # Fallback to truncated message
-            if interaction.response.is_done():
-                return await interaction.followup.send(summary, ephemeral=ephemeral)
-            else:
-                return await interaction.response.send_message(summary, ephemeral=ephemeral)
+            try:
+                if interaction.response.is_done():
+                    return await interaction.followup.send(summary, ephemeral=ephemeral)
+                else:
+                    return await interaction.response.send_message(summary, ephemeral=ephemeral)
+            except discord.NotFound:
+                # Interaction expired - can't send anything
+                log.warning("Interaction expired before fallback message could be sent")
+                return None
             
     except discord.NotFound:
         log.warning("Interaction expired, could not send message")
