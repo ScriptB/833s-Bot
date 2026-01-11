@@ -244,8 +244,8 @@ class SelfTestCog(commands.Cog):
                     sig = inspect.signature(cmd.callback)
                     params = list(sig.parameters.values())
                     
-                    # Should have at least 'interaction' parameter
-                    if not params or not any(p.name == 'interaction' for p in params):
+                    # Should have at least 'interaction' parameter (or ctx for hybrid commands)
+                    if not params or not any(p.name in ['interaction', 'ctx'] for p in params):
                         results['failed'] += 1
                         results['errors'].append({
                             'command': cmd_name,
