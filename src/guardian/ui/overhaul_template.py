@@ -551,6 +551,7 @@ class TemplateOverhaulExecutor:
                                 overwrites=self._get_channel_overwrites(cat_def, channel_name, role_map, staff_roles),
                                 reason="Template Overhaul - Channel Creation"
                             )
+                            log.info(f"Created voice channel: {channel_name}")
                         else:
                             # Text channel
                             channel = await category.create_text_channel(
@@ -558,12 +559,23 @@ class TemplateOverhaulExecutor:
                                 overwrites=self._get_channel_overwrites(cat_def, channel_name, role_map, staff_roles),
                                 reason="Template Overhaul - Channel Creation"
                             )
+                            log.info(f"Created text channel: {channel_name}")
                         
                         self.created_channels += 1
                         await asyncio.sleep(0.1)  # Rate limit
                         
+                    except discord.Forbidden:
+                        error_msg = f"Cannot create channel {channel_name} - insufficient permissions"
+                        self.failures.append(error_msg)
+                        log.error(error_msg)
+                    except discord.HTTPException as e:
+                        error_msg = f"HTTP error creating channel {channel_name}: {e}"
+                        self.failures.append(error_msg)
+                        log.error(error_msg)
                     except Exception as e:
-                        self.failures.append(f"Error creating channel {channel_name}: {e}")
+                        error_msg = f"Error creating channel {channel_name}: {e}"
+                        self.failures.append(error_msg)
+                        log.error(error_msg)
                 
                 # Update progress after each category
                 progress_detail = f"Created {cat_idx + 1}/{len(self.CATEGORY_TEMPLATE)} categories"
@@ -679,10 +691,15 @@ class TemplateOverhaulExecutor:
         
         report = "\n".join(report_lines)
         
-        # Send final DM
+        # Send final DM (truncated if needed)
         if self.progress_user:
             try:
-                await self.progress_user.send(f"✅ **Overhaul Complete!**\n\n{report}")
+                # Truncate report if too long for Discord
+                if len(report) > 1900:  # Leave room for prefix
+                    truncated_report = report[:1900] + "\n\n... (truncated for length)"
+                    await self.progress_user.send(f"✅ **Overhaul Complete!**\n\n{truncated_report}")
+                else:
+                    await self.progress_user.send(f"✅ **Overhaul Complete!**\n\n{report}")
             except Exception as e:
                 log.error(f"Failed to send final DM: {e}")
         

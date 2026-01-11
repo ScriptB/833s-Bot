@@ -55,16 +55,17 @@ class CorporateOverhaulCog(commands.Cog):
             
             # Try to send completion message
             try:
-                if interaction.response.is_done():
-                    await interaction.followup.send(
-                        f"✅ **Template Overhaul completed**\n\n{result}",
-                        ephemeral=True
-                    )
+                # Truncate result if too long for Discord
+                if len(result) > 1900:  # Leave room for prefix
+                    truncated_result = result[:1900] + "\n\n... (truncated for length)"
+                    completion_msg = f"✅ **Template Overhaul completed**\n\n{truncated_result}"
                 else:
-                    await interaction.response.send_message(
-                        f"✅ **Template Overhaul completed**\n\n{result}",
-                        ephemeral=True
-                    )
+                    completion_msg = f"✅ **Template Overhaul completed**\n\n{result}"
+                
+                if interaction.response.is_done():
+                    await interaction.followup.send(completion_msg, ephemeral=True)
+                else:
+                    await interaction.response.send_message(completion_msg, ephemeral=True)
             except discord.NotFound:
                 # Interaction expired, log completion
                 log.info(f"Template overhaul completed for guild {guild.name} but interaction expired")
