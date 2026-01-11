@@ -54,13 +54,29 @@ class _CommandSyncManager:
         self._lock = asyncio.Lock()
 
     async def sync_startup(self) -> None:
-        # Global-only strategy: sync once during startup.
-        await self.sync_global()
+        # Check for optional guild sync setting
+        sync_guild_id = getattr(self.bot.settings, 'sync_guild_id', None)
+        if sync_guild_id:
+            await self.sync_guild(sync_guild_id)
+        else:
+            await self.sync_global()
 
     async def sync_global(self) -> None:
         async with self._lock:
             await self.bot.tree.sync()
             getattr(self.bot, "log", log).info("Commands synced globally")
+
+            # Deterministic visibility check: ensure the tree isn't empty.
+            cmds = self.bot.tree.get_commands()
+            getattr(self.bot, "log", log).info("Tree commands loaded: %d", len(cmds))
+            for c in cmds:
+                getattr(self.bot, "log", log).info(" - /%s", c.name)
+
+    async def sync_guild(self, guild_id: int) -> None:
+        async with self._lock:
+            guild = discord.Object(id=guild_id)
+            await self.bot.tree.sync(guild=guild)
+            getattr(self.bot, "log", log).info("Commands synced to guild %d", guild_id)
 
             # Deterministic visibility check: ensure the tree isn't empty.
             cmds = self.bot.tree.get_commands()
@@ -181,14 +197,28 @@ class GuardianBot(commands.Bot):
         # Cogs are loaded defensively so one bad cog cannot prevent command registration.
         async def _load_cog(import_path: str, class_name: str) -> None:
             try:
+                log.info("Loading cog: %s.%s", import_path, class_name)
                 mod = __import__(import_path, fromlist=[class_name])
                 cls = getattr(mod, class_name)
                 await self.add_cog(cls(self))
                 log.info("Loaded cog: %s.%s", import_path, class_name)
                 loaded.append(f"{import_path}.{class_name}")
-            except Exception:
+            except ModuleNotFoundError as e:
+                log.error("Module not found for cog %s.%s: %s", import_path, class_name, e)
+                failed.append(f"{import_path}.{class_name} (ModuleNotFoundError)")
+            except AttributeError as e:
+                log.error("Class %s not found in module %s: %s", class_name, import_path, e)
+                # Log available attributes for debugging
+                try:
+                    mod = __import__(import_path, fromlist=[class_name])
+                    available = [attr for attr in dir(mod) if not attr.startswith('_')]
+                    log.error("Available attributes in %s: %s", import_path, available)
+                except Exception:
+                    pass
+                failed.append(f"{import_path}.{class_name} (AttributeError)")
+            except Exception as e:
                 log.exception("Failed to load cog: %s.%s", import_path, class_name)
-                failed.append(f"{import_path}.{class_name}")
+                failed.append(f"{import_path}.{class_name} ({type(e).__name__})")
 
         # Core configuration + server lifecycle
         await _load_cog("guardian.cogs.admin", "AdminCog")
@@ -249,6 +279,8 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.diagnostics", "DiagnosticsCog")
 
         log.info("Startup cog load summary: loaded=%d failed=%d", len(loaded), len(failed))
+        if loaded:
+            log.info("Successfully loaded cogs: %s", ", ".join(loaded))
         if failed:
             for name in failed:
                 log.warning("Startup cog failed: %s", name)
