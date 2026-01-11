@@ -235,8 +235,11 @@ class AuthoritativeOverhaulExecutor:
             return {"valid": False, "error": f"Validation error: {e}"}
     
     async def _full_server_wipe(self) -> None:
-        """Perform complete server wipe."""
+        """Perform complete server wipe while preserving bot role."""
         try:
+            # Bot role ID to preserve
+            BOT_ROLE_ID = 1458781063185829964
+            
             # Delete all channels
             for channel in self.guild.channels:
                 try:
@@ -255,17 +258,20 @@ class AuthoritativeOverhaulExecutor:
                 except Exception as e:
                     log.error(f"Error deleting category {category.name}: {e}")
             
-            # Delete all roles except @everyone
+            # Delete all roles except @everyone and bot role
             for role in self.guild.roles:
-                if role != self.guild.default_role:
+                if role != self.guild.default_role and role.id != BOT_ROLE_ID:
                     try:
                         await role.delete(reason="Authoritative Overhaul - Server Wipe")
+                        log.info(f"Deleted role: {role.name} (ID: {role.id})")
                     except discord.Forbidden:
                         log.warning(f"Cannot delete role {role.name} - insufficient permissions")
                     except Exception as e:
                         log.error(f"Error deleting role {role.name}: {e}")
+                elif role.id == BOT_ROLE_ID:
+                    log.info(f"Preserved bot role: {role.name} (ID: {role.id})")
             
-            log.info("Server wipe completed")
+            log.info("Server wipe completed (bot role preserved)")
         except Exception as e:
             log.error(f"Server wipe failed: {e}")
             raise
@@ -434,6 +440,14 @@ class AuthoritativeOverhaulExecutor:
                 if role_key == "owner":
                     # Skip owner role - should already exist
                     continue
+                
+                # Check if this is the bot role and it already exists
+                if role_key == "bots":
+                    existing_bot_role = self.guild.get_role(1458781063185829964)
+                    if existing_bot_role:
+                        created_roles[role_key] = existing_bot_role
+                        log.info(f"Using existing bot role: {existing_bot_role.name} (ID: {existing_bot_role.id})")
+                        continue
                 
                 await self._update_progress(f"Creating role: {role_def['name']}...", 4)
                 
