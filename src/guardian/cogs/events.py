@@ -69,7 +69,7 @@ class EventsCog(commands.Cog):
             lines.append(f"#{e.event_id} • {ts} • {e.title}")
         await interaction.followup.send("\n".join(lines), ephemeral=True)
 
-    @event.command(name="info", description="Show event details.")
+    @app_commands.command(name="event_info", description="Show event details.")
     async def info(self, interaction: discord.Interaction, event_id: int) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -83,7 +83,7 @@ class EventsCog(commands.Cog):
         emb.add_field(name="Participants", value=str(count), inline=True)
         await interaction.followup.send(embed=emb, ephemeral=True)
 
-    @event.command(name="join", description="Join an event.")
+    @app_commands.command(name="event_join", description="Join an event.")
     async def join(self, interaction: discord.Interaction, event_id: int) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -94,7 +94,7 @@ class EventsCog(commands.Cog):
         ok = await self.bot.events_store.join(interaction.guild.id, e.event_id, interaction.user.id)  # type: ignore[attr-defined]
         await interaction.followup.send("Joined." if ok else "Already joined.", ephemeral=True)
 
-    @event.command(name="leave", description="Leave an event.")
+    @app_commands.command(name="event_leave", description="Leave an event.")
     async def leave(self, interaction: discord.Interaction, event_id: int) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)

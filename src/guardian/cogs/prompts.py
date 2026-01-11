@@ -33,7 +33,7 @@ class PromptsCog(commands.Cog):
         except ValueError:
             await interaction.followup.send("Prompt text required.", ephemeral=True)
 
-    @prompt.command(name="current", description="Show the latest prompt.")
+    @app_commands.command(name="prompt_current", description="Show the latest prompt.")
     async def current(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
