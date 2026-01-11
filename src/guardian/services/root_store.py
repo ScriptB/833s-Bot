@@ -5,7 +5,7 @@ import datetime
 from typing import List, Optional, Tuple
 from dataclasses import dataclass
 
-from .base import BaseStore
+from .base import BaseService
 
 
 @dataclass(frozen=True)
@@ -26,12 +26,15 @@ class RootRequest:
     status: str  # "pending", "approved", "rejected"
 
 
-class RootStore(BaseStore):
+class RootStore(BaseService):
     """Persistent storage for bot root operators and pending requests."""
     
-    async def initialize(self) -> None:
+    def __init__(self, sqlite_path: str) -> None:
+        super().__init__(sqlite_path, cache_ttl_seconds=0)  # No caching for root operations
+    
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
         """Create database tables for root users and requests."""
-        await self._execute("""
+        await db.execute("""
             CREATE TABLE IF NOT EXISTS root_users (
                 user_id INTEGER PRIMARY KEY,
                 added_by INTEGER NOT NULL,
@@ -39,7 +42,7 @@ class RootStore(BaseStore):
             )
         """)
         
-        await self._execute("""
+        await db.execute("""
             CREATE TABLE IF NOT EXISTS root_pending (
                 request_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 target_id INTEGER NOT NULL,
@@ -51,13 +54,41 @@ class RootStore(BaseStore):
             )
         """)
         
-        await self._execute("""
+        await db.execute("""
             CREATE INDEX IF NOT EXISTS idx_root_users_user_id ON root_users(user_id)
         """)
         
-        await self._execute("""
+        await db.execute("""
             CREATE INDEX IF NOT EXISTS idx_root_pending_status ON root_pending(status)
         """)
+    
+    def _from_row(self, row: aiosqlite.Row) -> Any:
+        """Not used for RootStore as it doesn't follow the standard pattern."""
+        raise NotImplementedError("RootStore doesn't use _from_row pattern")
+    
+    @property
+    def _get_query(self) -> str:
+        """Not used for RootStore as it doesn't follow the standard pattern."""
+        raise NotImplementedError("RootStore doesn't use _get_query pattern")
+    
+    async def initialize(self) -> None:
+        """Initialize the database tables."""
+        await self.init()
+    
+    async def _execute(self, query: str, params: tuple = ()) -> aiosqlite.Cursor:
+        """Execute a database query."""
+        async with aiosqlite.connect(self._path) as db:
+            return await db.execute(query, params)
+    
+    async def _fetchone(self, query: str, params: tuple = ()) -> Optional[tuple]:
+        """Execute a query and fetch one row."""
+        async with aiosqlite.connect(self._path) as db:
+            return await db.execute(query, params).fetchone()
+    
+    async def _fetchall(self, query: str, params: tuple = ()) -> List[tuple]:
+        """Execute a query and fetch all rows."""
+        async with aiosqlite.connect(self._path) as db:
+            return await db.execute(query, params).fetchall()
     
     async def is_root(self, user_id: int) -> bool:
         """Check if user is a root operator."""
