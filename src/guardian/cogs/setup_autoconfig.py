@@ -20,13 +20,13 @@ class SetupAutoConfigCog(commands.Cog):
     @app_commands.guild_only()
     @root_only()
     @app_commands.command(
-        name="overhaul",
+        name="overhaul_interactive",
         description="Execute authoritative server rebuild with confirmation. (Root only)",
     )
     @app_commands.describe(
         confirm="Type 'OVERHAUL_CONFIRM' to confirm this destructive action"
     )
-    async def overhaul(self, interaction: discord.Interaction, confirm: str) -> None:
+    async def overhaul_interactive(self, interaction: discord.Interaction, confirm: str) -> None:
         """Execute authoritative server overhaul with confirmation (Root only)."""
         assert interaction.guild is not None
         guild = interaction.guild
