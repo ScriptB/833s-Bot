@@ -7,6 +7,7 @@ from discord.ext import commands
 
 from ..services.schema import canonical_schema
 from ..services.schema_builder import SchemaBuilder
+from ..security.auth import root_only
 
 
 class RebuildCog(commands.Cog):
@@ -14,12 +15,11 @@ class RebuildCog(commands.Cog):
         self.bot = bot  # type: ignore[assignment]
 
     @app_commands.guild_only()
-    @app_commands.default_permissions(administrator=True)
+    @root_only()
     @app_commands.command(
         name="guardian_rebuild",
-        description="Wipe channels/roles (bounded) and rebuild from canonical schema.",
+        description="Wipe channels/roles (bounded) and rebuild from canonical schema. (Root only)",
     )
-    @app_commands.checks.has_permissions(administrator=True)
     async def guardian_rebuild(self, interaction: discord.Interaction, confirm: bool = False) -> None:
         assert interaction.guild is not None
         guild = interaction.guild
@@ -103,9 +103,8 @@ class RebuildCog(commands.Cog):
         await interaction.followup.send("Rebuild complete.", ephemeral=True)
 
     @app_commands.guild_only()
-    @app_commands.default_permissions(administrator=True)
-    @app_commands.command(name="guardian_validate", description="Drift validation + auto-correct against canonical schema.")
-    @app_commands.checks.has_permissions(administrator=True)
+    @root_only()
+    @app_commands.command(name="guardian_validate", description="Drift validation + auto-correct against canonical schema. (Root only)")
     async def guardian_validate(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)

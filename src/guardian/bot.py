@@ -40,6 +40,7 @@ from .services.titles_store import TitlesStore
 from .services.prompts_store import PromptsStore
 from .services.events_store import EventsStore
 from .services.community_memory_store import CommunityMemoryStore
+from .services.root_store import RootStore
 
 log = logging.getLogger("guardian.bot")
 
@@ -126,6 +127,7 @@ class GuardianBot(commands.Bot):
         self.prompts_store = PromptsStore(settings.sqlite_path, cache_ttl)
         self.events_store = EventsStore(settings.sqlite_path, cache_ttl)
         self.community_memory_store = CommunityMemoryStore(settings.sqlite_path, cache_ttl)
+        self.root_store = RootStore(settings.sqlite_path)
         
         # Initialize bot-specific services
         self.drift_verifier = DriftVerifier(self)
@@ -161,6 +163,7 @@ class GuardianBot(commands.Bot):
             self.prompts_store,
             self.events_store,
             self.community_memory_store,
+            self.root_store,
         ]
         
         await initialize_database(self.settings.sqlite_path, stores)
@@ -192,6 +195,8 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.corporate_overhaul", "CorporateOverhaulCog")
         await _load_cog("guardian.cogs.setup_autoconfig", "SetupAutoConfigCog")
         await _load_cog("guardian.cogs.dm_cleanup", "DMCleanupCog")
+        await _load_cog("guardian.cogs.admin_management", "AdminManagementCog")
+        await _load_cog("guardian.cogs.root_management", "RootManagementCog")
 
         # Community + onboarding
         await _load_cog("guardian.cogs.welcome", "WelcomeCog")
