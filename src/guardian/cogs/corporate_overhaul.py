@@ -60,36 +60,53 @@ class CorporateOverhaulCog(commands.Cog):
                 # Truncate result if too long for Discord
                 if len(result) > 1900:  # Leave room for prefix
                     truncated_result = result[:1900] + "\n\n... (truncated for length)"
-                    completion_msg = f"✅ **Template Overhaul completed**\n\n{truncated_result}"
+                    completion_msg = f"✅ **Robust Overhaul completed**\n\n{truncated_result}"
                 else:
-                    completion_msg = f"✅ **Template Overhaul completed**\n\n{result}"
+                    completion_msg = f"✅ **Robust Overhaul completed**\n\n{result}"
                 
+                # Check if response was already sent
                 if interaction.response.is_done():
                     await interaction.followup.send(completion_msg, ephemeral=True)
                 else:
                     await interaction.response.send_message(completion_msg, ephemeral=True)
+                    
             except discord.NotFound:
-                # Interaction expired, log completion
-                log.info(f"Template overhaul completed for guild {guild.name} but interaction expired")
-            except Exception as e:
-                log.error(f"Failed to send completion message: {e}")
+                # Interaction expired, log success
+                log.info(f"Robust overhaul completed for guild {guild.name} but interaction expired")
+            except discord.InteractionResponded:
+                # Already responded, try followup
+                try:
+                    await interaction.followup.send(completion_msg, ephemeral=True)
+                except:
+                    log.info(f"Robust overhaul completed for guild {guild.name} but couldn't send followup")
+            except Exception as e2:
+                log.error(f"Failed to send completion message: {e2}")
             
         except Exception as e:
             # Try to send error message
             try:
                 if interaction.response.is_done():
                     await interaction.followup.send(
-                        f"❌ **Template Overhaul failed**: {e}",
+                        f"❌ **Robust Overhaul failed**: {e}",
                         ephemeral=True
                     )
                 else:
                     await interaction.response.send_message(
-                        f"❌ **Template Overhaul failed**: {e}",
+                        f"❌ **Robust Overhaul failed**: {e}",
                         ephemeral=True
                     )
             except discord.NotFound:
                 # Interaction expired, log error
-                log.error(f"Template overhaul failed for guild {guild.name} but interaction expired: {e}")
+                log.error(f"Robust overhaul failed for guild {guild.name} but interaction expired: {e}")
+            except discord.InteractionResponded:
+                # Already responded, try followup
+                try:
+                    await interaction.followup.send(
+                        f"❌ **Robust Overhaul failed**: {e}",
+                        ephemeral=True
+                    )
+                except:
+                    log.error(f"Robust overhaul failed for guild {guild.name} but couldn't send followup: {e}")
             except Exception as e2:
                 log.error(f"Failed to send error message: {e2}")
             
