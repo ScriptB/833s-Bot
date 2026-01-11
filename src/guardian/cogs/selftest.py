@@ -68,7 +68,7 @@ class SelfTestCog(commands.Cog):
         self._test_lock = asyncio.Lock()
         # self._runner = SelfTestRunner(bot)
     
-    @app_commands.Group(name="selftest", description="Run self-tests on the bot (Bot owner only)")
+    @app_commands.group(name="selftest", description="Run self-tests on the bot (Bot owner only)")
     @bot_owner_only()
     async def selftest(self, interaction: discord.Interaction) -> None:
         """Self-test command group."""
