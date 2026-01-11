@@ -9,7 +9,7 @@ from discord.ext import commands
 
 from ..utils import safe_embed, success_embed, error_embed, warning_embed, info_embed
 from ..constants import COLORS, DEFAULT_TIMEOUT_SECONDS
-from .overhaul_template import TemplateOverhaulExecutor
+from ..ui.overhaul_robust import RobustOverhaulExecutor
 
 class OverhaulInteractiveView(ui.View):
     """Interactive UI for server overhaul customization and confirmation."""
@@ -149,7 +149,7 @@ class OverhaulInteractiveView(ui.View):
         try:
             # Create config based on selections
             final_config = self._build_final_config()
-            executor = TemplateOverhaulExecutor(self.cog, self.guild, final_config)
+            executor = RobustOverhaulExecutor(self.cog, self.guild, final_config)
             executor.progress_user = interaction.user  # Set progress recipient
             
             result = await executor.run()

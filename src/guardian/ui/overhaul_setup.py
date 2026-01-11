@@ -113,8 +113,8 @@ class OverhaulSetupView(ui.View):
         if self.message:
             await self.message.edit(view=self)
         # Run the overhaul
-        from .overhaul_template import TemplateOverhaulExecutor
-        executor = TemplateOverhaulExecutor(self.cog, self.guild, self.config)
+        from ..ui.overhaul_robust import RobustOverhaulExecutor
+        executor = RobustOverhaulExecutor(self.cog, self.guild, self.config)
         result = await executor.run()
         await safe_followup(interaction, result, ephemeral=True)
 

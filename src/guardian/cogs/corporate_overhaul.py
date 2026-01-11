@@ -5,7 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ..ui.overhaul_template import TemplateOverhaulExecutor
+from ..ui.overhaul_robust import RobustOverhaulExecutor
 from ..security.auth import root_only
 
 log = logging.getLogger("guardian.corporate_overhaul")
@@ -16,6 +16,7 @@ class CorporateOverhaulCog(commands.Cog):
         self.bot = bot  # type: ignore[assignment]
         self.progress_user = None  # Store for progress tracking
         self.interaction = None  # Store interaction for fallback
+        self.current_executor = None  # Store current executor for cancellation
 
     @app_commands.command(name="overhaul", description="Execute template-based server overhaul (Root only)")
     @root_only()
@@ -49,9 +50,10 @@ class CorporateOverhaulCog(commands.Cog):
         
         # Execute template overhaul
         try:
-            executor = TemplateOverhaulExecutor(self, guild, {})
-            executor.progress_user = interaction.user  # Set progress recipient
-            result = await executor.run()
+            self.current_executor = RobustOverhaulExecutor(self, guild, {})
+            self.current_executor.progress_user = interaction.user  # Set progress recipient
+            result = await self.current_executor.run()
+            self.current_executor = None
             
             # Try to send completion message
             try:
@@ -93,3 +95,11 @@ class CorporateOverhaulCog(commands.Cog):
             
             # Re-raise the original error
             raise
+        finally:
+            self.current_executor = None
+    
+    def cog_unload(self):
+        """Handle cog unload - cancel any running overhaul."""
+        if self.current_executor:
+            self.current_executor.cancel()
+            self.current_executor = None
