@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import logging
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from ..ui.overhaul_template import TemplateOverhaulExecutor
 from ..security.auth import root_only
+
+log = logging.getLogger("guardian.corporate_overhaul")
 
 
 class CorporateOverhaulCog(commands.Cog):
@@ -18,15 +21,13 @@ class CorporateOverhaulCog(commands.Cog):
     @root_only()
     async def overhaul(self, interaction: discord.Interaction) -> None:
         """Execute template-based server overhaul with exact structure matching."""
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        
         # Store interaction for fallback
         self.interaction = interaction
         self.progress_user = interaction.user
         
         # Get guild
         if not interaction.guild:
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 "❌ This command can only be used in a server.",
                 ephemeral=True
             )
@@ -34,19 +35,60 @@ class CorporateOverhaulCog(commands.Cog):
         
         guild = interaction.guild
         
+        # Send initial response
+        try:
+            await interaction.response.send_message(
+                "🏰 **Template Overhaul Started**\n\n"
+                "You will receive real-time progress updates via DM.\n"
+                "This process will take several minutes...",
+                ephemeral=True
+            )
+        except discord.NotFound:
+            # Interaction already expired, continue anyway
+            log.warning("Interaction expired before response could be sent")
+        
         # Execute template overhaul
         try:
             executor = TemplateOverhaulExecutor(self, guild, {})
             executor.progress_user = interaction.user  # Set progress recipient
             result = await executor.run()
             
-            await interaction.followup.send(
-                f"✅ **Template Overhaul completed**\n\n{result}",
-                ephemeral=True
-            )
+            # Try to send completion message
+            try:
+                if interaction.response.is_done():
+                    await interaction.followup.send(
+                        f"✅ **Template Overhaul completed**\n\n{result}",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.response.send_message(
+                        f"✅ **Template Overhaul completed**\n\n{result}",
+                        ephemeral=True
+                    )
+            except discord.NotFound:
+                # Interaction expired, log completion
+                log.info(f"Template overhaul completed for guild {guild.name} but interaction expired")
+            except Exception as e:
+                log.error(f"Failed to send completion message: {e}")
             
         except Exception as e:
-            await interaction.followup.send(
-                f"❌ **Template Overhaul failed**: {e}",
-                ephemeral=True
-            )
+            # Try to send error message
+            try:
+                if interaction.response.is_done():
+                    await interaction.followup.send(
+                        f"❌ **Template Overhaul failed**: {e}",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.response.send_message(
+                        f"❌ **Template Overhaul failed**: {e}",
+                        ephemeral=True
+                    )
+            except discord.NotFound:
+                # Interaction expired, log error
+                log.error(f"Template overhaul failed for guild {guild.name} but interaction expired: {e}")
+            except Exception as e2:
+                log.error(f"Failed to send error message: {e2}")
+            
+            # Re-raise the original error
+            raise

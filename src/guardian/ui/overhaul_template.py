@@ -785,31 +785,46 @@ class TemplateOverhaulExecutor:
         if self.progress.errors:
             content += f"\nErrors: {len(self.progress.errors)}"
         
-        # Try to update DM
+        # Primary: Try to update DM
         if self.progress_message and self.progress_user:
             try:
                 await self.progress_message.edit(content=content)
+                log.info(f"Updated progress DM for user {self.progress_user.id}")
                 return
             except discord.NotFound:
                 log.warning("Progress message not found, creating new one")
+                # Try to create new DM message
+                try:
+                    self.progress_message = await self.progress_user.send(content)
+                    log.info(f"Created new progress DM for user {self.progress_user.id}")
+                    return
+                except Exception as e:
+                    log.error(f"Failed to create new progress DM: {e}")
             except discord.Forbidden:
-                log.warning("Cannot edit progress message")
+                log.warning("Cannot edit progress message - permissions")
             except Exception as e:
                 log.error(f"Error updating progress message: {e}")
         
-        # Fallback: send new message or use ephemeral response
+        # Secondary: Try to send new DM
         if self.progress_user:
             try:
                 self.progress_message = await self.progress_user.send(content)
+                log.info(f"Sent new progress DM for user {self.progress_user.id}")
+                return
+            except discord.Forbidden:
+                log.warning("User has DMs disabled")
             except Exception as e:
                 log.error(f"Failed to send progress DM: {e}")
         
-        # Final fallback: try to update original interaction
-        if hasattr(self.cog, 'interaction') and self.cog.interaction:
-            try:
-                if self.cog.interaction.response.is_done():
-                    await self.cog.interaction.followup.send(content, ephemeral=True)
-                else:
-                    await self.cog.interaction.response.send_message(content, ephemeral=True)
-            except Exception as e:
-                log.error(f"Failed to send fallback message: {e}")
+        # Tertiary: Try staff channel fallback
+        try:
+            staff_channel = discord.utils.get(self.guild.text_channels, name="💬 staff-chat")
+            if staff_channel:
+                await staff_channel.send(f"🏰 **Overhaul Progress Update for {self.progress_user.name if self.progress_user else 'Unknown'}**\n\n{content}")
+                log.info("Sent progress update to staff channel")
+                return
+        except Exception as e:
+            log.error(f"Failed to send staff channel update: {e}")
+        
+        # Final fallback: Log only
+        log.warning(f"No progress update sent - DM disabled and no staff channel available: {content}")
