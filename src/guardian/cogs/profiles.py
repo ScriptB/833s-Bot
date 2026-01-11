@@ -9,10 +9,8 @@ class ProfilesCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
-    profile = app_commands.Group(name="user_profile", description="Community profile commands.")
-
-    @profile.command(name="view", description="View a member's community profile.")
-    async def view(self, interaction: discord.Interaction, member: discord.Member | None = None) -> None:
+    @app_commands.command(name="user_profile", description="View a member's community profile.")
+    async def user_profile(self, interaction: discord.Interaction, member: discord.Member | None = None) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
         member = member or interaction.user  # type: ignore[assignment]
@@ -41,7 +39,7 @@ class ProfilesCog(commands.Cog):
 
         await interaction.followup.send(embed=emb, ephemeral=True)
 
-    @profile.command(name="edit_about", description="Set your profile about text.")
+    @app_commands.command(name="profile_edit_about", description="Set your profile about text.")
     async def edit_about(self, interaction: discord.Interaction, about: str) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -53,7 +51,7 @@ class ProfilesCog(commands.Cog):
             pass
         await interaction.followup.send("Profile updated.", ephemeral=True)
 
-    @profile.command(name="edit_pronouns", description="Set your pronouns.")
+    @app_commands.command(name="profile_edit_pronouns", description="Set your pronouns.")
     async def edit_pronouns(self, interaction: discord.Interaction, pronouns: str) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -65,7 +63,7 @@ class ProfilesCog(commands.Cog):
             pass
         await interaction.followup.send("Profile updated.", ephemeral=True)
 
-    @profile.command(name="edit_interests", description="Set your interests (comma-separated, up to 12).")
+    @app_commands.command(name="profile_edit_interests", description="Set your interests (comma-separated, up to 12).")
     async def edit_interests(self, interaction: discord.Interaction, interests: str) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -78,7 +76,7 @@ class ProfilesCog(commands.Cog):
             pass
         await interaction.followup.send("Profile updated.", ephemeral=True)
 
-    @profile.command(name="privacy", description="Set your profile visibility.")
+    @app_commands.command(name="profile_privacy", description="Set your profile visibility.")
     async def privacy(self, interaction: discord.Interaction, public: bool) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)

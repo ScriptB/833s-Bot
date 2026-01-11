@@ -11,13 +11,13 @@ class EventsCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
-    event = app_commands.Group(name="community_event", description="Community events (no pings).")
+    # Individual commands instead of group (app_commands.Group not available in this version)
 
     async def _level(self, guild_id: int, user_id: int) -> int:
         _, _, lvl = await self.bot.levels_store.get(guild_id, user_id)  # type: ignore[attr-defined]
         return int(lvl)
 
-    @event.command(name="create", description="Create an event (level 4+).")
+    @app_commands.command(name="event_create", description="Create an event (level 4+).")
     async def create(
         self,
         interaction: discord.Interaction,
@@ -55,7 +55,7 @@ class EventsCog(commands.Cog):
         except ValueError:
             await interaction.followup.send("Title required.", ephemeral=True)
 
-    @event.command(name="list", description="List upcoming active events.")
+    @app_commands.command(name="event_list", description="List upcoming active events.")
     async def list_events(self, interaction: discord.Interaction, limit: app_commands.Range[int, 1, 10] = 5) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)

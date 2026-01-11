@@ -11,9 +11,9 @@ class CommunityMemoryCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
-    community = app_commands.Group(name="community_memory", description="Community history and memory.")
+    # Individual commands instead of group (app_commands.Group not available in this version)
 
-    @community.command(name="timeline", description="Show recent community activity recorded by the bot.")
+    @app_commands.command(name="community_timeline", description="Show recent community activity recorded by the bot.")
     async def timeline(self, interaction: discord.Interaction, limit: app_commands.Range[int, 1, 10] = 5) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -27,7 +27,7 @@ class CommunityMemoryCog(commands.Cog):
             lines.append(f"{ts} • {it.kind}")
         await interaction.followup.send("\n".join(lines), ephemeral=True)
 
-    @community.command(name="on_this_day", description="Show memory entries that happened on this day in previous years.")
+    @app_commands.command(name="community_on_this_day", description="Show memory entries that happened on this day in previous years.")
     async def on_this_day(self, interaction: discord.Interaction, limit: app_commands.Range[int, 1, 10] = 5) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)

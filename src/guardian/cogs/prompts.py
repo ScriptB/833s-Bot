@@ -10,13 +10,13 @@ class PromptsCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
-    prompt = app_commands.Group(name="community_prompt", description="Community prompts.")
+    # Individual commands instead of group (app_commands.Group not available in this version)
 
     async def _level(self, guild_id: int, user_id: int) -> int:
         _, _, lvl = await self.bot.levels_store.get(guild_id, user_id)  # type: ignore[attr-defined]
         return int(lvl)
 
-    @prompt.command(name="submit", description="Submit a new community prompt (level 2+).")
+    @app_commands.command(name="prompt_submit", description="Submit a new community prompt (level 2+).")
     async def submit(self, interaction: discord.Interaction, text: str) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -45,7 +45,7 @@ class PromptsCog(commands.Cog):
         emb.set_footer(text=f"Created at {datetime.datetime.utcfromtimestamp(p.created_at).isoformat()}Z")
         await interaction.followup.send(embed=emb, ephemeral=True)
 
-    @prompt.command(name="answer", description="Answer the latest prompt.")
+    @app_commands.command(name="prompt_answer", description="Answer the latest prompt.")
     async def answer(self, interaction: discord.Interaction, text: str) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -63,7 +63,7 @@ class PromptsCog(commands.Cog):
         except ValueError:
             await interaction.followup.send("Answer text required.", ephemeral=True)
 
-    @prompt.command(name="history", description="Show recent prompts.")
+    @app_commands.command(name="prompt_history", description="Show recent prompts.")
     async def history(self, interaction: discord.Interaction, limit: app_commands.Range[int, 1, 10] = 5) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)

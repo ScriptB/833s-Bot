@@ -18,7 +18,7 @@ class TitlesCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
-    title = app_commands.Group(name="cosmetic_title", description="Cosmetic titles (no permissions).")
+    # Individual commands instead of group (app_commands.Group not available in this version)
 
     async def _level(self, guild_id: int, user_id: int) -> int:
         _, _, lvl = await self.bot.levels_store.get(guild_id, user_id)  # type: ignore[attr-defined]
@@ -27,7 +27,7 @@ class TitlesCog(commands.Cog):
     def _unlocked(self, lvl: int) -> list[str]:
         return [t for min_lvl, t in TITLE_CATALOG if lvl >= min_lvl]
 
-    @title.command(name="list", description="List titles you can equip.")
+    @app_commands.command(name="titles_list", description="List titles you can equip.")
     async def list_titles(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -42,7 +42,7 @@ class TitlesCog(commands.Cog):
             lines = ["No titles available yet."]
         await interaction.followup.send("\n".join(lines), ephemeral=True)
 
-    @title.command(name="equip", description="Equip a title you have unlocked.")
+    @app_commands.command(name="titles_equip", description="Equip a title you have unlocked.")
     async def equip(self, interaction: discord.Interaction, title: str) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -59,7 +59,7 @@ class TitlesCog(commands.Cog):
             pass
         await interaction.followup.send("Title equipped.", ephemeral=True)
 
-    @title.command(name="unequip", description="Remove your equipped title.")
+    @app_commands.command(name="titles_unequip", description="Remove your equipped title.")
     async def unequip(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True, thinking=True)
