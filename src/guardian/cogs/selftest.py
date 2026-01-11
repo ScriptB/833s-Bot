@@ -68,30 +68,26 @@ class SelfTestCog(commands.Cog):
         self._test_lock = asyncio.Lock()
         # self._runner = SelfTestRunner(bot)
     
-    @app_commands.group(name="selftest", description="Run self-tests on the bot (Bot owner only)")
-    @bot_owner_only()
-    async def selftest(self, interaction: discord.Interaction) -> None:
-        """Self-test command group."""
-        pass  # This is just the group, subcommands will handle the actual logic
-    
-    @selftest.command(name="dry", description="Run dry-run tests (no Discord mutations)")
+    @app_commands.command(name="selftest_dry", description="Run dry-run tests on the bot (Bot owner only)")
     @app_commands.describe(
         include_failures="Whether to include detailed failure information"
     )
     @app_commands.cooldown(1, 300)  # 1 use per 5 minutes
-    async def dry(self, interaction: discord.Interaction, include_failures: bool = True) -> None:
+    @bot_owner_only()
+    async def selftest_dry(self, interaction: discord.Interaction, include_failures: bool = True) -> None:
         """Run dry-run tests on all commands."""
         await interaction.response.send_message(
             "🧪 Self-test system is temporarily disabled for debugging.",
             ephemeral=True
         )
     
-    @selftest.command(name="live", description="Run live tests in a test guild (Bot owner only)")
+    @app_commands.command(name="selftest_live", description="Run live tests in a test guild (Bot owner only)")
     @app_commands.describe(
         test_guild_id="Optional: Override the TEST_GUILD_ID environment variable"
     )
     @app_commands.cooldown(1, 300)  # 1 use per 5 minutes
-    async def live(self, interaction: discord.Interaction, test_guild_id: Optional[str] = None) -> None:
+    @bot_owner_only()
+    async def selftest_live(self, interaction: discord.Interaction, test_guild_id: Optional[str] = None) -> None:
         """Run live tests in a specific guild."""
         await interaction.response.send_message(
             "🧪 Self-test system is temporarily disabled for debugging.",
