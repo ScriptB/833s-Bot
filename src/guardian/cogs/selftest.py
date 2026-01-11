@@ -9,7 +9,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ..testing.selftest_runner import SelfTestRunner
+# from ..testing.selftest_runner import SelfTestRunner
 
 # Bot owner cache
 _bot_owner_ids: Optional[set[int]] = None
@@ -66,7 +66,7 @@ class SelfTestCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
         self._test_lock = asyncio.Lock()
-        self._runner = SelfTestRunner(bot)
+        # self._runner = SelfTestRunner(bot)
     
     @app_commands.Group(name="selftest", description="Run self-tests on the bot (Bot owner only)")
     @bot_owner_only()
@@ -81,57 +81,10 @@ class SelfTestCog(commands.Cog):
     @app_commands.cooldown(1, 300)  # 1 use per 5 minutes
     async def dry(self, interaction: discord.Interaction, include_failures: bool = True) -> None:
         """Run dry-run tests on all commands."""
-        # Check if another test is running
-        if self._test_lock.locked():
-            await interaction.response.send_message(
-                "❌ Another self-test is already running. Please wait for it to complete.",
-                ephemeral=True
-            )
-            return
-        
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        
-        async with self._test_lock:
-            try:
-                # Run the dry test
-                await interaction.followup.send("🧪 Running dry-run tests...", ephemeral=True)
-                
-                report = await self._runner.run_dry_test()
-                
-                # Create file attachment
-                report_bytes = report.encode('utf-8')
-                report_file = discord.File(
-                    io.BytesIO(report_bytes),
-                    filename=f"selftest_dry_{discord.utils.utcnow().strftime('%Y%m%d_%H%M%S')}.txt"
-                )
-                
-                # Send summary
-                lines = report.split('\n')
-                summary_lines = []
-                for line in lines:
-                    if line.startswith('Total Commands:') or line.startswith('Passed:') or line.startswith('Failed:') or line.startswith('Skipped:') or line.startswith('Success Rate:'):
-                        summary_lines.append(line)
-                    if line.startswith('Generated:'):
-                        summary_lines.append(line)
-                    if line.startswith('Duration:'):
-                        summary_lines.append(line)
-                    if summary_lines and line.startswith('=' * 80):
-                        break
-                
-                summary = '\n'.join(summary_lines) if summary_lines else "Test completed"
-                
-                await interaction.followup.send(
-                    f"✅ **Dry-run test completed**\n\n```\n{summary}\n```",
-                    file=report_file,
-                    ephemeral=True
-                )
-                
-            except Exception as e:
-                self.bot.log.error(f"Dry-run self-test failed: {e}")
-                await interaction.followup.send(
-                    f"❌ **Dry-run test failed**: {e}",
-                    ephemeral=True
-                )
+        await interaction.response.send_message(
+            "🧪 Self-test system is temporarily disabled for debugging.",
+            ephemeral=True
+        )
     
     @selftest.command(name="live", description="Run live tests in a test guild (Bot owner only)")
     @app_commands.describe(
@@ -140,106 +93,7 @@ class SelfTestCog(commands.Cog):
     @app_commands.cooldown(1, 300)  # 1 use per 5 minutes
     async def live(self, interaction: discord.Interaction, test_guild_id: Optional[str] = None) -> None:
         """Run live tests in a specific guild."""
-        # Check if another test is running
-        if self._test_lock.locked():
-            await interaction.response.send_message(
-                "❌ Another self-test is already running. Please wait for it to complete.",
-                ephemeral=True
-            )
-            return
-        
-        # Get test guild ID
-        guild_id = int(test_guild_id) if test_guild_id else None
-        if not guild_id:
-            guild_id = os.getenv('TEST_GUILD_ID')
-            if guild_id:
-                try:
-                    guild_id = int(guild_id)
-                except ValueError:
-                    guild_id = None
-        
-        if not guild_id:
-            await interaction.response.send_message(
-                "❌ No test guild configured. Set TEST_GUILD_ID environment variable or provide test_guild_id parameter.",
-                ephemeral=True
-            )
-            return
-        
-        # Get the test guild
-        guild = self.bot.get_guild(guild_id)
-        if not guild:
-            await interaction.response.send_message(
-                f"❌ Bot is not in the test guild (ID: {guild_id}). Make sure the bot is a member of the test guild.",
-                ephemeral=True
-            )
-            return
-        
-        # Check if user is in the test guild
-        member = guild.get_member(interaction.user.id)
-        if not member:
-            await interaction.response.send_message(
-                f"❌ You are not a member of the test guild (ID: {guild_id}).",
-                ephemeral=True
-            )
-            return
-        
-        # Find a suitable channel for testing
-        test_channel = None
-        for channel in guild.text_channels:
-            if channel.permissions_for(guild.me).send_messages:
-                test_channel = channel
-                break
-        
-        if not test_channel:
-            await interaction.response.send_message(
-                f"❌ No suitable channel found in test guild for sending messages.",
-                ephemeral=True
-            )
-            return
-        
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        
-        async with self._test_lock:
-            try:
-                # Run the live test
-                await interaction.followup.send(
-                    f"🧪 Running live tests in guild **{guild.name}** ({guild.id})...",
-                    ephemeral=True
-                )
-                
-                report = await self._runner.run_live_test(guild, test_channel)
-                
-                # Create file attachment
-                report_bytes = report.encode('utf-8')
-                report_file = discord.File(
-                    io.BytesIO(report_bytes),
-                    filename=f"selftest_live_{discord.utils.utcnow().strftime('%Y%m%d_%H%M%S')}.txt"
-                )
-                
-                # Send summary
-                lines = report.split('\n')
-                summary_lines = []
-                for line in lines:
-                    if line.startswith('Total Commands:') or line.startswith('Passed:') or line.startswith('Failed:') or line.startswith('Skipped:') or line.startswith('Success Rate:'):
-                        summary_lines.append(line)
-                    if line.startswith('Generated:'):
-                        summary_lines.append(line)
-                    if line.startswith('Duration:'):
-                        summary_lines.append(line)
-                    if summary_lines and line.startswith('=' * 80):
-                        break
-                
-                summary = '\n'.join(summary_lines) if summary_lines else "Test completed"
-                
-                await interaction.followup.send(
-                    f"✅ **Live test completed in {guild.name}**\n\n```\n{summary}\n```",
-                    file=report_file,
-                    ephemeral=True
-                )
-                
-            except Exception as e:
-                self.bot.log.error(f"Live self-test failed: {e}")
-                await interaction.followup.send(
-                    f"❌ **Live test failed**: {e}",
-                    ephemeral=True
-                )
+        await interaction.response.send_message(
+            "🧪 Self-test system is temporarily disabled for debugging.",
+            ephemeral=True
+        )

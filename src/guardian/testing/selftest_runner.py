@@ -7,6 +7,11 @@ import traceback
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
+try:
+    from typing import Union
+except ImportError:
+    # Python 3.10+ uses | syntax, but we'll keep Union for compatibility
+    pass
 
 import discord
 from discord.ext import commands
