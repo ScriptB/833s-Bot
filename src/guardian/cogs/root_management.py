@@ -61,7 +61,7 @@ class RootManagementCog(commands.Cog):
                 ephemeral=True
             )
         except Exception as e:
-            self.bot.logger.error(f"Error creating root request: {e}")
+            self.bot.log.error(f"Error creating root request: {e}")
             await interaction.response.send_message(
                 "❌ An error occurred while creating the request.",
                 ephemeral=True
@@ -100,7 +100,7 @@ class RootManagementCog(commands.Cog):
                 ephemeral=True
             )
         except Exception as e:
-            self.bot.logger.error(f"Error approving root request: {e}")
+            self.bot.log.error(f"Error approving root request: {e}")
             await interaction.response.send_message(
                 "❌ An error occurred while approving the request.",
                 ephemeral=True
@@ -133,7 +133,7 @@ class RootManagementCog(commands.Cog):
                 ephemeral=True
             )
         except Exception as e:
-            self.bot.logger.error(f"Error rejecting root request: {e}")
+            self.bot.log.error(f"Error rejecting root request: {e}")
             await interaction.response.send_message(
                 "❌ An error occurred while rejecting the request.",
                 ephemeral=True
@@ -182,7 +182,7 @@ class RootManagementCog(commands.Cog):
                 )
                 
         except Exception as e:
-            self.bot.logger.error(f"Error removing root: {e}")
+            self.bot.log.error(f"Error removing root: {e}")
             await interaction.response.send_message(
                 "❌ An error occurred while removing the root operator.",
                 ephemeral=True
@@ -246,7 +246,7 @@ class RootManagementCog(commands.Cog):
             await interaction.response.send_message(embed=embed, ephemeral=True)
             
         except Exception as e:
-            self.bot.logger.error(f"Error listing roots: {e}")
+            self.bot.log.error(f"Error listing roots: {e}")
             await interaction.response.send_message(
                 "❌ An error occurred while listing root operators.",
                 ephemeral=True

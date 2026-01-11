@@ -62,7 +62,7 @@ class AdminManagementCog(commands.Cog):
         """Log admin actions to database and mod-logs channel."""
         # Log to database (you can implement this if needed)
         # For now, just log to console
-        self.bot.logger.info(
+        self.bot.log.info(
             f"Admin action: {action} - User: {target_user} ({target_user.id}) "
             f"by {performed_by} ({performed_by.id}) in {guild.name}"
         )
@@ -82,7 +82,7 @@ class AdminManagementCog(commands.Cog):
             try:
                 await mod_logs_channel.send(embed=embed)
             except Exception as e:
-                self.bot.logger.warning(f"Failed to log admin action to mod-logs: {e}")
+                self.bot.log.warning(f"Failed to log admin action to mod-logs: {e}")
     
     @app_commands.command(
         name="elevate_admin",
@@ -180,7 +180,7 @@ class AdminManagementCog(commands.Cog):
                 ephemeral=True
             )
         except Exception as e:
-            self.bot.logger.error(f"Error elevating admin: {e}")
+            self.bot.log.error(f"Error elevating admin: {e}")
             await interaction.followup.send(
                 "❌ An error occurred while elevating user.",
                 ephemeral=True
@@ -274,7 +274,7 @@ class AdminManagementCog(commands.Cog):
                 ephemeral=True
             )
         except Exception as e:
-            self.bot.logger.error(f"Error revoking admin: {e}")
+            self.bot.log.error(f"Error revoking admin: {e}")
             await interaction.followup.send(
                 "❌ An error occurred while revoking admin role.",
                 ephemeral=True
