@@ -32,6 +32,7 @@ class OverhaulExecutorV3:
         self.guild = guild
         self.config = config
         self.progress_message: Optional[discord.Message] = None
+        self.progress_user: Optional[discord.User] = None
         self.start_time = time.time()
         self.current_step = 0
         
@@ -95,6 +96,10 @@ class OverhaulExecutorV3:
         await self._complete_progress(elapsed)
         success_msg = f"✅ Professional server overhaul completed in {elapsed}"
         log.info(f"Professional overhaul completed successfully for guild {self.guild.name}")
+        
+        # Send completion notification to user
+        await self._notify_user_directly(f"🎉 OVERHAUL COMPLETE! Server rebuilt in {elapsed}")
+        
         return success_msg
     
     async def _init_progress_message(self) -> None:
@@ -111,7 +116,7 @@ class OverhaulExecutorV3:
             pass
     
     async def _update_progress(self, phase: str, step: int) -> None:
-        """Update progress message."""
+        """Update progress message and notify user directly."""
         self.current_step = step
         elapsed = f"{time.time() - self.start_time:.1f}s"
         progress_bars = [
@@ -133,11 +138,29 @@ class OverhaulExecutorV3:
         embed.add_field(name="Current Phase", value=f"Phase {step}/8", inline=True)
         embed.add_field(name="Time Elapsed", value=elapsed, inline=True)
         
+        # Update progress message
         try:
             if self.progress_message:
                 await self.progress_message.edit(embed=embed)
         except:
             pass
+        
+        # Send direct notification to user
+        await self._notify_user_directly(f"🔥 {phase} - {progress_bar}")
+    
+    async def _notify_user_directly(self, message: str) -> None:
+        """Send direct message to the user who initiated overhaul."""
+        if self.progress_user:
+            try:
+                await self.progress_user.send(message)
+            except discord.Forbidden:
+                log.warning(f"Cannot send direct message to user {self.progress_user.id} - DMs disabled")
+            except discord.HTTPException as e:
+                log.warning(f"Failed to send direct message: {e}")
+            except Exception as e:
+                log.error(f"Unexpected error sending direct message: {e}")
+        else:
+            log.warning("No progress user set - cannot send direct notifications")
     
     async def _complete_progress(self, elapsed: str) -> None:
         """Mark progress as complete."""
@@ -217,12 +240,23 @@ class OverhaulExecutorV3:
     
     async def _apply_server_settings(self) -> None:
         """Phase 2: Apply server settings with correct API."""
-        await self.guild.edit(
-            verification_level=discord.VerificationLevel.high,
-            default_notifications=discord.NotificationLevel.only_mentions,
-            explicit_content_filter=discord.ExplicitContentFilter.all_members,
-            reason="Professional Overhaul - Server Settings"
-        )
+        try:
+            await self.guild.edit(
+                verification_level=discord.VerificationLevel.high,
+                default_notifications=discord.NotificationLevel.only_mentions,
+                explicit_content_filter=discord.ExplicitContentFilter.all_members,
+                reason="Professional Overhaul - Server Settings"
+            )
+            log.info("Server settings applied successfully")
+        except discord.Forbidden as e:
+            log.error(f"Failed to apply server settings: Missing permissions - {e}")
+            await self._notify_user_directly(f"⚠️ Cannot update server settings: Insufficient permissions")
+        except discord.HTTPException as e:
+            log.error(f"Failed to apply server settings: Discord API error - {e}")
+            await self._notify_user_directly(f"⚠️ Cannot update server settings: API error")
+        except Exception as e:
+            log.error(f"Unexpected error applying server settings: {e}", exc_info=True)
+            await self._notify_user_directly(f"⚠️ Cannot update server settings: Unexpected error")
     
     async def _create_professional_role_system(self) -> dict[str, discord.Role]:
         """Phase 3: Create clean, professional role system."""
@@ -436,17 +470,29 @@ class OverhaulExecutorV3:
             50: role_map.get("Admin"),
         }
         
+        successful_rewards = 0
+        failed_rewards = 0
+        
         for level, role in level_rewards.items():
             if role:
                 try:
                     await self.bot.levels_store.set_role_reward(self.guild.id, level, role.id)
                     log.info(f"Set level reward: Level {level} -> Role {role.name} (ID: {role.id})")
+                    successful_rewards += 1
                 except Exception as e:
                     log.error(f"Failed to set level reward for level {level}: {e}", exc_info=True)
+                    failed_rewards += 1
             else:
                 log.warning(f"Role not found for level {level} - skipping reward setup")
+                failed_rewards += 1
         
-        log.info("Leveling system setup completed")
+        # Notify user of leveling system setup results
+        if successful_rewards > 0:
+            await self._notify_user_directly(f"✅ Leveling system configured: {successful_rewards} rewards set")
+        if failed_rewards > 0:
+            await self._notify_user_directly(f"⚠️ Leveling system: {failed_rewards} rewards failed")
+        
+        log.info(f"Leveling system setup completed - {successful_rewards} successful, {failed_rewards} failed")
     
     async def _configure_bot_modules(self) -> None:
         """Phase 7: Configure bot modules."""
