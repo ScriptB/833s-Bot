@@ -702,18 +702,42 @@ class AuthoritativeOverhaulExecutor:
         try:
             self.progress_user = self.cog.progress_user
             if self.progress_user:
+                # Send initial progress message
                 self.progress_message = await self.progress_user.send("🏰 **Authoritative Server Overhaul Started**\n\nInitializing professional server restructuring...")
+                log.info(f"Progress message initialized for user {self.progress_user.id}")
+            else:
+                log.warning("No progress user available - progress tracking disabled")
         except Exception as e:
             log.error(f"Failed to initialize progress message: {e}")
+            self.progress_message = None
     
     async def _update_progress(self, message: str, step: int) -> None:
         """Update progress message."""
         try:
             self.current_step = step
             if self.progress_message and self.progress_user:
-                await self.progress_message.edit(
-                    content=f"🏰 **Authoritative Server Overhaul**\n\n{message}\n\n**Step {step}/8**"
-                )
+                # Update the progress message
+                new_content = f"🏰 **Authoritative Server Overhaul**\n\n{message}\n\n**Step {step}/8**"
+                await self.progress_message.edit(content=new_content)
+                log.info(f"Progress updated: Step {step}/8 - {message}")
+            else:
+                # Fallback: send new message if no progress message exists
+                if self.progress_user:
+                    await self.progress_user.send(f"🏰 **Step {step}/8**: {message}")
+                    log.info(f"Progress message sent (no existing message): Step {step}/8 - {message}")
+                else:
+                    log.warning(f"No progress user available for step {step}: {message}")
+        except discord.NotFound:
+            # Message was deleted, create new one
+            log.warning("Progress message not found, creating new one")
+            try:
+                if self.progress_user:
+                    self.progress_message = await self.progress_user.send(f"🏰 **Authoritative Server Overhaul**\n\n{message}\n\n**Step {step}/8**")
+                    log.info(f"New progress message created for step {step}/8")
+            except Exception as e:
+                log.error(f"Failed to create new progress message: {e}")
+        except discord.Forbidden:
+            log.error("No permission to edit progress message")
         except Exception as e:
             log.error(f"Failed to update progress message: {e}")
     
