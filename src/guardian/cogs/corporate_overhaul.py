@@ -5,7 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ..ui.overhaul_robust import RobustOverhaulExecutor
+from ..ui.overhaul_robust_fixed import RobustOverhaulExecutor
 from ..security.auth import root_only
 
 log = logging.getLogger("guardian.corporate_overhaul")
