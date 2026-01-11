@@ -5,6 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from ..ui.overhaul_authoritative import AuthoritativeOverhaulExecutor
+from ..security.auth import root_only
 from ..services.schema import canonical_schema
 from ..services.schema_builder import SchemaBuilder
 
@@ -15,18 +16,10 @@ class CorporateOverhaulCog(commands.Cog):
         self.progress_user = None  # Store for progress tracking
 
     @app_commands.command(name="overhaul", description="Execute authoritative server overhaul (Root only)")
-    @commands.is_owner()
+    @root_only()
     async def overhaul(self, interaction: discord.Interaction) -> None:
         """Execute authoritative server overhaul with real, enforceable design."""
         await interaction.response.defer(ephemeral=True, thinking=True)
-        
-        # Validate user is root operator
-        if not await self._is_root_operator(interaction.user.id):
-            await interaction.followup.send(
-                "❌ This command is restricted to root operators only.",
-                ephemeral=True
-            )
-            return
         
         # Get guild
         if not interaction.guild:
