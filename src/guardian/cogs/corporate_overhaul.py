@@ -4,22 +4,25 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ..ui.overhaul_authoritative import AuthoritativeOverhaulExecutor
+from ..ui.overhaul_template import TemplateOverhaulExecutor
 from ..security.auth import root_only
-from ..services.schema import canonical_schema
-from ..services.schema_builder import SchemaBuilder
 
 
 class CorporateOverhaulCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
         self.progress_user = None  # Store for progress tracking
+        self.interaction = None  # Store interaction for fallback
 
-    @app_commands.command(name="overhaul", description="Execute authoritative server overhaul (Root only)")
+    @app_commands.command(name="overhaul", description="Execute template-based server overhaul (Root only)")
     @root_only()
     async def overhaul(self, interaction: discord.Interaction) -> None:
-        """Execute authoritative server overhaul with real, enforceable design."""
+        """Execute template-based server overhaul with exact structure matching."""
         await interaction.response.defer(ephemeral=True, thinking=True)
+        
+        # Store interaction for fallback
+        self.interaction = interaction
+        self.progress_user = interaction.user
         
         # Get guild
         if not interaction.guild:
@@ -31,29 +34,19 @@ class CorporateOverhaulCog(commands.Cog):
         
         guild = interaction.guild
         
-        # Execute authoritative overhaul
+        # Execute template overhaul
         try:
-            executor = AuthoritativeOverhaulExecutor(self, guild, {})
+            executor = TemplateOverhaulExecutor(self, guild, {})
             executor.progress_user = interaction.user  # Set progress recipient
             result = await executor.run()
             
             await interaction.followup.send(
-                f"✅ **Authoritative Overhaul completed**\n\n{result}",
+                f"✅ **Template Overhaul completed**\n\n{result}",
                 ephemeral=True
             )
             
         except Exception as e:
             await interaction.followup.send(
-                f"❌ **Authoritative Overhaul failed**: {e}",
+                f"❌ **Template Overhaul failed**: {e}",
                 ephemeral=True
             )
-    
-    async def _is_root_operator(self, user_id: int) -> bool:
-        """Check if user is a root operator."""
-        try:
-            if hasattr(self.bot, 'root_store'):
-                root_ops = await self.bot.root_store.get_all()
-                return user_id in root_ops
-            return False
-        except Exception:
-            return False
