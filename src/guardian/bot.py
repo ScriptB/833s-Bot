@@ -190,6 +190,7 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.admin", "AdminCog")
         await _load_cog("guardian.cogs.corporate_overhaul", "CorporateOverhaulCog")
         await _load_cog("guardian.cogs.setup_autoconfig", "SetupAutoConfigCog")
+        await _load_cog("guardian.cogs.dm_cleanup", "DMCleanupCog")
 
         # Community + onboarding
         await _load_cog("guardian.cogs.welcome", "WelcomeCog")
