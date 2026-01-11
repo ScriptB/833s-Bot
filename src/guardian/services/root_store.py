@@ -83,12 +83,14 @@ class RootStore(BaseService):
     async def _fetchone(self, query: str, params: tuple = ()) -> Optional[tuple]:
         """Execute a query and fetch one row."""
         async with aiosqlite.connect(self._path) as db:
-            return await db.execute(query, params).fetchone()
+            cursor = await db.execute(query, params)
+            return await cursor.fetchone()
     
     async def _fetchall(self, query: str, params: tuple = ()) -> List[tuple]:
         """Execute a query and fetch all rows."""
         async with aiosqlite.connect(self._path) as db:
-            return await db.execute(query, params).fetchall()
+            cursor = await db.execute(query, params)
+            return await cursor.fetchall()
     
     async def is_root(self, user_id: int) -> bool:
         """Check if user is a root operator."""
