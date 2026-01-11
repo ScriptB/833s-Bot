@@ -24,6 +24,7 @@ def _get_bool(name: str, default: bool) -> bool:
 class Settings:
     token: str
     dev_guild_id: int
+    owner_id: int
     queue_max_batch: int
     queue_every_ms: int
     queue_max_size: int
@@ -68,6 +69,7 @@ def load_settings() -> Settings:
     return Settings(
         token=token,
         dev_guild_id=_get_int("DEV_GUILD_ID", 0),
+        owner_id=_get_int("OWNER_ID", 1008255853859721216),
         queue_max_batch=_get_int("QUEUE_MAX_BATCH", 4),
         queue_every_ms=_get_int("QUEUE_EVERY_MS", 100),
         queue_max_size=_get_int("QUEUE_MAX_SIZE", 10_000),

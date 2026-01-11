@@ -87,6 +87,7 @@ class GuardianBot(commands.Bot):
         )
 
         self.settings = settings
+        self.owner_id = settings.owner_id
         self.stats = RuntimeStats()
 
         self.task_queue = TaskQueue(
