@@ -489,10 +489,10 @@ class RobustOverhaulExecutor:
                         
                         # Also check for archived threads
                         try:
-                            archived_threads = await self.rate_limiter.execute_with_backoff(
+                            archived_threads_generator = await self.rate_limiter.execute_with_backoff(
                                 lambda: channel.archived_threads(limit=None)
                             )
-                            for archived_thread in archived_threads:
+                            async for archived_thread in archived_threads_generator:
                                 if self._cancelled:
                                     return
                                 try:
