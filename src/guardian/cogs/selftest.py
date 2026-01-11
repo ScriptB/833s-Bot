@@ -211,6 +211,18 @@ class SelfTestCog(commands.Cog):
             app_commands_list = list(self.bot.tree.walk_commands())
             results['total'] = len(app_commands_list)
             
+            # Debug: Print command types and attributes
+            for cmd in app_commands_list:
+                self.bot.log.info(f"DEBUG: Command '{cmd.name}' type: {type(cmd)}")
+                if hasattr(cmd, 'callback'):
+                    self.bot.log.info(f"DEBUG: Command '{cmd.name}' has callback: {type(cmd.callback)}")
+                    if hasattr(cmd.callback, '__name__'):
+                        self.bot.log.info(f"DEBUG: Command '{cmd.name}' callback name: {cmd.callback.__name__}")
+                else:
+                    self.bot.log.info(f"DEBUG: Command '{cmd.name}' missing callback")
+                if hasattr(cmd, '__annotations__'):
+                    self.bot.log.info(f"DEBUG: Command '{cmd.name}' annotations: {cmd.callback.__annotations__}")
+            
             for cmd in app_commands_list:
                 if cmd.parent:  # Skip subcommands for now
                     continue
