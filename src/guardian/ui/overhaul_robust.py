@@ -589,48 +589,84 @@ class RobustOverhaulExecutor:
             if self._cancelled:
                 return
             
+            log.info(f"Starting category {cat_idx + 1}/{len(self.CANONICAL_TEMPLATE)}: {cat_spec.name}")
+            
             try:
                 # Create category
+                try:
+                    log.debug(f"Generating overwrites for category {cat_spec.name}")
+                    overwrites = self._get_category_overwrites(cat_spec, role_map, staff_roles)
+                    log.debug(f"Generated {len(overwrites)} overwrites for category {cat_spec.name}")
+                except Exception as overwrite_error:
+                    log.warning(f"Failed to generate overwrites for {cat_spec.name}, creating without: {overwrite_error}")
+                    overwrites = {}
+                
+                log.info(f"Creating category: {cat_spec.name}")
                 category = await self.rate_limiter.execute_with_backoff(
                     self.guild.create_category(
                         name=cat_spec.name,
-                        overwrites=self._get_category_overwrites(cat_spec, role_map, staff_roles),
+                        overwrites=overwrites,
                         position=cat_spec.position,
                         reason="Robust Overhaul - Category Creation"
                     )
                 )
+                log.info(f"Successfully created category: {cat_spec.name}")
                 self.stats.created_categories += 1
                 await asyncio.sleep(0.3)
                 
                 # Create channels
-                for channel_spec in cat_spec.channels:
+                log.info(f"Creating {len(cat_spec.channels)} channels for category {cat_spec.name}")
+                for ch_idx, channel_spec in enumerate(cat_spec.channels):
                     if self._cancelled:
                         return
                     
+                    log.info(f"Starting channel {ch_idx + 1}/{len(cat_spec.channels)}: {channel_spec.name} ({channel_spec.type.value})")
+                    
                     try:
-                        overwrites = self._get_channel_overwrites(
-                            cat_spec, channel_spec, role_map, staff_roles
-                        )
-                        
-                        if channel_spec.type == ChannelType.VOICE:
-                            channel = await self.rate_limiter.execute_with_backoff(
-                                category.create_voice_channel(
-                                    name=channel_spec.name,
-                                    overwrites=overwrites,
-                                    reason="Robust Overhaul - Voice Channel Creation"
-                                )
+                        try:
+                            log.debug(f"Generating overwrites for channel {channel_spec.name}")
+                            overwrites = self._get_channel_overwrites(
+                                cat_spec, channel_spec, role_map, staff_roles
                             )
-                        else:
-                            channel = await self.rate_limiter.execute_with_backoff(
-                                category.create_text_channel(
-                                    name=channel_spec.name,
-                                    overwrites=overwrites,
-                                    reason="Robust Overhaul - Text Channel Creation"
-                                )
-                            )
+                            log.debug(f"Generated {len(overwrites)} overwrites for channel {channel_spec.name}")
+                        except Exception as overwrite_error:
+                            log.warning(f"Failed to generate overwrites for {channel_spec.name}, creating without: {overwrite_error}")
+                            overwrites = {}
                         
-                        self.stats.created_channels += 1
-                        await asyncio.sleep(0.2)
+                        # Create channel with retry logic
+                        channel = None
+                        max_retries = 3
+                        
+                        for attempt in range(max_retries):
+                            try:
+                                log.debug(f"Attempt {attempt + 1}/{max_retries} creating channel {channel_spec.name}")
+                                if channel_spec.type == ChannelType.VOICE:
+                                    channel = await self.rate_limiter.execute_with_backoff(
+                                        category.create_voice_channel(
+                                            name=channel_spec.name,
+                                            overwrites=overwrites,
+                                            reason="Robust Overhaul - Voice Channel Creation"
+                                        )
+                                    )
+                                else:
+                                    channel = await self.rate_limiter.execute_with_backoff(
+                                        category.create_text_channel(
+                                            name=channel_spec.name,
+                                            overwrites=overwrites,
+                                            reason="Robust Overhaul - Text Channel Creation"
+                                        )
+                                    )
+                                log.info(f"Successfully created channel: {channel_spec.name}")
+                                break  # Success
+                            except discord.HTTPException as http_error:
+                                if attempt == max_retries - 1:
+                                    raise
+                                log.warning(f"Channel creation attempt {attempt + 1} failed for {channel_spec.name}, retrying: {http_error}")
+                                await asyncio.sleep(1.0 * (attempt + 1))  # Exponential backoff
+                        
+                        if channel:
+                            self.stats.created_channels += 1
+                            await asyncio.sleep(0.2)
                         
                     except discord.Forbidden:
                         self.stats.failures.append(f"Cannot create channel {channel_spec.name}")
@@ -645,7 +681,9 @@ class RobustOverhaulExecutor:
                 self.stats.failures.append(f"Error creating category {cat_spec.name}: {e}")
         
         # Apply muted role restrictions
+        log.info("Applying muted role restrictions to all channels")
         await self._apply_muted_restrictions()
+        log.info("Completed muted role restrictions")
     
     async def _apply_muted_restrictions(self):
         """Apply muted role restrictions to all channels."""
@@ -654,26 +692,29 @@ class RobustOverhaulExecutor:
             log.warning("Muted role not found - skipping muted restrictions")
             return
         
-        for channel in self.guild.channels:
+        channels_to_mute = [ch for ch in self.guild.channels if isinstance(ch, (discord.TextChannel, discord.VoiceChannel))]
+        log.info(f"Applying muted restrictions to {len(channels_to_mute)} channels")
+        
+        for idx, channel in enumerate(channels_to_mute):
             if self._cancelled:
                 return
             
-            if isinstance(channel, (discord.TextChannel, discord.VoiceChannel)):
-                try:
-                    await self.rate_limiter.execute_with_backoff(
-                        channel.set_permissions(
-                            muted_role,
-                            send_messages=False,
-                            add_reactions=False,
-                            create_public_threads=False,
-                            create_private_threads=False,
-                            speak=False,
-                            reason="Robust Overhaul - Muted Role Restrictions"
-                        )
+            try:
+                log.debug(f"Applying muted restrictions to channel {idx + 1}/{len(channels_to_mute)}: {channel.name}")
+                await self.rate_limiter.execute_with_backoff(
+                    channel.set_permissions(
+                        muted_role,
+                        send_messages=False,
+                        add_reactions=False,
+                        create_public_threads=False,
+                        create_private_threads=False,
+                        speak=False,
+                        reason="Robust Overhaul - Muted Role Restrictions"
                     )
-                    await asyncio.sleep(0.1)
-                except Exception as e:
-                    self.stats.failures.append(f"Error applying muted restrictions to {channel.name}: {e}")
+                )
+                await asyncio.sleep(0.1)
+            except Exception as e:
+                self.stats.failures.append(f"Error applying muted restrictions to {channel.name}: {e}")
     
     async def _phase_7_validation(self):
         """Phase 7: Post-build validation with fresh API data."""
@@ -797,19 +838,26 @@ class RobustOverhaulExecutor:
         """Get permission overwrites for a category."""
         overwrites = {}
         
-        # @everyone default
-        everyone_role = self.guild.default_role
-        everyone_can_view = cat_spec.visibility.get("@everyone", False)
-        overwrites[everyone_role] = discord.PermissionOverwrite(read_messages=everyone_can_view)
-        
-        # Apply visibility rules
-        for role_name, can_view in cat_spec.visibility.items():
-            if role_name == "@everyone":
-                continue
+        try:
+            # @everyone default
+            everyone_role = self.guild.default_role
+            everyone_can_view = cat_spec.visibility.get("@everyone", False)
+            overwrites[everyone_role] = discord.PermissionOverwrite(read_messages=everyone_can_view)
             
-            role = role_map.get(role_name)
-            if role:
-                overwrites[role] = discord.PermissionOverwrite(read_messages=can_view)
+            # Apply visibility rules
+            for role_name, can_view in cat_spec.visibility.items():
+                if role_name == "@everyone":
+                    continue
+                
+                role = role_map.get(role_name)
+                if role:
+                    overwrites[role] = discord.PermissionOverwrite(read_messages=can_view)
+                else:
+                    log.debug(f"Role '{role_name}' not found in role_map for category '{cat_spec.name}'")
+        
+        except Exception as e:
+            log.error(f"Error generating category overwrites for {cat_spec.name}: {e}")
+            raise
         
         return overwrites
     
@@ -817,29 +865,36 @@ class RobustOverhaulExecutor:
         """Get permission overwrites for a channel."""
         overwrites = {}
         
-        # Start with category overwrites
-        overwrites.update(self._get_category_overwrites(cat_spec, role_map, staff_roles))
+        try:
+            # Start with category overwrites
+            overwrites.update(self._get_category_overwrites(cat_spec, role_map, staff_roles))
+            
+            # Apply special overrides
+            if cat_spec.special_overwrites and channel_spec.name in cat_spec.special_overwrites:
+                special = cat_spec.special_overwrites[channel_spec.name]
+                for role_name, perms in special.items():
+                    role = role_map.get(role_name) if role_name != "staff" else None
+                    if role_name == "staff":
+                        # Apply to all staff roles
+                        for staff_role_name in staff_roles:
+                            staff_role = role_map.get(staff_role_name)
+                            if staff_role:
+                                overwrites[staff_role] = discord.PermissionOverwrite(**perms)
+                    elif role:
+                        overwrites[role] = discord.PermissionOverwrite(**perms)
+                    else:
+                        log.debug(f"Role '{role_name}' not found for channel '{channel_spec.name}'")
+            
+            # Apply channel-specific flags
+            if channel_spec.read_only:
+                everyone_role = self.guild.default_role
+                overwrites[everyone_role] = discord.PermissionOverwrite(
+                    read_messages=overwrites.get(everyone_role, discord.PermissionOverwrite()).read_messages,
+                    send_messages=False
+                )
         
-        # Apply special overrides
-        if cat_spec.special_overwrites and channel_spec.name in cat_spec.special_overrides:
-            special = cat_spec.special_overrides[channel_spec.name]
-            for role_name, perms in special.items():
-                role = role_map.get(role_name) if role_name != "staff" else None
-                if role_name == "staff":
-                    # Apply to all staff roles
-                    for staff_role_name in staff_roles:
-                        staff_role = role_map.get(staff_role_name)
-                        if staff_role:
-                            overwrites[staff_role] = discord.PermissionOverwrite(**perms)
-                elif role:
-                    overwrites[role] = discord.PermissionOverwrite(**perms)
-        
-        # Apply channel-specific flags
-        if channel_spec.read_only:
-            everyone_role = self.guild.default_role
-            overwrites[everyone_role] = discord.PermissionOverwrite(
-                read_messages=overwrites.get(everyone_role, discord.PermissionOverwrite()).read_messages,
-                send_messages=False
-            )
+        except Exception as e:
+            log.error(f"Error generating channel overwrites for {channel_spec.name}: {e}")
+            raise
         
         return overwrites
