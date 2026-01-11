@@ -85,20 +85,27 @@ class OverhaulCog(commands.Cog):
         if view.value is not True:
             return  # User cancelled
         
-        # Execute overhaul
+        # Get followup message for engine to use
+        try:
+            followup_msg = await interaction.followup.send("🏰 **Overhaul starting...**", ephemeral=True)
+        except Exception as e:
+            log.error(f"Failed to send followup: {e}")
+            return
+        
+        # Execute overhaul with followup message
         try:
             self.current_engine = OverhaulEngine(guild)
-            result = await self.current_engine.run(interaction)
+            result = await self.current_engine.run(followup_msg)
             self.current_engine = None
             
             # Send completion message
-            await send_safe_message(interaction, f"✅ **Overhaul Completed**\n\n{result}")
+            await send_safe_message(followup_msg, f"✅ **Overhaul Completed**\n\n{result}")
             
         except Exception as e:
             log.error(f"Overhaul failed: {e}")
             
             error_msg = f"❌ **Overhaul Failed**\n\nError: {str(e)}"
-            await send_safe_message(interaction, error_msg)
+            await send_safe_message(followup_msg, error_msg)
             
             self.current_engine = None
     

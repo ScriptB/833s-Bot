@@ -16,7 +16,7 @@ log = logging.getLogger("guardian.overhaul.reporting")
 
 
 async def send_safe_message(
-    interaction: discord.Interaction,
+    message: discord.Message,
     content: str,
     ephemeral: bool = True,
     filename: str = "overhaul_report.txt"
@@ -30,13 +30,10 @@ async def send_safe_message(
         if len(content) <= 1900:
             # Send normally
             try:
-                if interaction.response.is_done():
-                    return await interaction.followup.send(content, ephemeral=ephemeral)
-                else:
-                    return await interaction.response.send_message(content, ephemeral=ephemeral)
+                return await message.reply(content)
             except discord.NotFound:
-                # Interaction expired - can't send anything
-                log.warning("Interaction expired before safe message could be sent")
+                # Message deleted - can't send anything
+                log.warning("Message deleted before safe message could be sent")
                 return None
         
         # Content is too long - send summary + file
@@ -51,38 +48,25 @@ async def send_safe_message(
             )
             
             try:
-                if interaction.response.is_done():
-                    return await interaction.followup.send(
-                        content=summary,
-                        file=file,
-                        ephemeral=ephemeral
-                    )
-                else:
-                    return await interaction.response.send_message(
-                        content=summary,
-                        file=file,
-                        ephemeral=ephemeral
-                    )
+                return await message.reply(
+                    content=summary,
+                    file=file
+                )
             except discord.NotFound:
-                # Interaction expired - can't send anything
-                log.warning("Interaction expired before file attachment could be sent")
+                # Message deleted - can't send anything
+                log.warning("Message deleted before file attachment could be sent")
                 return None
             
         except Exception as file_error:
             log.warning(f"Failed to attach file, sending truncated message: {file_error}")
             # Fallback to truncated message
             try:
-                if interaction.response.is_done():
-                    return await interaction.followup.send(summary, ephemeral=ephemeral)
-                else:
-                    return await interaction.response.send_message(summary, ephemeral=ephemeral)
+                return await message.reply(summary)
             except discord.NotFound:
-                # Interaction expired - can't send anything
-                log.warning("Interaction expired before fallback message could be sent")
+                # Message deleted - can't send anything
+                log.warning("Message deleted before fallback message could be sent")
                 return None
             
-    except discord.NotFound:
-        log.warning("Interaction expired, could not send message")
     except discord.Forbidden:
         log.warning("Missing permissions to send message")
     except Exception as e:

@@ -61,12 +61,12 @@ class OverhaulEngine:
         self._cancelled = True
         self.progress.cancel()
     
-    async def run(self, interaction: discord.Interaction) -> str:
-        """Execute the overhaul with full error handling."""
+    async def run(self, message: discord.Message) -> str:
+        """Execute overhaul with full error handling."""
         try:
             # Set up progress tracking
-            self.progress.set_user(interaction.user)
-            self.progress.set_interaction(interaction)
+            self.progress.set_user(message.author)
+            # Don't set interaction since we're using a message
             
             # Execute phases
             await self._phase_1_preflight()
