@@ -21,7 +21,6 @@ class DMCleanupCog(commands.Cog):
         name="dm_cleanup",
         description="Delete all bot messages in this DM channel (Owner only)",
     )
-    @app_commands.checks.has_permissions(administrator=True)
     async def dm_cleanup(self, interaction: discord.Interaction) -> None:
         """Clean up all bot messages in the current DM channel."""
         
@@ -121,7 +120,6 @@ class DMCleanupCog(commands.Cog):
         name="dm_cleanup_bulk",
         description="Delete bot messages from all DM channels (Owner only)",
     )
-    @app_commands.checks.has_permissions(administrator=True)
     async def dm_cleanup_bulk(self, interaction: discord.Interaction) -> None:
         """Clean up bot messages from all DM channels."""
         
