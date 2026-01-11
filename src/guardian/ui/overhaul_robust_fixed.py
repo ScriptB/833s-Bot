@@ -94,13 +94,13 @@ class RateLimiter:
         """Release rate limit slot."""
         self.semaphore.release()
     
-    async def execute_with_backoff(self, coro, max_retries: int = 5):
+    async def execute_with_backoff(self, coro_func, max_retries: int = 5):
         """Execute coroutine with exponential backoff."""
         for attempt in range(max_retries):
             try:
                 await self.acquire()
                 try:
-                    result = await coro
+                    result = await coro_func()
                     return result
                 finally:
                     self.release()
@@ -442,23 +442,23 @@ class RobustOverhaulExecutor:
         await self._update_progress("Cleanup Channels", 2, "Deleting existing channels and categories")
         
         # Delete threads first (more efficient)
-        for channel in self.guild.text_channels:
-            if self._cancelled:
-                return
-            
-            # Use fetch_threads to get all threads including archived
-            try:
-                threads = await channel.fetch_threads()
-                for thread in threads.threads:
-                    try:
-                        await self.rate_limiter.execute_with_backoff(
-                            lambda: thread.delete(reason="Robust Overhaul - Thread Cleanup")
-                        )
-                        self.stats.deleted_channels += 1
-                    except Exception as e:
-                        self.stats.failures.append(f"Error deleting thread {thread.name}: {e}")
-            except Exception as e:
-                log.warning(f"Failed to fetch threads for {channel.name}: {e}")
+        try:
+            # Use guild.fetch_threads() to get all threads including archived
+            threads = await self.rate_limiter.execute_with_backoff(
+                lambda: self.guild.fetch_threads()
+            )
+            for thread in threads:
+                if self._cancelled:
+                    return
+                try:
+                    await self.rate_limiter.execute_with_backoff(
+                        lambda: thread.delete(reason="Robust Overhaul - Thread Cleanup")
+                    )
+                    self.stats.deleted_channels += 1
+                except Exception as e:
+                    self.stats.failures.append(f"Error deleting thread {thread.name}: {e}")
+        except Exception as e:
+            log.warning(f"Failed to fetch threads: {e}")
         
         # Delete categories (more efficient than individual channels)
         for category in list(self.guild.categories):
@@ -719,9 +719,9 @@ class RobustOverhaulExecutor:
         
         # Fetch fresh data from API
         try:
-            # Guild doesn't have fetch(), use fetch_channels() instead
+            # Use guild.fetch_channels() to get fresh data
             channels = await self.rate_limiter.execute_with_backoff(
-                self.guild.fetch_channels
+                lambda: self.guild.fetch_channels()
             )
             
             # Build lookup maps with normalized names
