@@ -6,6 +6,7 @@ Core overhaul logic with phases and error handling.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 import traceback
@@ -175,8 +176,10 @@ class OverhaulEngine:
             # Apply guild settings using discord.py 2.x enums
             await http_safety.execute_with_retry(
                 lambda: self.guild.edit(
-                    default_message_notifications=discord.NotificationLevel.all_messages,
-                    explicit_content_filter=discord.ContentFilter.disabled
+                    system_channel=None,  # Clear system channel
+                    rules_channel=None,   # Clear rules channel
+                    public_updates_channel=None,  # Clear updates channel
+                    preferred_locale=None  # Clear preferred locale
                 )
             )
         except Exception as e:
