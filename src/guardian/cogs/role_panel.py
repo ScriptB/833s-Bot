@@ -101,13 +101,9 @@ class RolePanelCog(commands.Cog):
     
     async def cog_load(self) -> None:
         """Initialize stores and register persistent views."""
-        # Initialize stores (assuming bot has db_path attribute)
-        db_path = getattr(self.bot, 'db_path', 'guardian.db')
-        self.panel_store = PanelStore(db_path)
-        self.role_config_store = RoleConfigStore(db_path)
-        
-        await self.panel_store.initialize()
-        await self.role_config_store.initialize()
+        # Use bot's stores
+        self.panel_store = self.bot.panel_store
+        self.role_config_store = self.bot.role_config_store
         
         # Register persistent views for all existing panels
         await self._restore_panels()
@@ -246,9 +242,8 @@ class RoleSelectCog(commands.Cog):
     
     async def cog_load(self) -> None:
         """Initialize role config store."""
-        db_path = getattr(self.bot, 'db_path', 'guardian.db')
-        self.role_config_store = RoleConfigStore(db_path)
-        await self.role_config_store.initialize()
+        # Use bot's store
+        self.role_config_store = self.bot.role_config_store
     
     @app_commands.command(name="roleselect", description="Manage role selection configuration")
     @app_commands.checks.has_permissions(manage_roles=True)

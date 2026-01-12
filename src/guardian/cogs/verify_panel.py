@@ -73,10 +73,8 @@ class VerifyPanelCog(commands.Cog):
     
     async def cog_load(self) -> None:
         """Initialize store and register persistent views."""
-        # Initialize store
-        db_path = getattr(self.bot, 'db_path', 'guardian.db')
-        self.panel_store = PanelStore(db_path)
-        await self.panel_store.initialize()
+        # Use bot's panel store
+        self.panel_store = self.bot.panel_store
         
         # Register persistent views for all existing panels
         await self._restore_panels()
