@@ -38,12 +38,23 @@ async def initialize_database(sqlite_path: str, stores: List[BaseService]) -> No
 
 
 async def backup_database(sqlite_path: str, backup_path: str) -> None:
-    """Create a backup of the database."""
+    """Create a backup of the database using VACUUM INTO."""
+    if not backup_path:
+        raise ValueError("backup_path cannot be empty")
+    
     try:
-        async with aiosqlite.connect(sqlite_path) as source:
-            async with aiosqlite.connect(backup_path) as backup:
-                await backup.execute("VACUUM INTO ?", (source,))
+        async with aiosqlite.connect(sqlite_path) as db:
+            await db.execute("VACUUM INTO ?", (backup_path,))
         log.info(f"Database backed up to {backup_path}")
+        
+        # Sanity check: verify backup file exists and has content
+        import os
+        if os.path.exists(backup_path):
+            backup_size = os.path.getsize(backup_path)
+            log.info(f"Backup created successfully, size: {backup_size} bytes")
+        else:
+            raise FileNotFoundError(f"Backup file not created at {backup_path}")
+            
     except Exception as e:
         log.error(f"Failed to backup database: {e}")
         raise

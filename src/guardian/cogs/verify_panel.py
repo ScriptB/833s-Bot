@@ -92,9 +92,9 @@ class VerifyPanelCog(commands.Cog):
                     view = PersistentVerifyView(panel.guild_id)
                     self.bot.add_view(view, message_id=panel.message_id)
                     
-                    print(f"✅ Restored verify panel {panel.panel_key} in guild {panel.guild_id}")
+                    self.bot.logger.info(f"✅ Restored verify panel {panel.panel_key} in guild {panel.guild_id}")
                 except Exception as e:
-                    print(f"❌ Failed to restore verify panel {panel.panel_key}: {e}")
+                    self.bot.logger.exception(f"❌ Failed to restore verify panel {panel.panel_key} in guild {panel.guild_id}: {e}")
     
     @app_commands.command(name="verifypanel", description="Deploy verification panel")
     @app_commands.checks.has_permissions(administrator=True)

@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 
 import discord
-import aiosqlite
 from discord.ext import commands
 
 from .config import Settings
@@ -56,10 +55,11 @@ class _CommandSyncManager:
         self._lock = asyncio.Lock()
 
     async def sync_startup(self) -> None:
-        # Check for optional guild sync setting
-        sync_guild_id = getattr(self.bot.settings, 'sync_guild_id', None)
-        if sync_guild_id:
-            await self.sync_guild(sync_guild_id)
+        # Use sync_guild_id if set, otherwise dev_guild_id, else global
+        if self.settings.sync_guild_id:
+            await self.sync_guild(self.settings.sync_guild_id)
+        elif self.settings.dev_guild_id:
+            await self.sync_guild(self.settings.dev_guild_id)
         else:
             await self.sync_global()
 
@@ -221,8 +221,8 @@ class GuardianBot(commands.Bot):
                     mod = __import__(import_path, fromlist=[class_name])
                     available = [attr for attr in dir(mod) if not attr.startswith('_')]
                     log.error("Available attributes in %s: %s", import_path, available)
-                except Exception:
-                    pass
+                except Exception as e:
+                    log.error("Failed to import cog %s.%s: %s", import_path, class_name, e)
                 failed.append(f"{import_path}.{class_name} (AttributeError)")
             except Exception as e:
                 log.exception("Failed to load cog: %s.%s", import_path, class_name)
@@ -310,8 +310,8 @@ class GuardianBot(commands.Bot):
         try:
             try:
                 await self.drift_verifier.stop()
-            except Exception:
-                pass
+            except Exception as e:
+                log.warning("Failed to stop drift verifier: %s", e)
             await self.task_queue.stop()
         finally:
             await super().close()
@@ -321,13 +321,13 @@ class GuardianBot(commands.Bot):
         log.warning("Command error: %s", exception, exc_info=exception)
         try:
             await context.reply("Something went wrong running that command.")
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning("Failed to send error reply: %s", e)
 
 
     async def on_ready(self):
         try:
             for g in list(self.guilds):
                 await self.channel_bootstrapper.ensure_first_posts(g)
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning("Failed to ensure first posts for guilds: %s", e)

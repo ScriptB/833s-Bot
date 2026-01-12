@@ -124,9 +124,9 @@ class RolePanelCog(commands.Cog):
                     view = PersistentRoleView(panel.guild_id, role_configs)
                     self.bot.add_view(view, message_id=panel.message_id)
                     
-                    print(f"✅ Restored role panel {panel.panel_key} in guild {panel.guild_id}")
+                    self.bot.logger.info(f"✅ Restored role panel {panel.panel_key} in guild {panel.guild_id}")
                 except Exception as e:
-                    print(f"❌ Failed to restore role panel {panel.panel_key}: {e}")
+                    self.bot.logger.exception(f"❌ Failed to restore role panel {panel.panel_key} in guild {panel.guild_id}: {e}")
     
     @app_commands.command(name="rolepanel", description="Deploy role selection panel")
     @app_commands.checks.has_permissions(administrator=True)
@@ -219,16 +219,9 @@ class RoleSelectCog(commands.Cog):
         # Use bot's store
         self.role_config_store = self.bot.role_config_store
     
-    @app_commands.command(name="roleselect", description="Manage role selection configuration")
-    @app_commands.checks.has_permissions(manage_roles=True)
-    async def roleselect(self, interaction: discord.Interaction) -> None:
-        """Role selection management."""
-        await interaction.response.send_message(
-            "Use `/roleselect add/remove/list` to manage role selection.",
-            ephemeral=True
-        )
-    
-    @app_commands.command(name="add", description="Add a role to selection panel")
+    roleselect = app_commands.Group(name="roleselect", description="Manage role selection configuration")
+
+    @roleselect.command(name="add", description="Add a role to selection panel")
     @app_commands.checks.has_permissions(manage_roles=True)
     @app_commands.describe(
         role="Role to add",
@@ -263,7 +256,7 @@ class RoleSelectCog(commands.Cog):
             ephemeral=True
         )
     
-    @app_commands.command(name="remove", description="Remove a role from selection panel")
+    @roleselect.command(name="remove", description="Remove a role from selection panel")
     @app_commands.checks.has_permissions(manage_roles=True)
     @app_commands.describe(role="Role to remove")
     async def roleselect_remove(
@@ -284,7 +277,7 @@ class RoleSelectCog(commands.Cog):
             ephemeral=True
         )
     
-    @app_commands.command(name="list", description="List configured roles")
+    @roleselect.command(name="list", description="List configured roles")
     @app_commands.checks.has_permissions(manage_roles=True)
     async def roleselect_list(self, interaction: discord.Interaction) -> None:
         """List all configured roles."""
