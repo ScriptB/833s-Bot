@@ -33,7 +33,11 @@ class TicketCreateView(discord.ui.View):
 
         cat = discord.utils.get(guild.categories, name="SUPPORT")
         if not cat:
-            cat = await guild.create_category("SUPPORT")
+            await interaction.response.send_message(
+                "❌ SUPPORT category not found. Please contact an administrator to set up the ticket system.",
+                ephemeral=True
+            )
+            return
 
         ch = await guild.create_text_channel(name=f"ticket-{interaction.user.id}", category=cat, overwrites=overwrites, reason="Ticket opened")
         await ch.send(f"{interaction.user.mention} Describe your issue. Staff will respond.")
