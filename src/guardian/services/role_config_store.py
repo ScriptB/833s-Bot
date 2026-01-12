@@ -32,7 +32,7 @@ class RoleConfigStore(BaseService[RoleConfig]):
                 role_id INTEGER NOT NULL,
                 label TEXT NOT NULL,
                 emoji TEXT,
-                group TEXT,
+                "group" TEXT,
                 enabled BOOLEAN NOT NULL DEFAULT 1,
                 PRIMARY KEY (guild_id, role_id)
             )
@@ -68,7 +68,7 @@ class RoleConfigStore(BaseService[RoleConfig]):
         async with aiosqlite.connect(self._path) as db:
             await db.execute("""
                 INSERT OR REPLACE INTO role_configs 
-                (guild_id, role_id, label, emoji, group, enabled)
+                (guild_id, role_id, label, emoji, "group", enabled)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (guild_id, role_id, label, emoji, group, int(enabled)))
             await db.commit()
@@ -78,7 +78,7 @@ class RoleConfigStore(BaseService[RoleConfig]):
         async with aiosqlite.connect(self._path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("""
-                SELECT guild_id, role_id, label, emoji, group, enabled
+                SELECT guild_id, role_id, label, emoji, "group", enabled
                 FROM role_configs
                 WHERE guild_id = ? AND role_id = ?
             """, (guild_id, role_id))
@@ -93,17 +93,17 @@ class RoleConfigStore(BaseService[RoleConfig]):
             db.row_factory = aiosqlite.Row
             if group:
                 cursor = await db.execute("""
-                    SELECT guild_id, role_id, label, emoji, group, enabled
+                    SELECT guild_id, role_id, label, emoji, "group", enabled
                     FROM role_configs
-                    WHERE guild_id = ? AND group = ? AND enabled = 1
-                    ORDER BY group, label
+                    WHERE guild_id = ? AND "group" = ? AND enabled = 1
+                    ORDER BY "group", label
                 """, (guild_id, group))
             else:
                 cursor = await db.execute("""
-                    SELECT guild_id, role_id, label, emoji, group, enabled
+                    SELECT guild_id, role_id, label, emoji, "group", enabled
                     FROM role_configs
                     WHERE guild_id = ? AND enabled = 1
-                    ORDER BY group, label
+                    ORDER BY "group", label
                 """, (guild_id,))
             rows = await cursor.fetchall()
             return [self._from_row(row) for row in rows]
@@ -121,10 +121,10 @@ class RoleConfigStore(BaseService[RoleConfig]):
         """Get all role groups for a guild."""
         async with aiosqlite.connect(self._path) as db:
             cursor = await db.execute("""
-                SELECT DISTINCT group
+                SELECT DISTINCT "group"
                 FROM role_configs
-                WHERE guild_id = ? AND group IS NOT NULL AND enabled = 1
-                ORDER BY group
+                WHERE guild_id = ? AND "group" IS NOT NULL AND enabled = 1
+                ORDER BY "group"
             """, (guild_id,))
             rows = await cursor.fetchall()
             return [row[0] for row in rows if row[0]]
