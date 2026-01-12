@@ -157,6 +157,12 @@ class PrefixCommunityCog(commands.Cog):
             return
         if not ctx.guild or not isinstance(ctx.author, discord.Member):
             return
+        
+        # Check for staff role
+        staff_roles = ["Staff", "Moderator"]
+        if not any(role.name in staff_roles for role in ctx.author.roles):
+            await ctx.reply("This command requires Staff or Moderator role.")
+            return
         if member is None or member.bot:
             await ctx.reply("Tag a member to thank.")
             return

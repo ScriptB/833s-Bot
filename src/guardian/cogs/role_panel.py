@@ -222,7 +222,7 @@ class RoleSelectCog(commands.Cog):
     roleselect = app_commands.Group(name="roleselect", description="Manage role selection configuration")
 
     @roleselect.command(name="add", description="Add a role to selection panel")
-    @app_commands.checks.has_permissions(manage_roles=True)
+    @app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(
         role="Role to add",
         label="Display label for the role",
@@ -257,7 +257,7 @@ class RoleSelectCog(commands.Cog):
         )
     
     @roleselect.command(name="remove", description="Remove a role from selection panel")
-    @app_commands.checks.has_permissions(manage_roles=True)
+    @app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(role="Role to remove")
     async def roleselect_remove(
         self,
@@ -278,7 +278,7 @@ class RoleSelectCog(commands.Cog):
         )
     
     @roleselect.command(name="list", description="List configured roles")
-    @app_commands.checks.has_permissions(manage_roles=True)
+    @app_commands.checks.has_permissions(administrator=True)
     async def roleselect_list(self, interaction: discord.Interaction) -> None:
         """List all configured roles."""
         

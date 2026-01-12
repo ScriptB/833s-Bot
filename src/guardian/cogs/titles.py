@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import discord
-from discord import app_commands
 from discord.ext import commands
+from discord import app_commands
 
 
 TITLE_CATALOG: list[tuple[int, str]] = [
@@ -27,9 +27,22 @@ class TitlesCog(commands.Cog):
     def _unlocked(self, lvl: int) -> list[str]:
         return [t for min_lvl, t in TITLE_CATALOG if lvl >= min_lvl]
 
+    def _has_staff_role(self, member: discord.Member) -> bool:
+        """Check if member has Staff or Moderator role."""
+        staff_roles = ["Staff", "Moderator"]
+        return any(role.name in staff_roles for role in member.roles)
+
     @app_commands.command(name="titles_list", description="List titles you can equip.")
     async def list_titles(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
+        if not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
+        
+        if not self._has_staff_role(interaction.user):
+            await interaction.response.send_message("This command requires Staff or Moderator role.", ephemeral=True)
+            return
+        
         await interaction.response.defer(ephemeral=True)
         lvl = await self._level(interaction.guild.id, interaction.user.id)
         unlocked = self._unlocked(lvl)
@@ -45,6 +58,14 @@ class TitlesCog(commands.Cog):
     @app_commands.command(name="titles_equip", description="Equip a title you have unlocked.")
     async def equip(self, interaction: discord.Interaction, title: str) -> None:
         assert interaction.guild is not None
+        if not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
+        
+        if not self._has_staff_role(interaction.user):
+            await interaction.response.send_message("This command requires Staff or Moderator role.", ephemeral=True)
+            return
+        
         await interaction.response.defer(ephemeral=True)
         title = (title or "").strip()
         lvl = await self._level(interaction.guild.id, interaction.user.id)
@@ -62,6 +83,14 @@ class TitlesCog(commands.Cog):
     @app_commands.command(name="titles_unequip", description="Remove your equipped title.")
     async def unequip(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
+        if not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
+        
+        if not self._has_staff_role(interaction.user):
+            await interaction.response.send_message("This command requires Staff or Moderator role.", ephemeral=True)
+            return
+        
         await interaction.response.defer(ephemeral=True)
         await self.bot.titles_store.set_equipped(interaction.guild.id, interaction.user.id, "")  # type: ignore[attr-defined]
         await interaction.followup.send("Title removed.", ephemeral=True)

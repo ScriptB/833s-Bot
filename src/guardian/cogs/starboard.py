@@ -12,7 +12,7 @@ class StarboardCog(commands.Cog):
         self.bot = bot  # type: ignore[assignment]
 
     @app_commands.command(name="starboard_set", description="Set starboard channel and threshold.")
-    @app_commands.checks.has_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(administrator=True)
     async def starboard_set(self, interaction: discord.Interaction, channel: discord.TextChannel, threshold: app_commands.Range[int, 1, 20] = 3) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)
