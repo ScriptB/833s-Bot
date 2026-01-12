@@ -8,7 +8,7 @@ All dev/test/selftest commands are removed from production builds.
 from discord.ext import commands
 
 
-class TestCommands(commands.Cog):
+class TestCommandsCog(commands.Cog):
     """Placeholder cog. No commands are registered."""
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -16,4 +16,4 @@ class TestCommands(commands.Cog):
 
 async def setup(bot: commands.Bot):
     # Cog is loadable but does nothing.
-    await bot.add_cog(TestCommands(bot))
+    await bot.add_cog(TestCommandsCog(bot))

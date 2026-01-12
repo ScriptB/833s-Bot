@@ -56,10 +56,10 @@ class _CommandSyncManager:
 
     async def sync_startup(self) -> None:
         # Use sync_guild_id if set, otherwise dev_guild_id, else global
-        if self.settings.sync_guild_id:
-            await self.sync_guild(self.settings.sync_guild_id)
-        elif self.settings.dev_guild_id:
-            await self.sync_guild(self.settings.dev_guild_id)
+        if self.bot.settings.sync_guild_id:
+            await self.sync_guild(self.bot.settings.sync_guild_id)
+        elif self.bot.settings.dev_guild_id:
+            await self.sync_guild(self.bot.settings.dev_guild_id)
         else:
             await self.sync_global()
 
