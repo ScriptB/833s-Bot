@@ -17,14 +17,8 @@ from .services.levels_store import LevelsStore
 from .services.levels_config_store import LevelsConfigStore
 from .services.levels_ledger_store import LevelsLedgerStore
 from .services.level_rewards_store import LevelRewardsStore
-from .services.reminders_store import RemindersStore
 from .services.starboard_store import StarboardStore
-from .services.reaction_roles_store import ReactionRolesStore
-from .services.giveaways_store import GiveawaysStore
-from .services.economy_store import EconomyStore
 from .services.server_config_store import ServerConfigStore
-from .services.achievements_store import AchievementsStore
-from .services.snapshot_store import SnapshotStore
 from .services.onboarding_store import OnboardingStore
 from .services.drift_verifier import DriftVerifier
 from .services.cases_store import CasesStore
@@ -33,14 +27,10 @@ from .services.suggestions_store import SuggestionsStore
 from .services.channel_bootstrapper import ChannelBootstrapper
 from .services.status_reporter import StatusReporter
 from .services.guild_logger import GuildLogger
-from .services.ambient_store import AmbientStore
 from .services.panel_store import PanelStore
 from .services.role_config_store import RoleConfigStore
 from .services.profiles_store import ProfilesStore
 from .services.titles_store import TitlesStore
-from .services.prompts_store import PromptsStore
-from .services.events_store import EventsStore
-from .services.community_memory_store import CommunityMemoryStore
 from .services.root_store import RootStore
 
 log = logging.getLogger("guardian.bot")
@@ -127,24 +117,14 @@ class GuardianBot(commands.Bot):
         self.levels_config_store = LevelsConfigStore(settings.sqlite_path, cache_ttl)
         self.levels_ledger_store = LevelsLedgerStore(settings.sqlite_path, cache_ttl)
         self.level_rewards_store = LevelRewardsStore(settings.sqlite_path, cache_ttl)
-        self.reminders_store = RemindersStore(settings.sqlite_path, cache_ttl)
         self.starboard_store = StarboardStore(settings.sqlite_path, cache_ttl)
-        self.rr_store = ReactionRolesStore(settings.sqlite_path, cache_ttl)
-        self.giveaways_store = GiveawaysStore(settings.sqlite_path, cache_ttl)
-        self.economy_store = EconomyStore(settings.sqlite_path, cache_ttl)
-        self.achievements_store = AchievementsStore(settings.sqlite_path, cache_ttl)
         self.server_config_store = ServerConfigStore(settings.sqlite_path, cache_ttl)
-        self.snapshot_store = SnapshotStore(settings.sqlite_path, cache_ttl)
         self.onboarding_store = OnboardingStore(settings.sqlite_path, cache_ttl)
         self.cases_store = CasesStore(settings.sqlite_path, cache_ttl)
         self.reputation_store = ReputationStore(settings.sqlite_path, cache_ttl)
         self.suggestions_store = SuggestionsStore(settings.sqlite_path, cache_ttl)
-        self.ambient_store = AmbientStore(settings.sqlite_path, cache_ttl)
         self.profiles_store = ProfilesStore(settings.sqlite_path, cache_ttl)
         self.titles_store = TitlesStore(settings.sqlite_path, cache_ttl)
-        self.prompts_store = PromptsStore(settings.sqlite_path, cache_ttl)
-        self.events_store = EventsStore(settings.sqlite_path, cache_ttl)
-        self.community_memory_store = CommunityMemoryStore(settings.sqlite_path, cache_ttl)
         self.root_store = RootStore(settings.sqlite_path)
         self.panel_store = PanelStore(settings.sqlite_path)
         self.role_config_store = RoleConfigStore(settings.sqlite_path)
@@ -167,24 +147,14 @@ class GuardianBot(commands.Bot):
             self.levels_config_store,
             self.levels_ledger_store,
             self.level_rewards_store,
-            self.reminders_store,
             self.starboard_store,
-            self.rr_store,
-            self.giveaways_store,
-            self.economy_store,
-            self.achievements_store,
             self.server_config_store,
-            self.snapshot_store,
             self.onboarding_store,
             self.cases_store,
             self.reputation_store,
             self.suggestions_store,
-            self.ambient_store,
             self.profiles_store,
             self.titles_store,
-            self.prompts_store,
-            self.events_store,
-            self.community_memory_store,
             self.root_store,
             self.panel_store,
             self.role_config_store,
@@ -230,8 +200,6 @@ class GuardianBot(commands.Bot):
 
         # Core configuration + server lifecycle
         await _load_cog("guardian.cogs.admin", "AdminCog")
-        await _load_cog("guardian.cogs.overhaul", "OverhaulCog")
-        await _load_cog("guardian.cogs.corporate_overhaul", "CorporateOverhaulCog")
         await _load_cog("guardian.cogs.setup_autoconfig", "SetupAutoConfigCog")
         await _load_cog("guardian.cogs.dm_cleanup", "DMCleanupCog")
         await _load_cog("guardian.cogs.admin_management", "AdminManagementCog")
@@ -242,24 +210,12 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.onboarding", "OnboardingCog")
         await _load_cog("guardian.cogs.tickets", "TicketsCog")
         await _load_cog("guardian.cogs.suggestions", "SuggestionsCog")
-        await _load_cog("guardian.cogs.knowledge_base", "KnowledgeBaseCog")
 
-        # Moderation + safety
-        await _load_cog("guardian.cogs.moderation", "ModerationCog")
-        await _load_cog("guardian.cogs.anti_raid", "AntiRaidCog")
-        await _load_cog("guardian.cogs.audit_logs", "AuditLogsCog")
 
-        # Engagement systems
+        # Core systems
         await _load_cog("guardian.cogs.levels_full", "LevelsCog")
-        await _load_cog("guardian.cogs.reaction_roles", "ReactionRolesCog")
         await _load_cog("guardian.cogs.starboard", "StarboardCog")
-        await _load_cog("guardian.cogs.giveaways", "GiveawaysCog")
-        await _load_cog("guardian.cogs.reminders", "RemindersCog")
         await _load_cog("guardian.cogs.reputation", "ReputationCog")
-        await _load_cog("guardian.cogs.achievements", "AchievementsCog")
-        await _load_cog("guardian.cogs.economy", "EconomyCog")
-        await _load_cog("guardian.cogs.voice_rooms", "VoiceRoomsCog")
-        await _load_cog("guardian.cogs.fun", "FunCog")
         await _load_cog("guardian.cogs.utilities", "UtilitiesCog")
 
         # Community systems (non-moderation)
@@ -267,12 +223,6 @@ class GuardianBot(commands.Bot):
             await _load_cog("guardian.cogs.profiles", "ProfilesCog")
         if self.settings.titles_enabled:
             await _load_cog("guardian.cogs.titles", "TitlesCog")
-        if self.settings.prompts_enabled:
-            await _load_cog("guardian.cogs.prompts", "PromptsCog")
-        if self.settings.events_enabled:
-            await _load_cog("guardian.cogs.events", "EventsCog")
-        if self.settings.community_memory_enabled:
-            await _load_cog("guardian.cogs.community_memory", "CommunityMemoryCog")
 
         # Community vibe systems (non-moderation)
         if self.settings.prefix_commands_enabled and not self.intents.message_content:
@@ -280,22 +230,13 @@ class GuardianBot(commands.Bot):
         elif self.settings.prefix_commands_enabled:
             await _load_cog("guardian.cogs.prefix_community", "PrefixCommunityCog")
 
-        if self.settings.ambient_enabled:
-            await _load_cog("guardian.cogs.ambient", "AmbientCog")
 
-        # Test commands
-        await _load_cog("guardian.cogs.test_commands", "TestCommandsCog")
-        
-        # Selective nuke
-        await _load_cog("guardian.cogs.nuke_selective", "SelectiveNukeCog")
         
         # Persistent panels
         await _load_cog("guardian.cogs.verify_panel", "VerifyPanelCog")
         await _load_cog("guardian.cogs.role_panel", "RolePanelCog")
         await _load_cog("guardian.cogs.role_panel", "RoleSelectCog")
         
-        # Diagnostics last
-        await _load_cog("guardian.cogs.diagnostics", "DiagnosticsCog")
 
         log.info("Startup cog load summary: loaded=%d failed=%d", len(loaded), len(failed))
         if loaded:
