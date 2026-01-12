@@ -55,28 +55,4 @@ class WelcomeCog(commands.Cog):
             f"✅ Member joined: {member.mention} (`{member.id}`)",
         )
 
-    @commands.hybrid_command(name="welcome_backfill", description="Queue welcome jobs for the last N cached members.")
-    @commands.has_permissions(manage_guild=True)
-    async def welcome_backfill(self, ctx: commands.Context | discord.Interaction, count: int = 10) -> None:
-        # Handle both Context and Interaction
-        if isinstance(ctx, discord.Interaction):
-            if not ctx.guild:
-                return
-            guild = ctx.guild
-            # For slash commands, we need to defer
-            await ctx.response.defer(ephemeral=True)
-            reply_func = ctx.followup.send
-        else:
-            if not ctx.guild:
-                return
-            guild = ctx.guild
-            reply_func = ctx.reply
-        
-        count = max(1, min(50, int(count)))
-        members = list(guild.members)[-count:]
-        members.reverse()
-
-        for m in members:
-            await self.bot.task_queue.enqueue(lambda mm=m: self._handle_join(mm))  # type: ignore[attr-defined]
-
-        await reply_func(f"✅ Enqueued **{len(members)}** welcome jobs. They will run gradually.")
+    # welcome_backfill command removed from production
