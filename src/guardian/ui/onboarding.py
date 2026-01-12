@@ -37,8 +37,10 @@ class InterestSelect(discord.ui.Select):
 
 
 class OnboardingView(discord.ui.View):
+    """Persistent onboarding view that survives bot restarts."""
+    
     def __init__(self, bot, guild_id: int, user_id: int) -> None:
-        super().__init__(timeout=900)
+        super().__init__(timeout=None)  # Persistent view
         self.bot = bot
         self.guild_id = guild_id
         self.user_id = user_id

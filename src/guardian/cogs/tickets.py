@@ -16,9 +16,26 @@ class TicketsCog(commands.Cog):
         if not self._view_registered:
             self._view_registered = True
             try:
+                # Register persistent view for all guilds
                 self.bot.add_view(TicketCreateView(self.bot, 0))
             except Exception:
                 pass
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """Re-attach persistent ticket views on bot startup."""
+        for guild in self.bot.guilds:
+            try:
+                # Find existing ticket panel messages
+                tickets_channel = discord.utils.get(guild.text_channels, name="tickets")
+                if tickets_channel:
+                    async for message in tickets_channel.history(limit=10):
+                        if "Ticket Panel" in (message.embeds[0].title if message.embeds else ""):
+                            # Re-attach view to existing ticket panel
+                            self.bot.add_view(TicketCreateView(self.bot, guild.id), message_id=message.id)
+                            break
+            except Exception:
+                continue
 
     @app_commands.command(name="ticket_panel", description="Post a ticket panel in #tickets.")
     @app_commands.checks.has_permissions(administrator=True)
@@ -32,7 +49,7 @@ class TicketsCog(commands.Cog):
             return
 
         view = TicketCreateView(self.bot, interaction.guild.id)
-        embed = discord.Embed(title="Support Tickets", description="Click to open a private ticket channel.")
+        embed = discord.Embed(title="Ticket Panel", description="Click to open a private ticket channel.")
 
         existing: discord.Message | None = None
         try:
@@ -41,7 +58,7 @@ class TicketsCog(commands.Cog):
                     continue
                 if not m.embeds:
                     continue
-                if (m.embeds[0].title or "") == "Support Tickets":
+                if (m.embeds[0].title or "") == "Ticket Panel":
                     existing = m
                     break
         except Exception:

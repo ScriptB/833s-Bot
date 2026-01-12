@@ -11,6 +11,24 @@ class OnboardingCog(commands.Cog):
         self.bot = bot  # type: ignore[assignment]
 
     @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """Re-attach persistent onboarding views on bot startup."""
+        for guild in self.bot.guilds:
+            try:
+                # Find existing onboarding messages
+                verify_channel = discord.utils.get(guild.text_channels, name="verify")
+                if verify_channel:
+                    async for message in verify_channel.history(limit=20):
+                        if "Mandatory Onboarding" in (message.embeds[0].title if message.embeds else ""):
+                            # Re-attach view to existing onboarding message
+                            # Note: We can't easily determine user_id from message, so we'll use a generic view
+                            view = OnboardingView(self.bot, guild.id, 0)
+                            self.bot.add_view(view, message_id=message.id)
+                            break
+            except Exception:
+                continue
+
+    @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
         guild = member.guild
         quarantine = discord.utils.get(guild.roles, name="Quarantine")

@@ -26,7 +26,7 @@ class ConfirmationView(discord.ui.View):
     """Confirmation view for overhaul command."""
     
     def __init__(self):
-        super().__init__(timeout=60)
+        super().__init__(timeout=None)  # Persistent view
         self.value: Optional[bool] = None
     
     @button(label="Confirm", style=discord.ButtonStyle.danger)

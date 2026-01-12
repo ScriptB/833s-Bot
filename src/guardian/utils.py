@@ -106,7 +106,7 @@ class ConfirmationView(ui.View):
     """A reusable confirmation view."""
     
     def __init__(self, timeout: float = 60.0) -> None:
-        super().__init__(timeout=timeout)
+        super().__init__(timeout=timeout)  # Keep timeout for temporary confirmations
         self.value: Optional[bool] = None
     
     @ui.button(label="Confirm", style=discord.ButtonStyle.success)

@@ -4,8 +4,10 @@ import discord
 
 
 class TicketCreateView(discord.ui.View):
+    """Persistent ticket creation view that survives bot restarts."""
+    
     def __init__(self, bot, guild_id: int) -> None:
-        super().__init__(timeout=None)
+        super().__init__(timeout=None)  # Persistent view
         self.bot = bot
         self.guild_id = guild_id
 

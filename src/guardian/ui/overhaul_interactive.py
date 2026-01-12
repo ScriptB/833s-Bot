@@ -15,7 +15,7 @@ class OverhaulInteractiveView(ui.View):
     """Interactive UI for server overhaul customization and confirmation."""
     
     def __init__(self, cog: commands.Cog, guild: discord.Guild) -> None:
-        super().__init__(timeout=DEFAULT_TIMEOUT_SECONDS)
+        super().__init__(timeout=None)  # Persistent view
         self.cog = cog
         self.guild = guild
         self.config = {
