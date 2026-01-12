@@ -35,6 +35,8 @@ from .services.channel_bootstrapper import ChannelBootstrapper
 from .services.status_reporter import StatusReporter
 from .services.guild_logger import GuildLogger
 from .services.ambient_store import AmbientStore
+from .services.panel_store import PanelStore
+from .services.role_config_store import RoleConfigStore
 from .services.profiles_store import ProfilesStore
 from .services.titles_store import TitlesStore
 from .services.prompts_store import PromptsStore
@@ -144,6 +146,10 @@ class GuardianBot(commands.Bot):
         self.events_store = EventsStore(settings.sqlite_path, cache_ttl)
         self.community_memory_store = CommunityMemoryStore(settings.sqlite_path, cache_ttl)
         self.root_store = RootStore(settings.sqlite_path)
+        self.panel_store = PanelStore(settings.sqlite_path)
+        self.role_config_store = RoleConfigStore(settings.sqlite_path)
+        
+        # Panel stores are already initialized above
         
         # Initialize bot-specific services
         self.drift_verifier = DriftVerifier(self)
@@ -180,6 +186,8 @@ class GuardianBot(commands.Bot):
             self.events_store,
             self.community_memory_store,
             self.root_store,
+            self.panel_store,
+            self.role_config_store,
         ]
         
         await initialize_database(self.settings.sqlite_path, stores)
@@ -280,6 +288,11 @@ class GuardianBot(commands.Bot):
         
         # Selective nuke
         await _load_cog("guardian.cogs.nuke_selective", "SelectiveNukeCog")
+        
+        # Persistent panels
+        await _load_cog("guardian.cogs.verify_panel", "VerifyPanelCog")
+        await _load_cog("guardian.cogs.role_panel", "RolePanelCog")
+        await _load_cog("guardian.cogs.role_panel", "RoleSelectCog")
         
         # Diagnostics last
         await _load_cog("guardian.cogs.diagnostics", "DiagnosticsCog")
