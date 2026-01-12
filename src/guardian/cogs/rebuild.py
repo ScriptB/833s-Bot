@@ -30,7 +30,7 @@ class RebuildCog(commands.Cog):
             )
             return
 
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
 
         bot_member = guild.me or guild.get_member(self.bot.user.id)  # type: ignore[attr-defined]
         if not bot_member or not (bot_member.guild_permissions.manage_channels and bot_member.guild_permissions.manage_roles):
@@ -107,7 +107,7 @@ class RebuildCog(commands.Cog):
     @app_commands.command(name="guardian_validate", description="Drift validation + auto-correct against canonical schema. (Root only)")
     async def guardian_validate(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
 
         schema = canonical_schema()
         builder = SchemaBuilder(self.bot)

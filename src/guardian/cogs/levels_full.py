@@ -72,7 +72,7 @@ class LevelsCog(commands.Cog):
     @app_commands.command(name="rank", description="Show a member's level and XP.")
     async def rank(self, interaction: discord.Interaction, member: discord.Member | None = None) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         member = member or interaction.user  # type: ignore
         total_xp, xp, level = await self.bot.levels_store.get(interaction.guild.id, member.id)  # type: ignore[attr-defined]
         needed = LevelsStore.xp_for_next(level)
@@ -84,7 +84,7 @@ class LevelsCog(commands.Cog):
     @app_commands.command(name="leaderboard", description="Top level leaderboard (all-time).")
     async def leaderboard(self, interaction: discord.Interaction, limit: app_commands.Range[int, 5, 25] = 10) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         rows = await self.bot.levels_store.leaderboard(interaction.guild.id, int(limit))  # type: ignore[attr-defined]
         if not rows:
             await interaction.followup.send("No data yet.", ephemeral=True)
@@ -99,7 +99,7 @@ class LevelsCog(commands.Cog):
     @app_commands.command(name="leaderboard_week", description="Top XP leaderboard (last 7 days).")
     async def leaderboard_week(self, interaction: discord.Interaction, limit: app_commands.Range[int, 5, 25] = 10) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         rows = await self.bot.levels_ledger_store.top_week(interaction.guild.id, int(limit))  # type: ignore[attr-defined]
         if not rows:
             await interaction.followup.send("No data yet.", ephemeral=True)
@@ -115,7 +115,7 @@ class LevelsCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def levels_settings(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         cfg = await self.bot.levels_config_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         await interaction.followup.send(
             f"⚙️ **Levels Settings**\n"
@@ -132,7 +132,7 @@ class LevelsCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def levels_enable(self, interaction: discord.Interaction, enabled: bool) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         cfg = await self.bot.levels_config_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         await self.bot.levels_config_store.upsert(
             LevelsConfig(cfg.guild_id, bool(enabled), cfg.announce, cfg.xp_min, cfg.xp_max, cfg.cooldown_seconds, cfg.daily_cap, cfg.ignore_channels_json)
@@ -149,7 +149,7 @@ class LevelsCog(commands.Cog):
         cooldown_seconds: app_commands.Range[int, 5, 600],
     ) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         if xp_max < xp_min:
             await interaction.followup.send("❌ xp_max must be >= xp_min.", ephemeral=True)
             return
@@ -163,7 +163,7 @@ class LevelsCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def levels_set_dailycap(self, interaction: discord.Interaction, daily_cap: app_commands.Range[int, 0, 100000]) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         cfg = await self.bot.levels_config_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         await self.bot.levels_config_store.upsert(
             LevelsConfig(cfg.guild_id, cfg.enabled, cfg.announce, cfg.xp_min, cfg.xp_max, cfg.cooldown_seconds, int(daily_cap), cfg.ignore_channels_json)
@@ -174,7 +174,7 @@ class LevelsCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def levels_set_announce(self, interaction: discord.Interaction, announce: bool) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         cfg = await self.bot.levels_config_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         await self.bot.levels_config_store.upsert(
             LevelsConfig(cfg.guild_id, cfg.enabled, bool(announce), cfg.xp_min, cfg.xp_max, cfg.cooldown_seconds, cfg.daily_cap, cfg.ignore_channels_json)
@@ -185,7 +185,7 @@ class LevelsCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def levels_ignore_channel(self, interaction: discord.Interaction, channel: discord.TextChannel, ignored: bool) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         cfg = await self.bot.levels_config_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         try:
             arr = list(set(json.loads(cfg.ignore_channels_json or "[]")))
@@ -204,7 +204,7 @@ class LevelsCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_roles=True)
     async def levels_reward_add(self, interaction: discord.Interaction, level: app_commands.Range[int, 1, 500], role: discord.Role) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         await self.bot.level_rewards_store.add(interaction.guild.id, int(level), role.id)  # type: ignore[attr-defined]
         await interaction.followup.send(f"✅ Reward added: level {level} → {role.mention}", ephemeral=True)
 
@@ -212,7 +212,7 @@ class LevelsCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_roles=True)
     async def levels_reward_remove(self, interaction: discord.Interaction, level: app_commands.Range[int, 1, 500], role: discord.Role) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         await self.bot.level_rewards_store.remove(interaction.guild.id, int(level), role.id)  # type: ignore[attr-defined]
         await interaction.followup.send("✅ Reward removed.", ephemeral=True)
 
@@ -220,7 +220,7 @@ class LevelsCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def levels_reward_list(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         pairs = await self.bot.level_rewards_store.list(interaction.guild.id)  # type: ignore[attr-defined]
         if not pairs:
             await interaction.followup.send("No rewards configured.", ephemeral=True)
@@ -235,7 +235,7 @@ class LevelsCog(commands.Cog):
     @app_commands.checks.has_permissions(administrator=True)
     async def levels_reset_user(self, interaction: discord.Interaction, member: discord.Member) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         await self.bot.levels_store.reset_user(interaction.guild.id, member.id)  # type: ignore[attr-defined]
         await interaction.followup.send("✅ User level data reset.", ephemeral=True)
 
@@ -243,6 +243,6 @@ class LevelsCog(commands.Cog):
     @app_commands.checks.has_permissions(administrator=True)
     async def levels_reset_all(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         await self.bot.levels_store.reset_guild(interaction.guild.id)  # type: ignore[attr-defined]
         await interaction.followup.send("✅ All level data reset.", ephemeral=True)

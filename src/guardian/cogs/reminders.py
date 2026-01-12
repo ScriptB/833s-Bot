@@ -60,7 +60,7 @@ class RemindersCog(commands.Cog):
 
     @app_commands.command(name="remind", description="Set a reminder. Duration: 10m, 2h, 1d, 30s.")
     async def remind(self, interaction: discord.Interaction, duration: str, message: str) -> None:
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         secs = _parse_duration(duration)
         if secs is None or secs <= 0:
             await interaction.followup.send("❌ Invalid duration. Use 10m, 2h, 1d, 30s.", ephemeral=True)

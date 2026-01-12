@@ -27,7 +27,7 @@ class AchievementsCog(commands.Cog):
     @app_commands.command(name="achievements", description="Show your unlocked achievements.")
     async def achievements(self, interaction: discord.Interaction, user: discord.Member | None = None) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         target = user or interaction.user  # type: ignore[assignment]
         rows = await self.bot.achievements_store.list_user(interaction.guild.id, target.id)  # type: ignore[attr-defined]
         if not rows:
@@ -44,7 +44,7 @@ class AchievementsCog(commands.Cog):
     @app_commands.command(name="achievements_top", description="Leaderboard: most achievements.")
     async def achievements_top(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         rows = await self.bot.achievements_store.leaderboard(interaction.guild.id, limit=10)  # type: ignore[attr-defined]
         if not rows:
             await interaction.followup.send("No data yet.", ephemeral=True)

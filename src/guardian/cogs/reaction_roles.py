@@ -76,7 +76,7 @@ class ReactionRolesCog(commands.Cog):
         channel: discord.TextChannel | None = None,
     ) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         channel = channel or interaction.channel  # type: ignore
         if not isinstance(channel, discord.TextChannel):
             await interaction.followup.send("❌ Invalid channel.", ephemeral=True)
@@ -91,7 +91,7 @@ class ReactionRolesCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_roles=True)
     async def rr_option_add(self, interaction: discord.Interaction, message_id: str, role: discord.Role, label: str, emoji: str | None = None) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         mid = int(message_id)
         data = await self.bot.rr_store.get_panel(interaction.guild.id, mid)  # type: ignore[attr-defined]
         if not data:
@@ -125,6 +125,6 @@ class ReactionRolesCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_roles=True)
     async def rr_option_remove(self, interaction: discord.Interaction, message_id: str, role: discord.Role) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         await self.bot.rr_store.remove_option(interaction.guild.id, int(message_id), role.id)  # type: ignore[attr-defined]
         await interaction.followup.send("✅ Option removed.", ephemeral=True)

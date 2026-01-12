@@ -30,7 +30,7 @@ class TitlesCog(commands.Cog):
     @app_commands.command(name="titles_list", description="List titles you can equip.")
     async def list_titles(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         lvl = await self._level(interaction.guild.id, interaction.user.id)
         unlocked = self._unlocked(lvl)
         current = await self.bot.titles_store.get(interaction.guild.id, interaction.user.id)  # type: ignore[attr-defined]
@@ -45,7 +45,7 @@ class TitlesCog(commands.Cog):
     @app_commands.command(name="titles_equip", description="Equip a title you have unlocked.")
     async def equip(self, interaction: discord.Interaction, title: str) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         title = (title or "").strip()
         lvl = await self._level(interaction.guild.id, interaction.user.id)
         unlocked = self._unlocked(lvl)
@@ -62,7 +62,7 @@ class TitlesCog(commands.Cog):
     @app_commands.command(name="titles_unequip", description="Remove your equipped title.")
     async def unequip(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         await self.bot.titles_store.set_equipped(interaction.guild.id, interaction.user.id, "")  # type: ignore[attr-defined]
         await interaction.followup.send("Title removed.", ephemeral=True)
 

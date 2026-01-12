@@ -26,7 +26,7 @@ class EventsCog(commands.Cog):
         description: str = "",
     ) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer()
         if await self._level(interaction.guild.id, interaction.user.id) < 4:
             await interaction.followup.send("Requires level 4.", ephemeral=True)
             return
@@ -58,7 +58,7 @@ class EventsCog(commands.Cog):
     @app_commands.command(name="event_list", description="List upcoming active events.")
     async def list_events(self, interaction: discord.Interaction, limit: app_commands.Range[int, 1, 10] = 5) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer()
         events = await self.bot.events_store.list_active(interaction.guild.id, int(limit))  # type: ignore[attr-defined]
         if not events:
             await interaction.followup.send("No active events.", ephemeral=True)
@@ -72,7 +72,7 @@ class EventsCog(commands.Cog):
     @app_commands.command(name="event_info", description="Show event details.")
     async def info(self, interaction: discord.Interaction, event_id: int) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer()
         e = await self.bot.events_store.get(interaction.guild.id, int(event_id))  # type: ignore[attr-defined]
         if not e or not e.active:
             await interaction.followup.send("Event not found.", ephemeral=True)
@@ -86,7 +86,7 @@ class EventsCog(commands.Cog):
     @app_commands.command(name="event_join", description="Join an event.")
     async def join(self, interaction: discord.Interaction, event_id: int) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer()
         e = await self.bot.events_store.get(interaction.guild.id, int(event_id))  # type: ignore[attr-defined]
         if not e or not e.active:
             await interaction.followup.send("Event not found.", ephemeral=True)
@@ -97,7 +97,7 @@ class EventsCog(commands.Cog):
     @app_commands.command(name="event_leave", description="Leave an event.")
     async def leave(self, interaction: discord.Interaction, event_id: int) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer()
         ok = await self.bot.events_store.leave(interaction.guild.id, int(event_id), interaction.user.id)  # type: ignore[attr-defined]
         await interaction.followup.send("Left." if ok else "Not in event.", ephemeral=True)
 

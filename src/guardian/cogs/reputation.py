@@ -12,7 +12,7 @@ class ReputationCog(commands.Cog):
     @app_commands.command(name="rep", description="Give +1 rep to a member (12h cooldown).")
     async def rep(self, interaction: discord.Interaction, member: discord.Member) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         if member.id == interaction.user.id:
             await interaction.followup.send("❌ Self rep not allowed.", ephemeral=True)
             return
@@ -25,7 +25,7 @@ class ReputationCog(commands.Cog):
     @app_commands.command(name="rep_show", description="Show a member's reputation.")
     async def rep_show(self, interaction: discord.Interaction, member: discord.Member | None = None) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         m = member or interaction.user
         score, _ = await self.bot.reputation_store.get(interaction.guild.id, m.id)  # type: ignore[attr-defined]
         await interaction.followup.send(f"**{m}** rep: **{score}**", ephemeral=True)

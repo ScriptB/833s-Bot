@@ -17,7 +17,7 @@ class AdminCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def set_welcome_channel(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         cfg = await self.bot.guild_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         new_cfg = GuildConfig(
             guild_id=cfg.guild_id,
@@ -37,7 +37,7 @@ class AdminCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_roles=True)
     async def set_autorole(self, interaction: discord.Interaction, role: discord.Role) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         cfg = await self.bot.guild_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         new_cfg = GuildConfig(
             guild_id=cfg.guild_id,
@@ -57,7 +57,7 @@ class AdminCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def set_log_channel(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         cfg = await self.bot.guild_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         new_cfg = GuildConfig(
             guild_id=cfg.guild_id,
@@ -83,7 +83,7 @@ class AdminCog(commands.Cog):
         timeout_seconds: app_commands.Range[int, 5, 3600],
     ) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         cfg = await self.bot.guild_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         new_cfg = GuildConfig(
             guild_id=cfg.guild_id,

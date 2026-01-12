@@ -55,7 +55,7 @@ class EconomyCog(commands.Cog):
     @app_commands.command(name="balance", description="Show a user's balance.")
     async def balance(self, interaction: discord.Interaction, user: discord.Member | None = None) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         target = user or interaction.user  # type: ignore[assignment]
         bal, streak, dlast, wlast, _ = await self.bot.economy_store.get_wallet(interaction.guild.id, target.id)  # type: ignore[attr-defined]
 
@@ -68,7 +68,7 @@ class EconomyCog(commands.Cog):
     @app_commands.command(name="daily", description="Claim your daily reward (streak-based).")
     async def daily(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         guild_id = interaction.guild.id
         user_id = interaction.user.id  # type: ignore[assignment]
 
@@ -108,7 +108,7 @@ class EconomyCog(commands.Cog):
     @app_commands.command(name="work", description="Do quick work for a small payout (cooldown).")
     async def work(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         guild_id = interaction.guild.id
         user_id = interaction.user.id  # type: ignore[assignment]
 
@@ -139,7 +139,7 @@ class EconomyCog(commands.Cog):
     @app_commands.describe(user="Recipient", amount="Amount to transfer")
     async def give(self, interaction: discord.Interaction, user: discord.Member, amount: app_commands.Range[int, 1, 1_000_000]) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         if user.bot:
             await interaction.followup.send("❌ Can't transfer to bots.", ephemeral=True)
             return
@@ -163,7 +163,7 @@ class EconomyCog(commands.Cog):
     @app_commands.command(name="money_top", description="Leaderboard: richest members.")
     async def money_top(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         rows = await self.bot.economy_store.top_balances(interaction.guild.id, limit=10)  # type: ignore[attr-defined]
         if not rows:
             await interaction.followup.send("No data yet.", ephemeral=True)
@@ -183,7 +183,7 @@ class EconomyCog(commands.Cog):
     @app_commands.describe(side="heads or tails", bet="Amount to bet")
     async def coinflip(self, interaction: discord.Interaction, side: str, bet: app_commands.Range[int, 1, 250_000]) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         side = side.strip().lower()
         if side not in {"heads", "tails", "h", "t"}:
             await interaction.followup.send("Side must be: heads/tails.", ephemeral=True)
@@ -211,7 +211,7 @@ class EconomyCog(commands.Cog):
     @app_commands.describe(bet="Amount to bet")
     async def slots(self, interaction: discord.Interaction, bet: app_commands.Range[int, 1, 50_000]) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         gid = interaction.guild.id
         uid = interaction.user.id  # type: ignore[assignment]
         bal, *_ = await self.bot.economy_store.get_wallet(gid, uid)  # type: ignore[attr-defined]

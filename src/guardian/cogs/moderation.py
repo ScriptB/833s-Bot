@@ -19,7 +19,7 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.has_permissions(moderate_members=True)
     async def warn(self, interaction: discord.Interaction, member: discord.Member, reason: str | None = None) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         cid = await self.bot.cases_store.add(interaction.guild.id, member.id, interaction.user.id, "warn", reason, int(time.time()))  # type: ignore[attr-defined]
 
         try:
@@ -41,7 +41,7 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.has_permissions(moderate_members=True)
     async def timeout(self, interaction: discord.Interaction, member: discord.Member, minutes: app_commands.Range[int, 1, 10080], reason: str | None = None) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         until = discord.utils.utcnow() + discord.timedelta(minutes=int(minutes))
         await member.timeout(until, reason=reason)
         cid = await self.bot.cases_store.add(interaction.guild.id, member.id, interaction.user.id, "timeout", reason, int(time.time()))  # type: ignore[attr-defined]
@@ -60,7 +60,7 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.has_permissions(manage_messages=True)
     async def purge(self, interaction: discord.Interaction, count: app_commands.Range[int, 1, 200]) -> None:
         assert interaction.channel is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         if not isinstance(interaction.channel, discord.TextChannel):
             await interaction.followup.send("❌ Not a text channel.", ephemeral=True)
             return
@@ -71,7 +71,7 @@ class ModerationCog(commands.Cog):
     @app_commands.checks.has_permissions(moderate_members=True)
     async def cases(self, interaction: discord.Interaction, member: discord.Member) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         rows = await self.bot.cases_store.list_for_user(interaction.guild.id, member.id, limit=10)  # type: ignore[attr-defined]
         if not rows:
             await interaction.followup.send("No cases.", ephemeral=True)

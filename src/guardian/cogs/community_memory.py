@@ -16,7 +16,7 @@ class CommunityMemoryCog(commands.Cog):
     @app_commands.command(name="community_timeline", description="Show recent community activity recorded by the bot.")
     async def timeline(self, interaction: discord.Interaction, limit: app_commands.Range[int, 1, 10] = 5) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         items = await self.bot.community_memory_store.latest(interaction.guild.id, int(limit))  # type: ignore[attr-defined]
         if not items:
             await interaction.followup.send("No community memory yet.", ephemeral=True)
@@ -30,7 +30,7 @@ class CommunityMemoryCog(commands.Cog):
     @app_commands.command(name="community_on_this_day", description="Show memory entries that happened on this day in previous years.")
     async def on_this_day(self, interaction: discord.Interaction, limit: app_commands.Range[int, 1, 10] = 5) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         now = datetime.datetime.utcnow()
         items = await self.bot.community_memory_store.on_this_day(interaction.guild.id, now.month, now.day, int(limit))  # type: ignore[attr-defined]
         if not items:

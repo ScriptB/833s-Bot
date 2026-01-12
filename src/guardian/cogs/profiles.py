@@ -12,7 +12,7 @@ class ProfilesCog(commands.Cog):
     @app_commands.command(name="user_profile", description="View a member's community profile.")
     async def user_profile(self, interaction: discord.Interaction, member: discord.Member | None = None) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         member = member or interaction.user  # type: ignore[assignment]
         prof = await self.bot.profiles_store.get(interaction.guild.id, member.id)  # type: ignore[attr-defined]
         title_state = await self.bot.titles_store.get(interaction.guild.id, member.id)  # type: ignore[attr-defined]
@@ -42,7 +42,7 @@ class ProfilesCog(commands.Cog):
     @app_commands.command(name="profile_edit_about", description="Set your profile about text.")
     async def edit_about(self, interaction: discord.Interaction, about: str) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         about = (about or "").strip()
         await self.bot.profiles_store.upsert(interaction.guild.id, interaction.user.id, about=about)  # type: ignore[attr-defined]
         try:
@@ -54,7 +54,7 @@ class ProfilesCog(commands.Cog):
     @app_commands.command(name="profile_edit_pronouns", description="Set your pronouns.")
     async def edit_pronouns(self, interaction: discord.Interaction, pronouns: str) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         pronouns = (pronouns or "").strip()
         await self.bot.profiles_store.upsert(interaction.guild.id, interaction.user.id, pronouns=pronouns)  # type: ignore[attr-defined]
         try:
@@ -66,7 +66,7 @@ class ProfilesCog(commands.Cog):
     @app_commands.command(name="profile_edit_interests", description="Set your interests (comma-separated, up to 12).")
     async def edit_interests(self, interaction: discord.Interaction, interests: str) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         raw = (interests or "").strip()
         items = [p.strip() for p in raw.split(",") if p.strip()]
         await self.bot.profiles_store.upsert(interaction.guild.id, interaction.user.id, interests=items)  # type: ignore[attr-defined]
@@ -79,7 +79,7 @@ class ProfilesCog(commands.Cog):
     @app_commands.command(name="profile_privacy", description="Set your profile visibility.")
     async def privacy(self, interaction: discord.Interaction, public: bool) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         await self.bot.profiles_store.upsert(interaction.guild.id, interaction.user.id, is_public=bool(public))  # type: ignore[attr-defined]
         await interaction.followup.send("Privacy updated.", ephemeral=True)
 

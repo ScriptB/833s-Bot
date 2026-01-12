@@ -24,7 +24,7 @@ class TicketsCog(commands.Cog):
     @app_commands.checks.has_permissions(administrator=True)
     async def ticket_panel(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
 
         ch = discord.utils.get(interaction.guild.text_channels, name="tickets")
         if not ch:

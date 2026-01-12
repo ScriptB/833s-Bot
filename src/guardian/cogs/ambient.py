@@ -149,7 +149,7 @@ class AmbientCog(commands.Cog):
         if interaction.guild is None:
             await interaction.response.send_message("This can only be used in a server.", ephemeral=True)
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         await self.bot.ambient_store.set_pings_opt_in(interaction.guild.id, interaction.user.id, bool(enabled))  # type: ignore[attr-defined]
         await interaction.followup.send("Updated.", ephemeral=True)
 
@@ -159,7 +159,7 @@ class AmbientCog(commands.Cog):
         if interaction.guild is None:
             await interaction.response.send_message("This can only be used in a server.", ephemeral=True)
             return
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         cfg = await self.bot.server_config_store.get(interaction.guild.id)  # type: ignore[attr-defined]
         key = self._day_key()
         cur = self._guild_counters.get(int(interaction.guild.id))

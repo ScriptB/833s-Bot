@@ -222,15 +222,13 @@ class GuardianBot(commands.Bot):
 
         # Core configuration + server lifecycle
         await _load_cog("guardian.cogs.admin", "AdminCog")
-        await _load_cog("guardian.cogs.nuke", "NukeCog")
         await _load_cog("guardian.cogs.overhaul", "OverhaulCog")
         await _load_cog("guardian.cogs.corporate_overhaul", "CorporateOverhaulCog")
         await _load_cog("guardian.cogs.setup_autoconfig", "SetupAutoConfigCog")
         await _load_cog("guardian.cogs.dm_cleanup", "DMCleanupCog")
         await _load_cog("guardian.cogs.admin_management", "AdminManagementCog")
         await _load_cog("guardian.cogs.root_management", "RootManagementCog")
-        await _load_cog("guardian.cogs.selftest", "SelfTestCog")
-
+        
         # Community + onboarding
         await _load_cog("guardian.cogs.welcome", "WelcomeCog")
         await _load_cog("guardian.cogs.onboarding", "OnboardingCog")
@@ -277,6 +275,12 @@ class GuardianBot(commands.Bot):
         if self.settings.ambient_enabled:
             await _load_cog("guardian.cogs.ambient", "AmbientCog")
 
+        # Test commands
+        await _load_cog("guardian.cogs.test_commands", "TestCommandsCog")
+        
+        # Selective nuke
+        await _load_cog("guardian.cogs.nuke_selective", "SelectiveNukeCog")
+        
         # Diagnostics last
         await _load_cog("guardian.cogs.diagnostics", "DiagnosticsCog")
 

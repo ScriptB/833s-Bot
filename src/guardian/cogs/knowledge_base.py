@@ -25,7 +25,7 @@ class KnowledgeBaseCog(commands.Cog):
 
     @app_commands.command(name="kb", description="Open the knowledge base.")
     async def kb(self, interaction: discord.Interaction, article: str) -> None:
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         key = article.strip().lower()
         if key not in ARTICLES:
             await interaction.followup.send("Unknown article. Options: server-guide, faq", ephemeral=True)
@@ -37,7 +37,7 @@ class KnowledgeBaseCog(commands.Cog):
 
     @app_commands.command(name="kb_search", description="Search the knowledge base by keyword.")
     async def kb_search(self, interaction: discord.Interaction, keyword: str) -> None:
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         k = keyword.strip().lower()
         hits = []
         for name, sections in ARTICLES.items():
@@ -53,7 +53,7 @@ class KnowledgeBaseCog(commands.Cog):
 
     @app_commands.command(name="help_commands", description="List key commands.")
     async def help_commands(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         e = discord.Embed(title="833s Guardian Commands")
         e.add_field(name="Setup", value="/guardian_rebuild, /guardian_validate, /ticket_panel", inline=False)
         e.add_field(name="Moderation", value="/warn, /timeout, /purge, /cases", inline=False)

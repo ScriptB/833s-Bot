@@ -12,7 +12,7 @@ class SuggestionsCog(commands.Cog):
     @app_commands.command(name="suggest", description="Create a suggestion and post it in #suggestions.")
     async def suggest(self, interaction: discord.Interaction, text: str) -> None:
         assert interaction.guild is not None
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=True)
         ch = discord.utils.get(interaction.guild.text_channels, name="suggestions")
         if not isinstance(ch, discord.TextChannel):
             await interaction.followup.send("❌ #suggestions not found.", ephemeral=True)
