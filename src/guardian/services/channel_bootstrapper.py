@@ -63,6 +63,14 @@ class ChannelBootstrapper:
             "For quick help: describe the issue + screenshots + what you tried."
         )
 
+    def _help_verification_text(self) -> str:
+        return (
+            "**Verification Help**\n"
+            "Complete verification to unlock server features.\n"
+            "Follow the instructions in #verify channel.\n"
+            "Contact staff if you encounter any issues."
+        )
+
     def _start_here_text(self) -> str:
         return (
             "**Welcome to 833s**\n"
