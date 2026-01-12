@@ -10,7 +10,7 @@ import logging
 import discord
 from discord import app_commands
 from discord.ext import commands
-from discord.ui import Select, View
+from discord.ui import Select, View, button
 
 from ..security.auth import root_only
 
@@ -144,7 +144,7 @@ class ChannelSelectView(View):
                 max_values=min(25, len(channels))
             ))
     
-    @discord.ui.button(label="🗑️ NUKE SELECTED", style=discord.ButtonStyle.danger, row=4)
+    @button(label="🗑️ NUKE SELECTED", style=discord.ButtonStyle.danger, row=4)
     async def nuke_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Handle nuke confirmation."""
         if not self.selected_channels and not self.selected_categories:
@@ -177,7 +177,7 @@ class ChannelSelectView(View):
         
         await interaction.response.send_message(embed=embed, view=confirm_view, ephemeral=True)
     
-    @discord.ui.button(label="❌ CANCEL", style=discord.ButtonStyle.secondary, row=4)
+    @button(label="❌ CANCEL", style=discord.ButtonStyle.secondary, row=4)
     async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Handle cancellation."""
         await interaction.response.send_message(
@@ -207,7 +207,7 @@ class ConfirmationView(View):
             return False
         return True
     
-    @discord.ui.button(label="☢️ YES, DELETE EVERYTHING", style=discord.ButtonStyle.danger)
+    @button(label="☢️ YES, DELETE EVERYTHING", style=discord.ButtonStyle.danger)
     async def confirm_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Execute the deletion."""
         if self.confirmed:

@@ -28,13 +28,13 @@ class ConfirmationView(discord.ui.View):
         super().__init__(timeout=60)
         self.value: Optional[bool] = None
     
-    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.danger)
+    @button(label="Confirm", style=discord.ButtonStyle.danger)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message("Overhaul confirmed, starting...", ephemeral=True)
         self.value = True
         self.stop()
     
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    @button(label="Cancel", style=discord.ButtonStyle.secondary)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message("Overhaul cancelled.", ephemeral=True)
         self.value = False
