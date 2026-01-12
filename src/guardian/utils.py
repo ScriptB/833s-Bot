@@ -109,13 +109,13 @@ class ConfirmationView(ui.View):
         super().__init__(timeout=timeout)  # Keep timeout for temporary confirmations
         self.value: Optional[bool] = None
     
-    @ui.button(label="Confirm", style=discord.ButtonStyle.success)
+    @ui.button(label="Confirm", style=discord.ButtonStyle.success, custom_id="confirmation_confirm")
     async def confirm(self, interaction: discord.Interaction, button: ui.Button) -> None:
         self.value = True
         self.stop()
         await safe_response(interaction, "Confirmed.", ephemeral=True)
     
-    @ui.button(label="Cancel", style=discord.ButtonStyle.danger)
+    @ui.button(label="Cancel", style=discord.ButtonStyle.danger, custom_id="confirmation_cancel")
     async def cancel(self, interaction: discord.Interaction, button: ui.Button) -> None:
         self.value = False
         self.stop()

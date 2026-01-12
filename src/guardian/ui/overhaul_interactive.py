@@ -96,7 +96,7 @@ class OverhaulInteractiveView(ui.View):
         embed.set_footer(text="Click buttons to customize • Confirm when ready")
         return embed
     
-    @ui.button(label="Server Settings", style=discord.ButtonStyle.secondary, row=0)
+    @ui.button(label="Server Settings", style=discord.ButtonStyle.secondary, row=0, custom_id="overhaul_server_settings")
     async def server_settings(self, interaction: discord.Interaction, button: ui.Button) -> None:
         """Open server settings modal."""
         modal = ServerSettingsModal(self.config)
@@ -104,7 +104,7 @@ class OverhaulInteractiveView(ui.View):
         await modal.wait()
         await self.update_message()
     
-    @ui.button(label="Features", style=discord.ButtonStyle.secondary, row=0)
+    @ui.button(label="Features", style=discord.ButtonStyle.secondary, row=0, custom_id="overhaul_features")
     async def features(self, interaction: discord.Interaction, button: ui.Button) -> None:
         """Open features selection modal."""
         modal = FeaturesModal(self.config)
@@ -112,7 +112,7 @@ class OverhaulInteractiveView(ui.View):
         await modal.wait()
         await self.update_message()
     
-    @ui.button(label="Safety Options", style=discord.ButtonStyle.secondary, row=1)
+    @ui.button(label="Safety Options", style=discord.ButtonStyle.secondary, row=1, custom_id="overhaul_safety_options")
     async def safety_options(self, interaction: discord.Interaction, button: ui.Button) -> None:
         """Open safety options modal."""
         modal = SafetyModal(self.config)
@@ -120,7 +120,7 @@ class OverhaulInteractiveView(ui.View):
         await modal.wait()
         await self.update_message()
     
-    @ui.button(label="Confirm Configuration", style=discord.ButtonStyle.success, row=2)
+    @ui.button(label="Confirm Configuration", style=discord.ButtonStyle.success, row=2, custom_id="overhaul_confirm_config")
     async def confirm_config(self, interaction: discord.Interaction, button: ui.Button) -> None:
         """Confirm the configuration."""
         if self.confirmed:
@@ -131,7 +131,7 @@ class OverhaulInteractiveView(ui.View):
         await self.update_message()
         await interaction.response.send_message("✅ Configuration confirmed! Click **Execute Overhaul** to start.", ephemeral=True)
     
-    @ui.button(label="Execute Overhaul", style=discord.ButtonStyle.danger, row=2)
+    @ui.button(label="Execute Overhaul", style=discord.ButtonStyle.danger, row=2, custom_id="overhaul_execute")
     async def execute_overhaul(self, interaction: discord.Interaction, button: ui.Button) -> None:
         """Execute the overhaul with current configuration."""
         if not self.confirmed:

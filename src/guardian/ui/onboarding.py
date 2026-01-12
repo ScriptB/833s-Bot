@@ -12,7 +12,13 @@ class LanguageSelect(discord.ui.Select):
             discord.SelectOption(label="French", value="fr"),
             discord.SelectOption(label="German", value="de"),
         ]
-        super().__init__(placeholder="Language", min_values=1, max_values=1, options=options)
+        super().__init__(
+            placeholder="Language", 
+            min_values=1, 
+            max_values=1, 
+            options=options,
+            custom_id="onboarding_language"
+        )
 
     async def callback(self, interaction: discord.Interaction) -> None:
         view: OnboardingView = self.view  # type: ignore
@@ -28,7 +34,13 @@ class InterestSelect(discord.ui.Select):
             discord.SelectOption(label="Artist", value="Artist"),
             discord.SelectOption(label="Music", value="Music"),
         ]
-        super().__init__(placeholder="Interests (optional)", min_values=0, max_values=4, options=options)
+        super().__init__(
+            placeholder="Interests (optional)", 
+            min_values=0, 
+            max_values=4, 
+            options=options,
+            custom_id="onboarding_interests"
+        )
 
     async def callback(self, interaction: discord.Interaction) -> None:
         view: OnboardingView = self.view  # type: ignore
@@ -49,7 +61,7 @@ class OnboardingView(discord.ui.View):
         self.add_item(LanguageSelect())
         self.add_item(InterestSelect())
 
-    @discord.ui.button(label="Accept Rules", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="Accept Rules", style=discord.ButtonStyle.success, custom_id="onboarding_accept_rules")
     async def accept_rules(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("Not for you.", ephemeral=True)
@@ -59,7 +71,7 @@ class OnboardingView(discord.ui.View):
             await self.bot.onboarding_store.upsert(type(st)(self.guild_id, self.user_id, 1, st.language, st.interests_json, False))
         await interaction.response.send_message("Rules accepted.", ephemeral=True)
 
-    @discord.ui.button(label="18+ Confirm", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="18+ Confirm", style=discord.ButtonStyle.primary, custom_id="onboarding_age_confirm")
     async def age_confirm(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("Not for you.", ephemeral=True)
@@ -69,7 +81,7 @@ class OnboardingView(discord.ui.View):
             await self.bot.onboarding_store.upsert(type(st)(self.guild_id, self.user_id, 2, st.language, st.interests_json, False))
         await interaction.response.send_message("Age confirmed.", ephemeral=True)
 
-    @discord.ui.button(label="Finish", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="Finish", style=discord.ButtonStyle.success, custom_id="onboarding_finish")
     async def finish(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("Not for you.", ephemeral=True)
