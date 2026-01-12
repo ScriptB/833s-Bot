@@ -38,7 +38,7 @@ class EventsStore(BaseService):
                 description TEXT NOT NULL,
                 start_ts INTEGER NOT NULL,
                 channel_id INTEGER NOT NULL,
-                created_at INTEGER NOT NULL DEFAULT strftime('%s','now'),
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
                 active INTEGER NOT NULL DEFAULT 1
             )
             """
@@ -49,7 +49,7 @@ class EventsStore(BaseService):
                 event_id INTEGER NOT NULL,
                 guild_id INTEGER NOT NULL,
                 user_id INTEGER NOT NULL,
-                joined_at INTEGER NOT NULL DEFAULT strftime('%s','now'),
+                joined_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
                 PRIMARY KEY (event_id, guild_id, user_id),
                 FOREIGN KEY(event_id) REFERENCES events(event_id)
             )
