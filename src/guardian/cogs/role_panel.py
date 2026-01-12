@@ -128,37 +128,11 @@ class RolePanelCog(commands.Cog):
                 except Exception as e:
                     print(f"❌ Failed to restore role panel {panel.panel_key}: {e}")
     
-    @app_commands.command(name="panel", description="Manage persistent UI panels")
+    @app_commands.command(name="rolepanel", description="Deploy role selection panel")
     @app_commands.checks.has_permissions(administrator=True)
-    async def panel(self, interaction: discord.Interaction) -> None:
-        """Panel management command group."""
-        await interaction.response.send_message(
-            "Use `/panel deploy roles` to deploy role selection panel.",
-            ephemeral=True
-        )
-    
-    @app_commands.command(name="deploy", description="Deploy a persistent UI panel")
-    @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.describe(panel_type="Type of panel to deploy")
-    @app_commands.choices(panel_type=[
-        app_commands.Choice(name="Roles", value="roles"),
-        app_commands.Choice(name="Verify", value="verify")
-    ])
-    async def panel_deploy(
-        self, 
-        interaction: discord.Interaction, 
-        panel_type: str
-    ) -> None:
-        """Deploy a persistent UI panel."""
-        
-        if not interaction.guild:
-            await interaction.response.send_message("Guild required.", ephemeral=True)
-            return
-        
-        if panel_type == "roles":
-            await self._deploy_role_panel(interaction)
-        else:
-            await interaction.response.send_message("Unknown panel type.", ephemeral=True)
+    async def rolepanel(self, interaction: discord.Interaction) -> None:
+        """Deploy role selection panel."""
+        await self._deploy_role_panel(interaction)
     
     async def _deploy_role_panel(self, interaction: discord.Interaction) -> None:
         """Deploy a persistent role selection panel."""
