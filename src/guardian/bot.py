@@ -185,7 +185,7 @@ class GuardianBot(commands.Bot):
         await initialize_database(self.settings.sqlite_path, stores)
         
         # Start background services
-        self.drift_verifier.start()
+        # self.drift_verifier.start()  # DISABLED - Prevents automatic channel recreation
         self.task_queue.start()
         
         # Setup error handlers
