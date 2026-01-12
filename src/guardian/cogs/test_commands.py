@@ -61,7 +61,7 @@ class TestCommandsCog(commands.Cog):
         await interaction.response.send_message(embed=embed)
     
     @commands.hybrid_command(name="test_hybrid", description="Test hybrid command functionality")
-    @commands.describe(message="Message to echo back")
+    @app_commands.describe(message="Message to echo back")
     async def test_hybrid(self, ctx: commands.Context, *, message: str):
         """Hybrid test command - works with both slash and prefix"""
         if ctx.interaction:
