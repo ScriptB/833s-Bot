@@ -240,9 +240,8 @@ class ObservabilityManager:
             success=status == "OK"
         )
         
-        # Update health status
-        if component in self._health_status:
-            self._health_status[component] = (status == "OK")
+        # Update health status - add new components dynamically
+        self._health_status[component] = (status == "OK")
     
     def log_startup_complete(self, total_duration_ms: float):
         """Log complete startup summary."""

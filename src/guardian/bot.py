@@ -172,13 +172,16 @@ class GuardianBot(commands.Bot):
         ]
         
         await initialize_database(self.settings.sqlite_path, stores)
+        observability.log_startup_event("database", "OK")
         
         # Initialize panel store schema
         await self.panel_store.init()
+        observability.log_startup_event("panel_store", "OK")
         
         # Initialize persistent UI framework
         register_all_views(self)
         log.info("Registered all persistent views")
+        observability.log_startup_event("views_registered", "OK")
         
         # Initialize production systems
         initialize_migration_system(self.settings.sqlite_path)
@@ -297,10 +300,14 @@ class GuardianBot(commands.Bot):
         if not diagnostics.should_disable_panels():
             repair_results = await self.panel_registry.repair_all_guilds_on_startup()
             log.info(f"Panel repair completed: {repair_results}")
+            observability.log_startup_event("panel_registry_ready", "OK")
+        else:
+            observability.log_startup_event("panel_registry_ready", "DISABLED")
         
         await self._sync_mgr.sync_startup()
         log.info("Command sync complete")
         observability.log_startup_event("command_sync", "OK")
+        observability.log_startup_event("command_sync_done", "OK")
         
         # Log startup complete with health summary
         startup_duration = (datetime.utcnow() - start_time).total_seconds() * 1000 if 'start_time' in locals() else 0
