@@ -170,7 +170,7 @@ class OverhaulEngine:
         errors = []
         
         # Create roles first
-        await reporter.update("Creating Roles", 0, 8, "Starting role creation")
+        await reporter.update("Creating Roles", 0, 11, "Starting role creation")
         roles = await self._create_roles(guild, reporter)
         roles_created = len(roles)
         
@@ -180,7 +180,7 @@ class OverhaulEngine:
         categories_created = len(categories)
         
         # Create channels
-        await reporter.update("Creating Channels", 0, 15, "Starting channel creation")
+        await reporter.update("Creating Channels", 0, 28, "Starting channel creation")
         channels = await self._create_channels(guild, categories, roles, reporter)
         channels_created = len(channels)
         
@@ -192,16 +192,26 @@ class OverhaulEngine:
         )
     
     async def _create_roles(self, guild: discord.Guild, reporter: ProgressReporter) -> List[discord.Role]:
-        """Create the role hierarchy."""
+        """Create the canonical role hierarchy."""
         role_configs = [
+            # System Roles
             ("Verified", discord.Color.green(), 1),
-            ("Staff", discord.Color.blue(), 2),
-            ("Moderator", discord.Color.purple(), 3),
-            ("Admin", discord.Color.red(), 4),
-            ("Gamer", discord.Color.orange(), 1),
-            ("Developer", discord.Color.dark_grey(), 1),
-            ("Artist", discord.Color.magenta(), 1),
-            ("Music Lover", discord.Color.teal(), 1)
+            
+            # Game Roles
+            ("Roblox", discord.Color.red(), 2),
+            ("Minecraft", discord.Color.dark_green(), 2),
+            ("ARK", discord.Color.dark_orange(), 2),
+            ("FPS", discord.Color.dark_red(), 2),
+            
+            # Interest Roles
+            ("Coding", discord.Color.blue(), 3),
+            ("Snakes", discord.Color.dark_purple(), 3),
+            
+            # Staff Roles
+            ("Support", discord.Color.gold(), 4),
+            ("Moderator", discord.Color.purple(), 5),
+            ("Admin", discord.Color.red(), 6),
+            ("Owner", discord.Color.dark_grey(), 7)
         ]
         
         roles = []
@@ -216,23 +226,23 @@ class OverhaulEngine:
                 if position > 1:
                     await self.rate_limiter.execute(role.edit, position=position)
                 roles.append(role)
-                await reporter.update("Creating Roles", i + 1, 8, f"Created role @{name}", counts=self._get_counts())
+                await reporter.update("Creating Roles", i + 1, 11, f"Created role @{name}", counts=self._get_counts())
             except Exception as e:
-                await reporter.update("Creating Roles", i + 1, 8, f"Error creating role @{name}", counts=self._get_counts(), errors=1)
+                await reporter.update("Creating Roles", i + 1, 11, f"Error creating role @{name}", counts=self._get_counts(), errors=1)
         
         return roles
     
     async def _create_categories(self, guild: discord.Guild, reporter: ProgressReporter) -> List[discord.CategoryChannel]:
-        """Create the category structure."""
+        """Create canonical category structure."""
         category_names = [
             "🔐 VERIFY GATE",
-            "🚪 START", 
+            "📢 START", 
             "💬 GENERAL",
-            "🎮 GAME HUB",
-            "🎲 GAME SPACES",
-            "🎨 INTEREST SPACES",
-            "🛠️ SUPPORT",
-            "⚙️ STAFF"
+            "🎛️ REACTION-ROLES",
+            "🧩 GAME SPACES",
+            "🧩 INTEREST SPACES",
+            "🎫 SUPPORT",
+            "🛡️ STAFF"
         ]
         
         categories = []
@@ -260,40 +270,66 @@ class OverhaulEngine:
             # 🔐 VERIFY GATE
             ("verify", "🔐 VERIFY GATE", None),
             
-            # 🚪 START
-            ("welcome", "🚪 START", None),
-            ("rules", "🚪 START", None),
-            ("announcements", "🚪 START", None),
+            # 📢 START
+            ("welcome", "📢 START", None),
+            ("rules", "📢 START", None),
+            ("announcements", "📢 START", None),
+            ("server-info", "📢 START", None),
             
             # 💬 GENERAL
-            ("general", "💬 GENERAL", None),
-            ("chat", "💬 GENERAL", None),
-            ("memes", "💬 GENERAL", None),
+            ("general-chat", "💬 GENERAL", None),
+            ("media", "💬 GENERAL", None),
+            ("introductions", "💬 GENERAL", None),
+            ("off-topic", "💬 GENERAL", None),
             
-            # 🎮 GAME HUB
-            ("choose-your-games", "🎮 GAME HUB", None),
+            # 🎛️ REACTION-ROLES
+            ("reaction-roles", "🎛️ REACTION-ROLES", None),
+            ("role-info", "🎛️ REACTION-ROLES", None),
             
-            # 🎲 GAME SPACES
-            ("gaming-discussion", "🎲 GAME SPACES", None),
-            ("game-lfg", "🎲 GAME SPACES", None),
+            # 🧩 GAME SPACES - ROBLOX
+            ("roblox-chat", "🧩 GAME SPACES", None),
+            ("bee-swarm", "🧩 GAME SPACES", None),
+            ("trading", "🧩 GAME SPACES", None),
             
-            # 🎨 INTEREST SPACES
-            ("art-showcase", "🎨 INTEREST SPACES", None),
-            ("music-chat", "🎨 INTEREST SPACES", None),
+            # 🧩 GAME SPACES - MINECRAFT
+            ("mc-chat", "🧩 GAME SPACES", None),
+            ("servers", "🧩 GAME SPACES", None),
+            ("builds", "🧩 GAME SPACES", None),
             
-            # 🛠️ SUPPORT
-            ("tickets", "🛠️ SUPPORT", None),
-            ("server-info", "🛠️ SUPPORT", None),
+            # 🧩 GAME SPACES - ARK
+            ("ark-chat", "🧩 GAME SPACES", None),
+            ("maps", "🧩 GAME SPACES", None),
+            ("breeding", "🧩 GAME SPACES", None),
             
-            # ⚙️ STAFF
-            ("staff-chat", "⚙️ STAFF", None),
-            ("mod-logs", "⚙️ STAFF", None),
+            # 🧩 GAME SPACES - FPS
+            ("fps-chat", "🧩 GAME SPACES", None),
+            ("loadouts", "🧩 GAME SPACES", None),
+            
+            # 🧩 INTEREST SPACES - CODING
+            ("coding-chat", "🧩 INTEREST SPACES", None),
+            ("projects", "🧩 INTEREST SPACES", None),
+            ("resources", "🧩 INTEREST SPACES", None),
+            
+            # 🧩 INTEREST SPACES - SNAKES
+            ("snakes-chat", "🧩 INTEREST SPACES", None),
+            ("pet-media", "🧩 INTEREST SPACES", None),
+            ("care-guides", "🧩 INTEREST SPACES", None),
+            
+            # 🎫 SUPPORT
+            ("tickets", "🎫 SUPPORT", None),
+            ("suggestions", "🎫 SUPPORT", None),
+            
+            # 🛡️ STAFF
+            ("staff-chat", "🛡️ STAFF", None),
+            ("reports", "🛡️ STAFF", None),
+            ("bot-logs", "🛡️ STAFF", None),
+            ("case-files", "🛡️ STAFF", None),
         ]
         
         for i, (name, category_name, overwrites) in enumerate(channel_configs):
             category = discord.utils.get(categories, name=category_name)
             if not category:
-                await reporter.update("Creating Channels", i + 1, 15, f"Skipped #{name} (category not found)", counts=self._get_counts())
+                await reporter.update("Creating Channels", i + 1, 28, f"Skipped #{name} (category not found)", counts=self._get_counts())
                 continue
             
             try:
@@ -305,9 +341,9 @@ class OverhaulEngine:
                     overwrites=overwrites or {}
                 )
                 channels.append(channel)
-                await reporter.update("Creating Channels", i + 1, 15, f"Created #{name}", counts=self._get_counts())
+                await reporter.update("Creating Channels", i + 1, 28, f"Created #{name}", counts=self._get_counts())
             except Exception as e:
-                await reporter.update("Creating Channels", i + 1, 15, f"Error creating #{name}", counts=self._get_counts(), errors=1)
+                await reporter.update("Creating Channels", i + 1, 28, f"Error creating #{name}", counts=self._get_counts(), errors=1)
         
         return channels
     
@@ -319,10 +355,13 @@ class OverhaulEngine:
         # Content definitions
         content_posts = [
             ("verify", self._get_verify_content()),
-            ("tickets", self._get_tickets_content()),
-            ("server-info", self._get_server_info_content()),
+            ("welcome", self._get_welcome_content()),
             ("rules", self._get_rules_content()),
             ("announcements", self._get_announcements_content()),
+            ("server-info", self._get_server_info_content()),
+            ("reaction-roles", self._get_reaction_roles_content()),
+            ("role-info", self._get_role_info_content()),
+            ("tickets", self._get_tickets_content()),
             ("suggestions", self._get_suggestions_content())
         ]
         
@@ -479,6 +518,65 @@ class OverhaulEngine:
                     "Good ideas get reviewed."
                 ),
                 color=discord.Color.green()
+            )
+        }
+    
+    def _get_welcome_content(self) -> Dict[str, Any]:
+        """Get welcome channel content."""
+        return {
+            "content": sanitize_user_text("👋 Welcome to the Server!"),
+            "embed": discord.Embed(
+                title=sanitize_user_text("👋 Welcome!"),
+                description=sanitize_user_text(
+                    "Welcome to our community!\n\n"
+                    "Please read the rules in #rules and check #announcements for updates.\n\n"
+                    "Once you're ready, head to #reaction-roles to pick your interests.\n\n"
+                    "Enjoy your stay!"
+                ),
+                color=discord.Color.green()
+            )
+        }
+    
+    def _get_reaction_roles_content(self) -> Dict[str, Any]:
+        """Get reaction-roles channel content."""
+        return {
+            "content": sanitize_user_text("🎯 Reaction Roles"),
+            "embed": discord.Embed(
+                title=sanitize_user_text("🎯 Choose Your Roles"),
+                description=sanitize_user_text(
+                    "React to this message to get access to specific channels!\n\n"
+                    "🎮 **Game Roles:**\n"
+                    "- 🟥 Roblox\n"
+                    "- 🟩 Minecraft\n"
+                    "- 🟧 ARK\n"
+                    "- 🔴 FPS\n\n"
+                    "💻 **Interest Roles:**\n"
+                    "- 💠 Coding\n"
+                    "- 🐍 Snakes\n\n"
+                    "Check #role-info for more details about each role."
+                ),
+                color=discord.Color.blue()
+            )
+        }
+    
+    def _get_role_info_content(self) -> Dict[str, Any]:
+        """Get role-info channel content."""
+        return {
+            "content": sanitize_user_text("📋 Role Information"),
+            "embed": discord.Embed(
+                title=sanitize_user_text("📋 Role Details"),
+                description=sanitize_user_text(
+                    "**Game Roles:**\n"
+                    "- **Roblox:** Access to Roblox chat, bee swarm, trading\n"
+                    "- **Minecraft:** Access to MC chat, servers, builds\n"
+                    "- **ARK:** Access to ARK chat, maps, breeding\n"
+                    "- **FPS:** Access to FPS chat and loadouts\n\n"
+                    "**Interest Roles:**\n"
+                    "- **Coding:** Access to coding chat, projects, resources\n"
+                    "- **Snakes:** Access to snakes chat, pet media, care guides\n\n"
+                    "React in #reaction-roles to get these roles!"
+                ),
+                color=discord.Color.gold()
             )
         }
     
