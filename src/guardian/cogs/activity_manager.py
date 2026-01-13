@@ -333,7 +333,7 @@ class ActivityCog(commands.Cog):
     @app_commands.describe(
         action="Action to perform",
         name="Activity name (for add/remove)",
-        type="Activity type",
+        activity_type="Activity type",
         state="Custom state (for custom activities)",
         weight="Weight for random selection (1-10)",
         duration="Duration in minutes"
@@ -347,7 +347,7 @@ class ActivityCog(commands.Cog):
         ]
     )
     @app_commands.choices(
-        type=[
+        activity_type=[
             app_commands.Choice(name="playing", value="playing"),
             app_commands.Choice(name="watching", value="watching"),
             app_commands.Choice(name="listening", value="listening"),
@@ -360,7 +360,7 @@ class ActivityCog(commands.Cog):
         interaction: discord.Interaction,
         action: str,
         name: Optional[str] = None,
-        type: Optional[str] = None,
+        activity_type: Optional[str] = None,
         state: Optional[str] = None,
         weight: Optional[int] = None,
         duration: Optional[int] = None
@@ -371,11 +371,11 @@ class ActivityCog(commands.Cog):
         if action == "list":
             await self._list_activities(interaction)
         elif action == "add":
-            await self._add_activity(interaction, name, type, state, weight, duration)
+            await self._add_activity(interaction, name, activity_type, state, weight, duration)
         elif action == "remove":
             await self._remove_activity(interaction, name)
         elif action == "set":
-            await self._set_activity(interaction, name, type, state)
+            await self._set_activity(interaction, name, activity_type, state)
         else:
             await interaction.followup.send("❌ Unknown action", ephemeral=True)
     
@@ -420,18 +420,18 @@ class ActivityCog(commands.Cog):
         self,
         interaction: discord.Interaction,
         name: Optional[str],
-        type_str: Optional[str],
+        activity_type_str: Optional[str],
         state: Optional[str],
         weight: Optional[int],
         duration: Optional[int]
     ):
         """Add a new activity."""
-        if not name or not type_str:
+        if not name or not activity_type_str:
             await interaction.followup.send("❌ Name and type are required for adding activities.", ephemeral=True)
             return
         
         try:
-            activity_type = ActivityType(type_str)
+            activity_type = ActivityType(activity_type_str)
             
             activity = ActivityConfig(
                 name=name,
@@ -476,16 +476,16 @@ class ActivityCog(commands.Cog):
         self,
         interaction: discord.Interaction,
         name: Optional[str],
-        type_str: Optional[str],
+        activity_type_str: Optional[str],
         state: Optional[str]
     ):
         """Immediately set a specific activity."""
-        if not name or not type_str:
+        if not name or not activity_type_str:
             await interaction.followup.send("❌ Name and type are required for setting activities.", ephemeral=True)
             return
         
         try:
-            activity_type = ActivityType(type_str)
+            activity_type = ActivityType(activity_type_str)
             
             activity = ActivityConfig(
                 name=name,

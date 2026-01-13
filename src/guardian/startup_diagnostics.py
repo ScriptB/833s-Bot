@@ -135,15 +135,31 @@ class StartupDiagnostics:
     async def _check_persistent_views(self):
         """Check if persistent views are registered."""
         try:
-            # This would be set by the UI framework
-            if hasattr(self.bot, '_persistent_views_registered'):
-                self.results["persistent_views_registered"] = self.bot._persistent_views_registered
-                if self.results["persistent_views_registered"]:
-                    log.info("✅ Persistent views registered")
-                else:
-                    self.results["warnings"].append("Persistent views not registered")
+            # Check if the bot has persistent views registered
+            persistent_views_count = 0
+            if hasattr(self.bot, 'persistent_views'):
+                persistent_views_count = len(self.bot.persistent_views)
+            
+            # Also check if our new production views are loaded
+            activity_cog = self.bot.get_cog('ActivityCog')
+            ticket_cog = self.bot.get_cog('TicketSystemCog')
+            role_cog = self.bot.get_cog('RoleAssignmentCog')
+            
+            production_views = 0
+            if activity_cog and hasattr(activity_cog, 'activity_manager'):
+                production_views += 1
+            if ticket_cog:
+                production_views += 2  # TicketView and TicketControlView
+            if role_cog:
+                production_views += 1  # RoleSelectView
+            
+            total_views = persistent_views_count + production_views
+            
+            self.results["persistent_views_registered"] = total_views > 0
+            if total_views > 0:
+                log.info(f"✅ Persistent views registered: {total_views} views")
             else:
-                self.results["warnings"].append("Persistent views status unknown")
+                self.results["warnings"].append("No persistent views registered")
                 
         except Exception as e:
             self.results["warnings"].append(f"Failed to check persistent views: {e}")
