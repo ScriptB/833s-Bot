@@ -127,12 +127,12 @@ class PanelStore(BaseService[PanelRecord]):
         cache_key = f"{guild_id}:{panel_key}"
         self._cache.delete(cache_key)
     
-    async def get(self, guild_id: int, panel_key: str) -> Optional[PanelRecord]:
-        """Get a panel record."""
+    async def get(self, guild_id: int, panel_key: str) -> Optional[dict]:
+        """Get panel record (interface compliance)."""
         cache_key = f"{guild_id}:{panel_key}"
         cached = self._cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached.to_dict()
         
         async with aiosqlite.connect(self._path) as db:
             db.row_factory = aiosqlite.Row
@@ -145,7 +145,12 @@ class PanelStore(BaseService[PanelRecord]):
             
             record = self._from_row(row)
             self._cache.set(cache_key, record)
-            return record
+            return record.to_dict()
+    
+    async def list_guild(self, guild_id: int) -> List[dict]:
+        """List all panels for guild (interface compliance)."""
+        panels = await self.list_guild_panels(guild_id)
+        return [panel.to_dict() for panel in panels]
     
     async def list_guild_panels(self, guild_id: int) -> List[PanelRecord]:
         """List all panels for a guild."""
