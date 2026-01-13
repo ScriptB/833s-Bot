@@ -113,7 +113,7 @@ class RolePanelCog(commands.Cog):
         if not self.panel_store:
             return
             
-        panels = await self.panel_store.list_panels()
+        panels = await self.panel_store.list_all_panels()
         for panel in panels:
             if panel.panel_key.startswith('role_panel_'):
                 try:
