@@ -409,7 +409,6 @@ class OverhaulEngine:
         view = VerifyView()
         
         return {
-            "content": sanitize_user_text("🔐 Verification Gate"),
             "embed": embed,
             "view": view
         }
