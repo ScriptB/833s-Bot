@@ -100,7 +100,7 @@ class StartupDiagnostics:
     async def _check_progress_reporter_api(self):
         """Check ProgressReporter API version."""
         try:
-            from ..overhaul.progress import ProgressReporter
+            from guardian.overhaul.progress import ProgressReporter
             
             # Check required methods
             required_methods = ['init', 'update', 'finalize', 'fail']
@@ -121,7 +121,7 @@ class StartupDiagnostics:
     async def _check_panel_store_schema(self):
         """Check PanelStore schema version."""
         try:
-            from ..services.panel_store import PanelStore
+            from guardian.services.panel_store import PanelStore
             
             # Check required methods
             required_methods = ['init', 'upsert', 'get', 'delete', 'list_guild']

@@ -8,10 +8,10 @@ from discord import app_commands
 from discord.ext import commands
 import logging
 
-from ..overhaul.engine import OverhaulEngine
-from ..overhaul.progress import ProgressReporter
-from ..overhaul.rate_limiter import RateLimiter
-from ..interfaces import validate_progress_reporter
+from guardian.overhaul.engine import OverhaulEngine
+from guardian.overhaul.progress import ProgressReporter
+from guardian.overhaul.rate_limiter import RateLimiter
+from guardian.interfaces import validate_progress_reporter
 
 log = logging.getLogger("guardian.overhaul_temp")
 

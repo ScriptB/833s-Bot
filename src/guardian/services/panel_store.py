@@ -5,8 +5,8 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 import logging
 
-from .base import BaseService
-from ..interfaces import PanelStore as PanelStoreProtocol, validate_panel_store, DatabaseSafety
+from guardian.services.base import BaseService
+from guardian.interfaces import PanelStore as PanelStoreProtocol, validate_panel_store, DatabaseSafety
 
 log = logging.getLogger("guardian.panel_store")
 

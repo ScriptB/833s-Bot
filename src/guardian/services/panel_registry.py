@@ -4,7 +4,7 @@ import discord
 from typing import Dict, Any, Tuple, Optional, Callable
 import logging
 
-from ..interfaces import validate_panel_store, has_required_guild_perms, sanitize_user_text
+from guardian.interfaces import validate_panel_store, has_required_guild_perms, sanitize_user_text
 
 log = logging.getLogger("guardian.panel_registry")
 

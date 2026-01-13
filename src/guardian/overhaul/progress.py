@@ -5,7 +5,7 @@ from typing import Optional, Dict
 import discord
 import logging
 
-from ..interfaces import ProgressReporter as ProgressReporterProtocol, validate_progress_reporter
+from guardian.interfaces import ProgressReporter as ProgressReporterProtocol, validate_progress_reporter
 
 log = logging.getLogger("guardian.progress")
 

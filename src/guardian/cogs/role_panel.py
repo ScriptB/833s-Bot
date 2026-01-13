@@ -5,8 +5,8 @@ from discord import app_commands
 from discord.ext import commands
 from typing import Optional
 
-from ..services.panel_store import PanelStore
-from ..services.role_config_store import RoleConfigStore
+from guardian.services.panel_store import PanelStore
+from guardian.services.role_config_store import RoleConfigStore
 
 
 class ReactionRoleButton(discord.ui.Button):

@@ -6,9 +6,9 @@ from typing import Optional, List, Dict, Any, Tuple
 import discord
 import logging
 
-from .rate_limiter import RateLimiter
-from .progress import ProgressReporter
-from ..interfaces import has_required_guild_perms, sanitize_user_text, OperationSnapshot
+from guardian.overhaul.rate_limiter import RateLimiter
+from guardian.overhaul.progress import ProgressReporter
+from guardian.interfaces import has_required_guild_perms, sanitize_user_text, OperationSnapshot
 
 log = logging.getLogger("guardian.overhaul_engine")
 
@@ -872,7 +872,7 @@ class OverhaulEngine:
     
     def _get_verify_content(self) -> Dict[str, Any]:
         """Get verify channel content."""
-        from ..cogs.verify_panel import VerifyView
+        from guardian.cogs.verify_panel import VerifyView
         
         embed = discord.Embed(
             title=sanitize_user_text("🔐 Verification Gate"),
@@ -1026,7 +1026,7 @@ class OverhaulEngine:
     
     def _get_reaction_roles_content(self) -> Dict[str, Any]:
         """Get reaction-roles channel content with actual RR UI."""
-        from ..cogs.role_panel import RolePanelCog
+        from guardian.cogs.role_panel import RolePanelCog
         
         embed = discord.Embed(
             title=sanitize_user_text("🎯 Choose Your Roles"),
