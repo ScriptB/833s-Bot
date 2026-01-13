@@ -3,8 +3,6 @@ from __future__ import annotations
 import asyncio
 import discord
 
-MARKER = "[833s-guardian:bootstrap:v1]"
-
 
 class ChannelBootstrapper:
     def __init__(self, bot: discord.Client) -> None:
@@ -23,14 +21,15 @@ class ChannelBootstrapper:
             if not isinstance(ch, discord.TextChannel):
                 continue
             try:
+                # Check for existing bootstrap posts (without marker)
                 already = False
                 async for m in ch.history(limit=15, oldest_first=True):
-                    if m.author == guild.me and m.content and MARKER in m.content:
+                    if m.author == guild.me and m.content and any(text in m.content for text in ["Server Rules", "Introduce Yourself", "Help & Support", "Verification Help", "Welcome to 833s"]):
                         already = True
                         break
                 if already:
                     continue
-                msg = await ch.send(f"{MARKER}\n{body}")
+                msg = await ch.send(body)
                 try:
                     await msg.pin(reason="Bootstrap pinned")
                 except discord.HTTPException:
