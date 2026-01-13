@@ -345,26 +345,34 @@ class OverhaulEngine:
     
     def _get_verify_content(self) -> Dict[str, Any]:
         """Get verify channel content."""
+        from ..cogs.verify_panel import VerifyView
+        
+        embed = discord.Embed(
+            title=sanitize_user_text("🔐 Verification Gate"),
+            description=sanitize_user_text(
+                "Welcome.\n"
+                "This server is role-locked. You will not see anything until you verify.\n\n"
+                "Click button below to:\n"
+                "- Confirm you are human\n"
+                "- Accept rules\n"
+                "- Enter live server\n\n"
+                "Once verified:\n"
+                "- The gate disappears\n"
+                "- You get access to public areas\n"
+                "- You can pick your game and interest roles\n\n"
+                "If button does nothing, refresh Discord or rejoin.\n\n"
+                "Verification is required to use this server."
+            ),
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text="Verification is required to access server channels")
+        
+        view = VerifyView()
+        
         return {
             "content": sanitize_user_text("🔐 Verification Gate"),
-            "embed": discord.Embed(
-                title=sanitize_user_text("🔐 Verification Gate"),
-                description=sanitize_user_text(
-                    "Welcome.\n"
-                    "This server is role-locked. You will not see anything until you verify.\n\n"
-                    "Click the button below to:\n"
-                    "- Confirm you are human\n"
-                    "- Accept the rules\n"
-                    "- Enter the live server\n\n"
-                    "Once verified:\n"
-                    "- The gate disappears\n"
-                    "- You get access to public areas\n"
-                    "- You can pick your game and interest roles\n\n"
-                    "If the button does nothing, refresh Discord or rejoin.\n\n"
-                    "Verification is required to use this server."
-                ),
-                color=discord.Color.blue()
-            )
+            "embed": embed,
+            "view": view
         }
     
     def _get_tickets_content(self) -> Dict[str, Any]:
