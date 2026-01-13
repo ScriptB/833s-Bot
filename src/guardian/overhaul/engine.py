@@ -175,7 +175,7 @@ class OverhaulEngine:
         roles_created = len(roles)
         
         # Create categories
-        await reporter.update("Creating Categories", 0, 8, "Starting category creation")
+        await reporter.update("Creating Categories", 0, 12, "Starting category creation")
         categories = await self._create_categories(guild, reporter)
         categories_created = len(categories)
         
@@ -239,8 +239,12 @@ class OverhaulEngine:
             "📢 START", 
             "💬 GENERAL",
             "🎛️ REACTION-ROLES",
-            "🧩 GAME SPACES",
-            "🧩 INTEREST SPACES",
+            "🎮 ROBLOX",
+            "🧱 MINECRAFT",
+            "🦖 ARK",
+            "🔫 FPS",
+            "💻 CODING",
+            "🐍 SNAKES",
             "🎫 SUPPORT",
             "🛡️ STAFF"
         ]
@@ -254,9 +258,9 @@ class OverhaulEngine:
                     reason="Server overhaul"
                 )
                 categories.append(category)
-                await reporter.update("Creating Categories", i + 1, 8, f"Created category {name}", counts=self._get_counts())
+                await reporter.update("Creating Categories", i + 1, 12, f"Created category {name}", counts=self._get_counts())
             except Exception as e:
-                await reporter.update("Creating Categories", i + 1, 8, f"Error creating category {name}", counts=self._get_counts(), errors=1)
+                await reporter.update("Creating Categories", i + 1, 12, f"Error creating category {name}", counts=self._get_counts(), errors=1)
         
         return categories
     
@@ -287,33 +291,33 @@ class OverhaulEngine:
             ("role-info", "🎛️ REACTION-ROLES", None),
             
             # 🧩 GAME SPACES - ROBLOX
-            ("roblox-chat", "🧩 GAME SPACES", None),
-            ("bee-swarm", "🧩 GAME SPACES", None),
-            ("trading", "🧩 GAME SPACES", None),
+            ("roblox-chat", "🎮 ROBLOX", None),
+            ("bee-swarm", "🎮 ROBLOX", None),
+            ("trading", "🎮 ROBLOX", None),
             
             # 🧩 GAME SPACES - MINECRAFT
-            ("mc-chat", "🧩 GAME SPACES", None),
-            ("servers", "🧩 GAME SPACES", None),
-            ("builds", "🧩 GAME SPACES", None),
+            ("mc-chat", "🧱 MINECRAFT", None),
+            ("servers", "🧱 MINECRAFT", None),
+            ("builds", "🧱 MINECRAFT", None),
             
             # 🧩 GAME SPACES - ARK
-            ("ark-chat", "🧩 GAME SPACES", None),
-            ("maps", "🧩 GAME SPACES", None),
-            ("breeding", "🧩 GAME SPACES", None),
+            ("ark-chat", "🦖 ARK", None),
+            ("maps", "🦖 ARK", None),
+            ("breeding", "🦖 ARK", None),
             
             # 🧩 GAME SPACES - FPS
-            ("fps-chat", "🧩 GAME SPACES", None),
-            ("loadouts", "🧩 GAME SPACES", None),
+            ("fps-chat", "🔫 FPS", None),
+            ("loadouts", "🔫 FPS", None),
             
             # 🧩 INTEREST SPACES - CODING
-            ("coding-chat", "🧩 INTEREST SPACES", None),
-            ("projects", "🧩 INTEREST SPACES", None),
-            ("resources", "🧩 INTEREST SPACES", None),
+            ("coding-chat", "💻 CODING", None),
+            ("projects", "💻 CODING", None),
+            ("resources", "💻 CODING", None),
             
             # 🧩 INTEREST SPACES - SNAKES
-            ("snakes-chat", "🧩 INTEREST SPACES", None),
-            ("pet-media", "🧩 INTEREST SPACES", None),
-            ("care-guides", "🧩 INTEREST SPACES", None),
+            ("snakes-chat", "🐍 SNAKES", None),
+            ("pet-media", "🐍 SNAKES", None),
+            ("care-guides", "🐍 SNAKES", None),
             
             # 🎫 SUPPORT
             ("tickets", "🎫 SUPPORT", None),
