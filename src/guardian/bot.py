@@ -177,24 +177,6 @@ class GuardianBot(commands.Bot):
         
         # Initialize panel registry renderers (will be done by cogs)
         
-        # Run startup diagnostics
-        diagnostics = StartupDiagnostics(self)
-        diagnostic_results = await diagnostics.run_diagnostics()
-        
-        # Check if critical systems failed
-        if diagnostics.should_disable_overhaul():
-            log.error("❌ Disabling /overhaul due to critical failures")
-            # TODO: Implement command disabling
-        
-        if diagnostics.should_disable_panels():
-            log.error("❌ Disabling panel operations due to critical failures")
-            # TODO: Implement panel disabling
-        
-        # Repair all panels on startup (only if not disabled)
-        if not diagnostics.should_disable_panels():
-            repair_results = await self.panel_registry.repair_all_guilds_on_startup()
-            log.info(f"Panel repair completed: {repair_results}")
-        
         # Start background services
         # self.drift_verifier.start()  # DISABLED - Prevents automatic channel recreation
         self.task_queue.start()
@@ -280,6 +262,25 @@ class GuardianBot(commands.Bot):
         if failed:
             for name in failed:
                 log.warning("Startup cog failed: %s", name)
+        
+        # Run startup diagnostics after cogs are loaded
+        diagnostics = StartupDiagnostics(self)
+        diagnostic_results = await diagnostics.run_diagnostics()
+        
+        # Check if critical systems failed
+        if diagnostics.should_disable_overhaul():
+            log.error("❌ Disabling /overhaul due to critical failures")
+            # TODO: Implement command disabling
+        
+        if diagnostics.should_disable_panels():
+            log.error("❌ Disabling panel operations due to critical failures")
+            # TODO: Implement panel disabling
+        
+        # Repair all panels on startup (only if not disabled)
+        if not diagnostics.should_disable_panels():
+            repair_results = await self.panel_registry.repair_all_guilds_on_startup()
+            log.info(f"Panel repair completed: {repair_results}")
+        
         await self._sync_mgr.sync_startup()
         log.info("Command sync complete")
 
