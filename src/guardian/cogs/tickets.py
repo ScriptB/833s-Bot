@@ -5,6 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from ..ui.tickets import TicketCreateView
+from guardian.permissions import require_staff
 
 
 class TicketsCog(commands.Cog):
@@ -38,7 +39,7 @@ class TicketsCog(commands.Cog):
                 continue
 
     @app_commands.command(name="ticket_panel", description="Post a ticket panel in #tickets.")
-    @app_commands.checks.has_permissions(administrator=True)
+    @require_staff()
     async def ticket_panel(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)

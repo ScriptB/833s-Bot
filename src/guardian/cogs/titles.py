@@ -4,6 +4,8 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
+from guardian.permissions import require_verified
+
 
 TITLE_CATALOG: list[tuple[int, str]] = [
     (0, "New Face"),
@@ -33,6 +35,7 @@ class TitlesCog(commands.Cog):
         return any(role.name in staff_roles for role in member.roles)
 
     @app_commands.command(name="titles_list", description="List titles you can equip.")
+    @require_verified()
     async def list_titles(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
         if not isinstance(interaction.user, discord.Member):
@@ -56,6 +59,7 @@ class TitlesCog(commands.Cog):
         await interaction.followup.send("\n".join(lines), ephemeral=True)
 
     @app_commands.command(name="titles_equip", description="Equip a title you have unlocked.")
+    @require_verified()
     async def equip(self, interaction: discord.Interaction, title: str) -> None:
         assert interaction.guild is not None
         if not isinstance(interaction.user, discord.Member):
@@ -81,6 +85,7 @@ class TitlesCog(commands.Cog):
         await interaction.followup.send("Title equipped.", ephemeral=True)
 
     @app_commands.command(name="titles_unequip", description="Remove your equipped title.")
+    @require_verified()
     async def unequip(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
         if not isinstance(interaction.user, discord.Member):

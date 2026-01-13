@@ -271,6 +271,9 @@ COMMAND_TIER_MAPPING = {
     "serverinfo": PermissionTier.VERIFIED,
     "user_profile": PermissionTier.VERIFIED,
     "profile_edit_about": PermissionTier.VERIFIED,
+    "profile_edit_pronouns": PermissionTier.VERIFIED,
+    "profile_edit_interests": PermissionTier.VERIFIED,
+    "profile_privacy": PermissionTier.VERIFIED,
     "roles": PermissionTier.VERIFIED,
     "myroles": PermissionTier.VERIFIED,
     "titles_list": PermissionTier.VERIFIED,
@@ -279,8 +282,10 @@ COMMAND_TIER_MAPPING = {
     "ticket": PermissionTier.VERIFIED,
     "suggest": PermissionTier.VERIFIED,
     "health": PermissionTier.VERIFIED,
-    "my_profile": PermissionTier.VERIFIED,
+    "rep": PermissionTier.VERIFIED,
+    "rep_show": PermissionTier.VERIFIED,
     "rank": PermissionTier.VERIFIED,
+    "my_profile": PermissionTier.VERIFIED,
     "thanks": PermissionTier.VERIFIED,
     
     # STAFF (Tier 3)
@@ -310,7 +315,7 @@ COMMAND_TIER_MAPPING = {
 def validate_command_permissions():
     """Validate that all commands have permission tiers assigned."""
     total_commands = len(COMMAND_TIER_MAPPING)
-    expected_commands = 26  # Based on our command list
+    expected_commands = 35  # Updated based on actual command count
     
     if total_commands != expected_commands:
         log.warning(f"Command permission mapping incomplete: {total_commands}/{expected_commands} commands mapped")

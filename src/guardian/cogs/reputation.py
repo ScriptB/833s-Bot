@@ -4,12 +4,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from guardian.permissions import require_verified
+
 
 class ReputationCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
     @app_commands.command(name="rep", description="Give +1 rep to a member (12h cooldown).")
+    @require_verified()
     async def rep(self, interaction: discord.Interaction, member: discord.Member) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)
@@ -23,6 +26,7 @@ class ReputationCog(commands.Cog):
         await interaction.followup.send(f"✅ Rep given. {member.mention} now has **{val}** rep.", ephemeral=True)
 
     @app_commands.command(name="rep_show", description="Show a member's reputation.")
+    @require_verified()
     async def rep_show(self, interaction: discord.Interaction, member: discord.Member | None = None) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)

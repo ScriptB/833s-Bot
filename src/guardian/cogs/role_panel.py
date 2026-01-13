@@ -7,6 +7,7 @@ from typing import Optional
 
 from guardian.services.panel_store import PanelStore
 from guardian.services.role_config_store import RoleConfigStore
+from guardian.permissions import require_admin
 
 
 class ReactionRoleButton(discord.ui.Button):
@@ -205,7 +206,7 @@ class RolePanelCog(commands.Cog):
                     self.bot.logger.exception(f"❌ Failed to restore role panel {panel.panel_key} in guild {panel.guild_id}: {e}")
     
     @app_commands.command(name="rolepanel", description="Deploy role selection panel")
-    @app_commands.checks.has_permissions(administrator=True)
+    @require_admin()
     async def rolepanel(self, interaction: discord.Interaction) -> None:
         """Deploy role selection panel."""
         await self._deploy_role_panel(interaction)

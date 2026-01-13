@@ -4,12 +4,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from guardian.permissions import require_verified
+
 
 class ProfilesCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
     @app_commands.command(name="user_profile", description="View a member's community profile.")
+    @require_verified()
     async def user_profile(self, interaction: discord.Interaction, member: discord.Member | None = None) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)
@@ -40,6 +43,7 @@ class ProfilesCog(commands.Cog):
         await interaction.followup.send(embed=emb, ephemeral=True)
 
     @app_commands.command(name="profile_edit_about", description="Set your profile about text.")
+    @require_verified()
     async def edit_about(self, interaction: discord.Interaction, about: str) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)
@@ -52,6 +56,7 @@ class ProfilesCog(commands.Cog):
         await interaction.followup.send("Profile updated.", ephemeral=True)
 
     @app_commands.command(name="profile_edit_pronouns", description="Set your pronouns.")
+    @require_verified()
     async def edit_pronouns(self, interaction: discord.Interaction, pronouns: str) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)
@@ -64,6 +69,7 @@ class ProfilesCog(commands.Cog):
         await interaction.followup.send("Profile updated.", ephemeral=True)
 
     @app_commands.command(name="profile_edit_interests", description="Set your interests (comma-separated, up to 12).")
+    @require_verified()
     async def edit_interests(self, interaction: discord.Interaction, interests: str) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)
@@ -77,6 +83,7 @@ class ProfilesCog(commands.Cog):
         await interaction.followup.send("Profile updated.", ephemeral=True)
 
     @app_commands.command(name="profile_privacy", description="Set your profile visibility.")
+    @require_verified()
     async def privacy(self, interaction: discord.Interaction, public: bool) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)

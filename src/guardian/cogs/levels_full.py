@@ -9,6 +9,7 @@ from discord.ext import commands
 
 from ..services.levels_config_store import LevelsConfig
 from ..services.levels_store import LevelsStore
+from guardian.permissions import require_verified
 
 
 class LevelsCog(commands.Cog):
@@ -70,6 +71,7 @@ class LevelsCog(commands.Cog):
                     pass
 
     @app_commands.command(name="rank", description="Show a member's level and XP.")
+    @require_verified()
     async def rank(self, interaction: discord.Interaction, member: discord.Member | None = None) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)

@@ -7,6 +7,7 @@ from typing import Optional
 import logging
 
 from ..ui.persistent import GUARDIAN_V1
+from guardian.permissions import require_admin
 
 log = logging.getLogger("guardian.verify_panel")
 
@@ -91,7 +92,7 @@ class VerifyPanelCog(commands.Cog):
         return embed, view
     
     @app_commands.command(name="verifypanel", description="Deploy verification panel")
-    @app_commands.checks.has_permissions(administrator=True)
+    @require_admin()
     async def verifypanel(self, interaction: discord.Interaction) -> None:
         """Deploy verification panel."""
         await self._deploy_verify_panel(interaction)

@@ -4,12 +4,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from guardian.permissions import require_verified
+
 
 class SuggestionsCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
     @app_commands.command(name="suggest", description="Create a suggestion and post it in #suggestions.")
+    @require_verified()
     async def suggest(self, interaction: discord.Interaction, text: str) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)
