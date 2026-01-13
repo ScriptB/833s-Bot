@@ -165,6 +165,9 @@ class GuardianBot(commands.Bot):
         
         await initialize_database(self.settings.sqlite_path, stores)
         
+        # Initialize panel store schema
+        await self.panel_store.init()
+        
         # Initialize persistent UI framework
         register_all_views(self)
         log.info("Registered all persistent views")

@@ -66,6 +66,38 @@ class PanelStore(BaseService[PanelRecord]):
             )
         """)
     
+    async def _execute(self, sql: str, params: tuple = ()) -> None:
+        """Execute SQL with parameters and commit."""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(sql, params)
+            await db.commit()
+    
+    async def _fetchone(self, sql: str, params: tuple = ()) -> Optional[tuple]:
+        """Execute SQL and fetch one row."""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(sql, params)
+            return await cursor.fetchone()
+    
+    async def _fetchall(self, sql: str, params: tuple = ()) -> List[tuple]:
+        """Execute SQL and fetch all rows."""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(sql, params)
+            return await cursor.fetchall()
+    
+    async def init(self) -> None:
+        """Initialize database schema."""
+        await self._execute("""
+            CREATE TABLE IF NOT EXISTS panels (
+              guild_id INTEGER NOT NULL,
+              panel_key TEXT NOT NULL,
+              channel_id INTEGER NOT NULL,
+              message_id INTEGER NOT NULL,
+              schema_version INTEGER NOT NULL DEFAULT 1,
+              last_deployed_at TEXT,
+              PRIMARY KEY (guild_id, panel_key)
+            )
+        """)
+    
     def _from_row(self, row: aiosqlite.Row) -> PanelRecord:
         """Convert database row to PanelRecord."""
         return PanelRecord.from_row(row)
