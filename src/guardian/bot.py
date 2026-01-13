@@ -261,6 +261,7 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.setup_wizard", "SetupWizardCog")
         await _load_cog("guardian.cogs.ticket_system", "TicketSystemCog")
         await _load_cog("guardian.cogs.role_assignment", "RoleAssignmentCog")
+        await _load_cog("guardian.cogs.activity_manager", "ActivityCog")
         
         # Persistent panels
         await _load_cog("guardian.cogs.verify_panel", "VerifyPanelCog")
