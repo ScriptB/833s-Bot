@@ -238,49 +238,125 @@ def safe_api_operation(operation: str):
 
 
 # Common API operation wrappers
-@safe_api_operation("send_message")
-async def safe_send_message(channel: discord.abc.Messageable, **kwargs) -> discord.Message:
+async def safe_send_message(
+    channel: discord.abc.Messageable,
+    content: Optional[str] = None,
+    embed: Optional[discord.Embed] = None,
+    view: Optional[discord.ui.View] = None,
+    delete_after: Optional[float] = None,
+    **kwargs
+) -> APIResult:
     """Safely send a message with retry logic."""
-    return await channel.send(**kwargs)
+    return await api_wrapper.execute(
+        "send_message",
+        channel.send,
+        content=content,
+        embed=embed,
+        view=view,
+        delete_after=delete_after,
+        **kwargs
+    )
 
 
-@safe_api_operation("edit_message")
-async def safe_edit_message(message: discord.Message, **kwargs) -> discord.Message:
+async def safe_edit_message(
+    message: discord.Message,
+    **kwargs
+) -> APIResult:
     """Safely edit a message with retry logic."""
-    return await message.edit(**kwargs)
+    return await api_wrapper.execute(
+        "edit_message",
+        message.edit,
+        **kwargs
+    )
 
 
-@safe_api_operation("create_channel")
-async def safe_create_channel(guild: discord.Guild, **kwargs) -> discord.abc.GuildChannel:
+async def safe_create_channel(
+    guild: discord.Guild,
+    name: str,
+    channel_type: discord.ChannelType = discord.ChannelType.text,
+    category: Optional[discord.CategoryChannel] = None,
+    overwrites: Optional[Dict[discord.abc.Snowflake, discord.PermissionOverwrite]] = None,
+    topic: Optional[str] = None,
+    nsfw: bool = False,
+    slowmode_delay: Optional[int] = None,
+    **kwargs
+) -> APIResult:
     """Safely create a channel with retry logic."""
-    return await guild.create_channel(**kwargs)
+    if channel_type == discord.ChannelType.text:
+        func = guild.create_text_channel
+    else:
+        func = guild.create_voice_channel
+    
+    return await api_wrapper.execute(
+        "create_channel",
+        func,
+        name=name,
+        category=category,
+        overwrites=overwrites,
+        topic=topic,
+        nsfw=nsfw,
+        slowmode_delay=slowmode_delay,
+        **kwargs
+    )
 
 
-@safe_api_operation("edit_channel")
-async def safe_edit_channel(channel: discord.abc.GuildChannel, **kwargs) -> discord.abc.GuildChannel:
-    """Safely edit a channel with retry logic."""
-    return await channel.edit(**kwargs)
+async def safe_create_category(
+    guild: discord.Guild,
+    name: str,
+    position: Optional[int] = None,
+    overwrites: Optional[Dict[discord.abc.Snowflake, discord.PermissionOverwrite]] = None,
+    **kwargs
+) -> APIResult:
+    """Safely create a category with retry logic."""
+    return await api_wrapper.execute(
+        "create_category",
+        guild.create_category,
+        name=name,
+        position=position,
+        overwrites=overwrites,
+        **kwargs
+    )
 
 
-@safe_api_operation("create_role")
-async def safe_create_role(guild: discord.Guild, **kwargs) -> discord.Role:
+async def safe_create_role(
+    guild: discord.Guild,
+    **kwargs
+) -> APIResult:
     """Safely create a role with retry logic."""
-    return await guild.create_role(**kwargs)
+    return await api_wrapper.execute(
+        "create_role",
+        guild.create_role,
+        **kwargs
+    )
 
 
-@safe_api_operation("edit_role")
-async def safe_edit_role(role: discord.Role, **kwargs) -> discord.Role:
-    """Safely edit a role with retry logic."""
-    return await role.edit(**kwargs)
-
-
-@safe_api_operation("add_role")
-async def safe_add_role(member: discord.Member, role: discord.Role, **kwargs) -> None:
+async def safe_add_role(
+    member: discord.Member,
+    role: discord.Role,
+    reason: Optional[str] = None,
+    **kwargs
+) -> APIResult:
     """Safely add a role to a member with retry logic."""
-    return await member.add_roles(role, **kwargs)
+    return await api_wrapper.execute(
+        "add_role",
+        member.add_roles,
+        role,
+        reason=reason,
+        **kwargs
+    )
 
 
-@safe_api_operation("remove_role")
-async def safe_remove_role(member: discord.Member, role: discord.Role, **kwargs) -> None:
+async def safe_remove_role(
+    member: discord.Member,
+    role: discord.Role,
+    reason: Optional[str] = None,
+    **kwargs
+) -> APIResult:
     """Safely remove a role from a member with retry logic."""
-    return await member.remove_roles(role, **kwargs)
+    return await api_wrapper.execute(
+        "remove_role",
+        member.remove_roles,
+        role,
+        reason=reason,
+        **kwargs
+    )

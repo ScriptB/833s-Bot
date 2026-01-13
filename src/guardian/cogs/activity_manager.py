@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 log = logging.getLogger("guardian.activity_manager")
