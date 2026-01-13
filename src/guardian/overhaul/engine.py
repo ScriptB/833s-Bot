@@ -195,8 +195,8 @@ class OverhaulEngine:
         """Create the canonical role hierarchy."""
         role_configs = [
             # Bot Roles (Must be highest - above Owner)
-            ("Guardian Bot", discord.Color.white(), 10),
-            ("Guardian Services", discord.Color.white(), 9),
+            ("Guardian Bot", discord.Color.default(), 10),
+            ("Guardian Services", discord.Color.default(), 9),
             
             # Staff Roles
             ("Owner", discord.Color.dark_grey(), 8),
