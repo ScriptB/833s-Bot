@@ -529,12 +529,17 @@ class ReactionRoleCog(commands.Cog):
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        # Initialize stores using bot's database path
-        self.reaction_role_store = ReactionRoleStore(bot.settings.sqlite_path)
-        self.server_config_store = ServerConfigStore(bot.settings.sqlite_path)
+        self.reaction_role_store = None
+        self.server_config_store = None
     
     async def cog_load(self):
-        """Load all panels on startup."""
+        """Initialize stores and load all panels on startup."""
+        # Initialize stores using bot's database path
+        settings = self.bot.settings
+        self.reaction_role_store = ReactionRoleStore(settings.sqlite_path)
+        self.server_config_store = ServerConfigStore(settings.sqlite_path)
+        
+        # Load all panels
         panels = await self.reaction_role_store.get_all_panels()
         
         for panel in panels:
