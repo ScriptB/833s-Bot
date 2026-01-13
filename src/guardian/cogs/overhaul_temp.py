@@ -97,40 +97,35 @@ class OverhaulTempCog(commands.Cog):
         
         try:
             # Phase A: Validation
-            await reporter.start("Validation")
+            await reporter.send()  # Send initial DM
+            await reporter.update("Validating…")
             validation_result = await engine.validate(interaction.guild)
-            if not validation_result.valid:
-                await reporter.error("Validation failed", validation_result.errors)
+            if not validation_result.ok:
+                await reporter.finalize(False, f"Validation failed: {validation_result.reason}")
                 return
             
-            await reporter.success("Validation passed")
+            await reporter.update("Snapshot…")
+            # Note: snapshot could be added here if needed
             
-            # Phase B: Deletion
-            await reporter.start("Deletion")
+            await reporter.update("Deleting…")
             delete_result = await engine.delete_all(interaction.guild, reporter)
-            await reporter.success(f"Deleted {delete_result.channels_deleted} channels, {delete_result.roles_deleted} roles")
             
-            # Phase C: Rebuild
-            await reporter.start("Rebuild")
+            # Fail closed if deletion failed hard
+            if delete_result.channels_deleted == 0 and delete_result.categories_deleted == 0 and delete_result.roles_deleted == 0:
+                await reporter.finalize(False, "Deletion phase failed - no items deleted")
+                return
+            
+            await reporter.update("Rebuilding…")
             rebuild_result = await engine.rebuild_all(interaction.guild, reporter)
-            await reporter.success(f"Created {rebuild_result.categories_created} categories, {rebuild_result.channels_created} channels, {rebuild_result.roles_created} roles")
             
-            # Phase D: Post content
-            await reporter.start("Content Posting")
+            await reporter.update("Posting channel texts…")
             content_result = await engine.post_content(interaction.guild, reporter)
-            await reporter.success(f"Posted {content_result.posts_created} content messages")
             
-            # Final report
-            await reporter.finalize({
-                "validation": validation_result,
-                "deletion": delete_result,
-                "rebuild": rebuild_result,
-                "content": content_result
-            })
+            await reporter.finalize(True, "Overhaul completed successfully")
             
         except Exception as e:
             log.exception(f"Critical error during overhaul: {e}")
-            await reporter.error("Critical error", [str(e)])
+            await reporter.finalize(False, f"Critical error: {str(e)}")
     
     async def cog_unload(self) -> None:
         """Cleanup when cog is unloaded."""

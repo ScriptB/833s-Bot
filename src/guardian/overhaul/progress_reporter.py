@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, List
 import discord
 import logging
 
@@ -26,125 +26,105 @@ class ProgressReporter:
         self.current_step = 0
         self.total_steps = 0
         self.last_action = ""
+        self.deleted_channels = 0
+        self.deleted_categories = 0
+        self.deleted_roles = 0
+        self.created_channels = 0
+        self.created_categories = 0
+        self.created_roles = 0
         self.skipped_count = 0
         self.error_count = 0
         self.errors: List[str] = []
     
-    async def start(self, phase: str, total_steps: int = 0) -> None:
-        """Start a new phase."""
-        self.current_phase = phase
-        self.current_step = 0
-        self.total_steps = total_steps
-        self.last_action = f"Starting {phase}"
-        await self._update_status()
+    async def send(self) -> None:
+        """Send initial DM message."""
+        try:
+            self.dm_channel = await self.user.create_dm()
+            content = self._format_message()
+            self.status_message = await self.dm_channel.send(content)
+            self.last_update = time.time()
+        except Exception as e:
+            log.error(f"Failed to send initial DM: {e}")
     
-    async def step(self, action: str, increment: int = 1) -> None:
-        """Report a step completion."""
-        self.current_step += increment
-        self.last_action = action
-        await self._update_status()
-    
-    async def skip(self, reason: str) -> None:
-        """Report a skipped item."""
-        self.skipped_count += 1
-        self.last_action = f"Skipped: {reason}"
-        await self._update_status()
-    
-    async def error(self, error_msg: str, details: List[str] = None) -> None:
-        """Report an error."""
-        self.error_count += 1
-        self.errors.append(error_msg)
-        if details:
-            self.errors.extend(details[:20])  # Limit to prevent spam
-        self.last_action = f"Error: {error_msg}"
-        await self._update_status()
-    
-    async def success(self, message: str) -> None:
-        """Report success completion."""
-        self.last_action = f"✅ {message}"
-        await self._update_status()
-    
-    async def _update_status(self) -> None:
-        """Update the status message if enough time has passed."""
+    async def update(self, phase: str, step: int = None, total: int = None, last_action: str = None) -> None:
+        """Update the DM message with current progress."""
         current_time = time.time()
-        if current_time - self.last_update < self.update_interval and self.status_message:
+        
+        # Update tracking
+        self.current_phase = phase
+        if step is not None:
+            self.current_step = step
+        if total is not None:
+            self.total_steps = total
+        if last_action is not None:
+            self.last_action = last_action
+        
+        # Debounce: only update if enough time passed or phase changed
+        if (current_time - self.last_update < self.update_interval and 
+            self.status_message and phase == getattr(self, 'last_phase', '')):
             return
         
-        self.last_update = current_time
-        
-        # Ensure DM channel exists
-        if not self.dm_channel:
-            try:
-                self.dm_channel = await self.user.create_dm()
-            except discord.Forbidden:
-                log.error(f"Cannot DM user {self.user.id} for progress updates")
-                return
-        
-        # Build status content
-        elapsed = int(current_time - self.start_time)
-        progress = f"{self.current_step}/{self.total_steps}" if self.total_steps > 0 else "In Progress"
+        try:
+            content = self._format_message()
+            if self.status_message:
+                await self.status_message.edit(content=content)
+            else:
+                await self.send()
+            self.last_update = current_time
+            self.last_phase = phase
+        except Exception as e:
+            log.error(f"Failed to update DM: {e}")
+    
+    def _format_message(self) -> str:
+        """Format the progress message."""
+        elapsed = int(time.time() - self.start_time)
+        minutes = elapsed // 60
+        seconds = elapsed % 60
         
         content = (
-            f"🔧 **Server Overhaul Progress**\n\n"
-            f"**Phase:** {self.current_phase}\n"
-            f"**Progress:** {progress}\n"
-            f"**Current:** {self.last_action}\n"
-            f"**Elapsed:** {elapsed}s\n"
-            f"**Skipped:** {self.skipped_count} | **Errors:** {self.error_count}"
+            f"**Overhaul Progress**\n"
+            f"Phase: {self.current_phase}\n"
+            f"Step: {self.current_step}/{self.total_steps}\n"
+            f"Last: {self.last_action}\n"
+            f"Deleted: ch={self.deleted_channels} cat={self.deleted_categories} roles={self.deleted_roles} (skipped={self.skipped_count})\n"
+            f"Created: cat={self.created_categories} ch={self.created_channels} roles={self.created_roles}\n"
+            f"Errors: {self.error_count}\n"
+            f"Elapsed: {minutes:02d}:{seconds:02d}"
         )
         
-        # Respect Discord character limits
+        # Truncate to 1900 chars
         if len(content) > 1900:
-            content = content[:1870] + "...\n\n*(Content trimmed for length)*"
+            content = content[:1897] + "..."
         
-        try:
-            if self.status_message:
-                await self.status_message.edit(content=content)
-            else:
-                self.status_message = await self.dm_channel.send(content)
-        except discord.Forbidden:
-            log.error(f"Cannot edit DM message for user {self.user.id}")
-        except discord.HTTPException as e:
-            log.error(f"Failed to update progress DM: {e}")
+        return content
     
-    async def finalize(self, results: Dict[str, Any]) -> None:
-        """Send final report."""
-        elapsed = int(time.time() - self.start_time)
-        
-        # Build summary
-        summary_parts = [
-            "🎉 **Overhaul Complete**",
-            f"**Total Time:** {elapsed}s",
-            f"**Errors:** {self.error_count}",
-            f"**Skipped:** {self.skipped_count}"
-        ]
-        
-        # Add phase-specific results
-        if 'deletion' in results:
-            del_result = results['deletion']
-            summary_parts.append(f"**Deleted:** {del_result.channels_deleted} channels, {del_result.roles_deleted} roles")
-        
-        if 'rebuild' in results:
-            rebuild_result = results['rebuild']
-            summary_parts.append(f"**Created:** {rebuild_result.categories_created} categories, {rebuild_result.channels_created} channels, {rebuild_result.roles_created} roles")
-        
-        if 'content' in results:
-            content_result = results['content']
-            summary_parts.append(f"**Posts:** {content_result.posts_created}")
-        
-        content = "\n".join(summary_parts)
-        
-        # Add errors if any
-        if self.errors:
-            error_text = "\n".join(f"• {err}" for err in self.errors[:10])
-            if len(self.errors) > 10:
-                error_text += f"\n• ... and {len(self.errors) - 10} more"
-            content += f"\n\n**Errors:**\n{error_text}"
-        
-        try:
-            if self.status_message:
-                await self.status_message.edit(content=content)
-            else:
-                await self.dm_channel.send(content)
-        except Exception as e:
-            log.error(f"Failed to send final report: {e}")
+    async def finalize(self, success: bool = True, final_message: str = None) -> None:
+        """Send final status message."""
+        if final_message:
+            await self.update("Complete", last_action=final_message)
+        elif success:
+            await self.update("Complete", last_action="Overhaul completed successfully")
+        else:
+            await self.update("Failed", last_action="Overhaul failed")
+    
+    # Tracking methods
+    def track_deleted(self, channels: int = 0, categories: int = 0, roles: int = 0):
+        """Track deletion counts."""
+        self.deleted_channels += channels
+        self.deleted_categories += categories
+        self.deleted_roles += roles
+    
+    def track_created(self, channels: int = 0, categories: int = 0, roles: int = 0):
+        """Track creation counts."""
+        self.created_channels += channels
+        self.created_categories += categories
+        self.created_roles += roles
+    
+    def track_skip(self):
+        """Track a skipped item."""
+        self.skipped_count += 1
+    
+    def track_error(self, error: str):
+        """Track an error."""
+        self.error_count += 1
+        self.errors.append(error)

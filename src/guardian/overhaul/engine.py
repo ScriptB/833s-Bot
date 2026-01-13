@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any, Tuple
 import discord
@@ -12,10 +13,17 @@ from .progress_reporter import ProgressReporter
 log = logging.getLogger("guardian.overhaul_engine")
 
 
+def sanitize_user_text(text: str) -> str:
+    """Remove internal bootstrap tags from user-facing text."""
+    # Remove any leading tag like [833s-guardian:bootstrap:v1]
+    return re.sub(r'^\[[^\]]+\]\s*', '', text).strip()
+
+
 @dataclass
 class ValidationResult:
-    valid: bool
-    errors: List[str]
+    ok: bool
+    missing: List[str]
+    reason: str
 
 
 @dataclass
@@ -49,32 +57,43 @@ class OverhaulEngine:
     
     async def validate(self, guild: discord.Guild) -> ValidationResult:
         """Validate that overhaul can proceed safely."""
-        errors = []
-        
-        # Check bot permissions
         bot_member = guild.me
-        required_perms = [
-            discord.Permissions.manage_channels,
-            discord.Permissions.manage_roles,
-            discord.Permissions.manage_guild
-        ]
         
-        missing_perms = [perm for perm in required_perms if not bot_member.guild_permissions.value & perm.value]
-        if missing_perms:
-            errors.append(f"Missing permissions: {', '.join(perm.name for perm in missing_perms)}")
+        # Check administrator permission first (covers all others)
+        if getattr(bot_member.guild_permissions, 'administrator', False):
+            return ValidationResult(ok=True, missing=[], reason="All permissions OK")
+        
+        # Check individual required permissions
+        required_perms = ["manage_guild", "manage_roles", "manage_channels"]
+        missing = [name for name in required_perms if not getattr(bot_member.guild_permissions, name, False)]
+        
+        if missing:
+            return ValidationResult(
+                ok=False,
+                missing=missing,
+                reason=f"Missing permissions: {', '.join(missing)}"
+            )
         
         # Check bot role hierarchy
         if bot_member.roles:
             bot_top_role = max(bot_member.roles, key=lambda r: r.position)
             roles_above_bot = [r for r in guild.roles if r.position > bot_top_role.position and r.name != "@everyone"]
             if roles_above_bot:
-                errors.append(f"Cannot delete roles above bot: {', '.join(r.name for r in roles_above_bot[:5])}")
+                return ValidationResult(
+                    ok=False,
+                    missing=["role_hierarchy"],
+                    reason=f"Cannot delete roles above bot: {', '.join(r.name for r in roles_above_bot[:5])}"
+                )
         
         # Check guild size
         if guild.member_count > 10000:
-            errors.append(f"Large guild ({guild.member_count} members) - overhaul may take significant time")
+            return ValidationResult(
+                ok=False,
+                missing=["guild_size"],
+                reason=f"Large guild ({guild.member_count} members) - overhaul may take significant time"
+            )
         
-        return ValidationResult(valid=len(errors) == 0, errors=errors)
+        return ValidationResult(ok=True, missing=[], reason="All validations passed")
     
     async def delete_all(self, guild: discord.Guild, reporter: ProgressReporter) -> DeleteResult:
         """Phase A: Delete all channels, categories, and eligible roles."""
@@ -85,37 +104,45 @@ class OverhaulEngine:
         
         # Delete channels first (must be done before categories)
         channels = [c for c in guild.channels if not isinstance(c, discord.CategoryChannel)]
-        await reporter.start("Deleting Channels", len(channels))
+        await reporter.update("Deleting Channels", 0, len(channels), "Starting channel deletion")
         
-        for channel in channels:
+        for i, channel in enumerate(channels):
             try:
                 await self.rate_limiter.execute(channel.delete, reason="Server overhaul")
                 channels_deleted += 1
-                await reporter.step(f"Deleted #{channel.name}")
+                reporter.track_deleted(channels=1)
+                await reporter.update("Deleting Channels", i + 1, len(channels), f"Deleted #{channel.name}")
             except discord.Forbidden:
                 skipped.append(f"Channel #{channel.name} (no permission)")
-                await reporter.skip(f"#{channel.name} (no permission)")
+                reporter.track_skip()
+                await reporter.update("Deleting Channels", i + 1, len(channels), f"Skipped #{channel.name} (no permission)")
             except discord.NotFound:
-                await reporter.skip(f"#{channel.name} (already deleted)")
+                reporter.track_skip()
+                await reporter.update("Deleting Channels", i + 1, len(channels), f"Skipped #{channel.name} (already deleted)")
             except Exception as e:
-                await reporter.error(f"Failed to delete #{channel.name}", [str(e)])
+                reporter.track_error(f"Failed to delete #{channel.name}: {str(e)}")
+                await reporter.update("Deleting Channels", i + 1, len(channels), f"Error deleting #{channel.name}")
         
         # Delete categories
         categories = guild.categories
-        await reporter.start("Deleting Categories", len(categories))
+        await reporter.update("Deleting Categories", 0, len(categories), "Starting category deletion")
         
-        for category in categories:
+        for i, category in enumerate(categories):
             try:
                 await self.rate_limiter.execute(category.delete, reason="Server overhaul")
                 categories_deleted += 1
-                await reporter.step(f"Deleted category {category.name}")
+                reporter.track_deleted(categories=1)
+                await reporter.update("Deleting Categories", i + 1, len(categories), f"Deleted category {category.name}")
             except discord.Forbidden:
                 skipped.append(f"Category {category.name} (no permission)")
-                await reporter.skip(f"{category.name} (no permission)")
+                reporter.track_skip()
+                await reporter.update("Deleting Categories", i + 1, len(categories), f"Skipped {category.name} (no permission)")
             except discord.NotFound:
-                await reporter.skip(f"{category.name} (already deleted)")
+                reporter.track_skip()
+                await reporter.update("Deleting Categories", i + 1, len(categories), f"Skipped {category.name} (already deleted)")
             except Exception as e:
-                await reporter.error(f"Failed to delete category {category.name}", [str(e)])
+                reporter.track_error(f"Failed to delete category {category.name}: {str(e)}")
+                await reporter.update("Deleting Categories", i + 1, len(categories), f"Error deleting category {category.name}")
         
         # Delete eligible roles
         bot_top_role = max(guild.me.roles, key=lambda r: r.position) if guild.me.roles else None
@@ -126,20 +153,24 @@ class OverhaulEngine:
             and (not bot_top_role or r.position < bot_top_role.position)
         ]
         
-        await reporter.start("Deleting Roles", len(eligible_roles))
+        await reporter.update("Deleting Roles", 0, len(eligible_roles), "Starting role deletion")
         
-        for role in eligible_roles:
+        for i, role in enumerate(eligible_roles):
             try:
                 await self.rate_limiter.execute(role.delete, reason="Server overhaul")
                 roles_deleted += 1
-                await reporter.step(f"Deleted role @{role.name}")
+                reporter.track_deleted(roles=1)
+                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Deleted role @{role.name}")
             except discord.Forbidden:
                 skipped.append(f"Role @{role.name} (no permission)")
-                await reporter.skip(f"@{role.name} (no permission)")
+                reporter.track_skip()
+                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Skipped @{role.name} (no permission)")
             except discord.NotFound:
-                await reporter.skip(f"@{role.name} (already deleted)")
+                reporter.track_skip()
+                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Skipped @{role.name} (already deleted)")
             except Exception as e:
-                await reporter.error(f"Failed to delete role @{role.name}", [str(e)])
+                reporter.track_error(f"Failed to delete role @{role.name}: {str(e)}")
+                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Error deleting role @{role.name}")
         
         return DeleteResult(
             channels_deleted=channels_deleted,
@@ -332,10 +363,10 @@ class OverhaulEngine:
     def _get_verify_content(self) -> Dict[str, Any]:
         """Get verification channel content."""
         return {
-            "content": "Verification Gate",
+            "content": sanitize_user_text("Verification Gate"),
             "embed": discord.Embed(
-                title="Verification Gate",
-                description=(
+                title=sanitize_user_text("Verification Gate"),
+                description=sanitize_user_text(
                     "Welcome.\n"
                     "This server is role-locked. You will not see anything until you verify.\n\n"
                     "Click the button below to:\n"
@@ -356,10 +387,10 @@ class OverhaulEngine:
     def _get_tickets_content(self) -> Dict[str, Any]:
         """Get tickets channel content."""
         return {
-            "content": "Support System",
+            "content": sanitize_user_text("Support System"),
             "embed": discord.Embed(
-                title="Support System",
-                description=(
+                title=sanitize_user_text("Support System"),
+                description=sanitize_user_text(
                     "Need help from staff?\n\n"
                     "Open a ticket using the button below.\n\n"
                     "Tickets are used for:\n"
@@ -382,7 +413,7 @@ class OverhaulEngine:
     def _get_server_info_content(self) -> Dict[str, Any]:
         """Get server-info channel content."""
         return {
-            "content": (
+            "content": sanitize_user_text(
                 "This server runs on 833's Guardian.\n\n"
                 "It is built to stay clean, organized, and easy to use.\n\n"
                 "**How access works:**\n"
@@ -403,10 +434,10 @@ class OverhaulEngine:
     def _get_rules_content(self) -> Dict[str, Any]:
         """Get rules channel content."""
         return {
-            "content": "These rules apply everywhere.",
+            "content": sanitize_user_text("These rules apply everywhere."),
             "embed": discord.Embed(
-                title="Server Rules",
-                description=(
+                title=sanitize_user_text("Server Rules"),
+                description=sanitize_user_text(
                     "**1) No harassment**\n"
                     "No bullying, threats, slurs, or targeting.\n\n"
                     "**2) No scams or fraud**\n"
@@ -428,7 +459,7 @@ class OverhaulEngine:
     def _get_announcements_content(self) -> Dict[str, Any]:
         """Get announcements channel content."""
         return {
-            "content": (
+            "content": sanitize_user_text(
                 "This channel is used for:\n"
                 "- Server updates\n"
                 "- System changes\n"
@@ -442,10 +473,10 @@ class OverhaulEngine:
     def _get_suggestions_content(self) -> Dict[str, Any]:
         """Get suggestions channel content."""
         return {
-            "content": "Have an idea?",
+            "content": sanitize_user_text("Have an idea?"),
             "embed": discord.Embed(
-                title="Suggestions",
-                description=(
+                title=sanitize_user_text("Suggestions"),
+                description=sanitize_user_text(
                     "Post it here.\n\n"
                     "Suggestions should be:\n"
                     "- Clear\n"
