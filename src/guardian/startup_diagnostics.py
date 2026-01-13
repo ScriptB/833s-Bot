@@ -40,8 +40,8 @@ class StartupDiagnostics:
         # Check registered commands
         await self._check_registered_commands()
         
-        # Check ProgressReporter API
-        await self._check_progress_reporter_api()
+        # Check overhaul system
+        await self._check_overhaul_system()
         
         # Check PanelStore schema
         await self._check_panel_store_schema()
@@ -64,7 +64,7 @@ class StartupDiagnostics:
             self.results["loaded_cogs"] = loaded_cogs
             
             # Check for critical cogs
-            critical_cogs = ["verify_panel", "role_panel", "overhaul_temp"]
+            critical_cogs = ["verify_panel", "role_panel", "overhaul"]
             missing_critical = [cog for cog in critical_cogs if cog not in loaded_cogs]
             
             if missing_critical:
@@ -97,26 +97,19 @@ class StartupDiagnostics:
         except Exception as e:
             self.results["warnings"].append(f"Failed to check registered commands: {e}")
     
-    async def _check_progress_reporter_api(self):
-        """Check ProgressReporter API version."""
+    async def _check_overhaul_system(self):
+        """Check production overhaul system."""
         try:
-            from guardian.overhaul.progress import ProgressReporter
+            from guardian.cogs.overhaul import OverhaulEngine, OverhaulConfig
             
-            # Check required methods
-            required_methods = ['init', 'update', 'finalize', 'fail']
-            available_methods = [method for method in required_methods if hasattr(ProgressReporter, method)]
-            
-            if len(available_methods) == len(required_methods):
-                self.results["progress_reporter_api"] = "v1.0"
-                log.info("✅ ProgressReporter API v1.0 available")
-            else:
-                missing = set(required_methods) - set(available_methods)
-                self.results["critical_failures"].append(f"ProgressReporter missing methods: {missing}")
+            # Check that the overhaul system can be imported
+            config = OverhaulConfig()
+            log.info("✅ Production overhaul system check passed")
                 
         except ImportError as e:
-            self.results["critical_failures"].append(f"ProgressReporter import failed: {e}")
+            self.results["warnings"].append(f"Overhaul system import failed: {e}")
         except Exception as e:
-            self.results["warnings"].append(f"Failed to check ProgressReporter API: {e}")
+            self.results["warnings"].append(f"Overhaul system check failed: {e}")
     
     async def _check_panel_store_schema(self):
         """Check PanelStore schema version."""

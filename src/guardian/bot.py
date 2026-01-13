@@ -267,9 +267,9 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.role_panel", "RolePanelCog")
         await _load_cog("guardian.cogs.role_panel", "RoleSelectCog")
         
-        # TEMPORARY: Load overhaul cog - REMOVE AFTER USE
-        await _load_cog("guardian.cogs.overhaul_temp", "OverhaulTempCog")
-        log.warning("TEMPORARY OverhaulTempCog loaded - REMEMBER TO REMOVE")
+        # Production-grade overhaul system
+        await _load_cog("guardian.cogs.overhaul", "OverhaulCog")
+        log.info("Production-grade OverhaulCog loaded")
         
 
         log.info("Startup cog load summary: loaded=%d failed=%d", len(loaded), len(failed))

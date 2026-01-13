@@ -657,7 +657,7 @@ class OverhaulConfirmationView(discord.ui.View):
         await interaction.response.defer(ephemeral=True)
         
         # Get the overhaul cog
-        cog = interaction.client.get_cog('OverhaulTempCog')
+        cog = interaction.client.get_cog('OverhaulCog')
         if not cog:
             await interaction.followup.send("❌ Overhaul system not available.", ephemeral=True)
             return
@@ -673,7 +673,7 @@ class OverhaulConfirmationView(discord.ui.View):
         )
         
         # Execute the overhaul
-        result = await cog.execute_overhaul(interaction)
+        result = await cog.engine.execute_overhaul(interaction)
         
         # Send final result
         if result.success:
@@ -735,6 +735,7 @@ class OverhaulCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.config = OverhaulConfig()
+        self.engine = OverhaulEngine(bot, self.config)
     
     async def cog_load(self):
         """Register persistent views when cog loads."""
@@ -784,7 +785,7 @@ class OverhaulCog(commands.Cog):
             inline=False
         )
         
-        embed.set_footer(text="This command replaces temporary overhaul with production-grade system")
+        embed.set_footer(text="Production-grade server overhaul system")
         
         await interaction.response.send_message(embed=embed, view=OverhaulConfirmationView(), ephemeral=True)
 
