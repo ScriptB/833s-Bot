@@ -93,32 +93,32 @@ class OverhaulTempCog(commands.Cog):
         
         # Initialize components
         engine = OverhaulEngine(self.bot, self.rate_limiter)
-        reporter = ProgressReporter(interaction.user, self.bot, interaction.guild.id)
+        reporter = ProgressReporter(interaction)
         
         try:
             # Phase A: Validation
             await reporter.init()
-            await reporter.phase("Validating")
+            await reporter.update("Validating", 0, 1, "Checking permissions")
             validation_result = await engine.validate(interaction.guild)
             if not validation_result.ok:
-                await reporter.fail(f"Validation failed: {validation_result.reason}")
+                await reporter.finalize(False, f"Validation failed: {validation_result.reason}")
                 return
             
-            await reporter.phase("Snapshot")
+            await reporter.update("Snapshot", 0, 1, "Counting existing items")
             # Note: snapshot could be added here if needed
             
-            await reporter.phase("Deleting")
+            await reporter.update("Deleting", 0, 1, "Starting deletion")
             delete_result = await engine.delete_all(interaction.guild, reporter)
             
             # Fail closed if deletion failed hard
             if delete_result.channels_deleted == 0 and delete_result.categories_deleted == 0 and delete_result.roles_deleted == 0:
-                await reporter.fail("Deletion did not execute; check bot role permissions")
+                await reporter.finalize(False, "Deletion did not execute; check bot role permissions")
                 return
             
-            await reporter.phase("Rebuilding")
+            await reporter.update("Rebuilding", 0, 1, "Starting rebuild")
             rebuild_result = await engine.rebuild_all(interaction.guild, reporter)
             
-            await reporter.phase("Posting channel posts")
+            await reporter.update("Posting channel posts", 0, 1, "Starting content posting")
             content_result = await engine.post_content(interaction.guild, reporter)
             
             final_summary = (
@@ -126,7 +126,7 @@ class OverhaulTempCog(commands.Cog):
                 f"Created: {rebuild_result.categories_created} categories, {rebuild_result.channels_created} channels, {rebuild_result.roles_created} roles. "
                 f"Posted: {content_result.posts_created} content messages."
             )
-            await reporter.finalize(final_summary)
+            await reporter.finalize(True, final_summary)
             
         except Exception as e:
             log.exception(f"Critical error during overhaul: {e}")

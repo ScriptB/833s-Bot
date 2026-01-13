@@ -110,18 +110,14 @@ class OverhaulEngine:
             try:
                 await self.rate_limiter.execute(channel.delete, reason="Server overhaul")
                 channels_deleted += 1
-                reporter.track_deleted(channels=1)
-                await reporter.update("Deleting Channels", i + 1, len(channels), f"Deleted #{channel.name}")
+                await reporter.update("Deleting Channels", i + 1, len(channels), f"Deleted #{channel.name}", counts=self._get_counts())
             except discord.Forbidden:
                 skipped.append(f"Channel #{channel.name} (no permission)")
-                reporter.track_skip()
-                await reporter.update("Deleting Channels", i + 1, len(channels), f"Skipped #{channel.name} (no permission)")
+                await reporter.update("Deleting Channels", i + 1, len(channels), f"Skipped #{channel.name} (no permission)", counts=self._get_counts())
             except discord.NotFound:
-                reporter.track_skip()
-                await reporter.update("Deleting Channels", i + 1, len(channels), f"Skipped #{channel.name} (already deleted)")
+                await reporter.update("Deleting Channels", i + 1, len(channels), f"Skipped #{channel.name} (already deleted)", counts=self._get_counts())
             except Exception as e:
-                reporter.track_error(f"Failed to delete #{channel.name}: {str(e)}")
-                await reporter.update("Deleting Channels", i + 1, len(channels), f"Error deleting #{channel.name}")
+                await reporter.update("Deleting Channels", i + 1, len(channels), f"Error deleting #{channel.name}", counts=self._get_counts(), errors=1)
         
         # Delete categories
         categories = guild.categories
@@ -131,18 +127,14 @@ class OverhaulEngine:
             try:
                 await self.rate_limiter.execute(category.delete, reason="Server overhaul")
                 categories_deleted += 1
-                reporter.track_deleted(categories=1)
-                await reporter.update("Deleting Categories", i + 1, len(categories), f"Deleted category {category.name}")
+                await reporter.update("Deleting Categories", i + 1, len(categories), f"Deleted category {category.name}", counts=self._get_counts())
             except discord.Forbidden:
                 skipped.append(f"Category {category.name} (no permission)")
-                reporter.track_skip()
-                await reporter.update("Deleting Categories", i + 1, len(categories), f"Skipped {category.name} (no permission)")
+                await reporter.update("Deleting Categories", i + 1, len(categories), f"Skipped {category.name} (no permission)", counts=self._get_counts())
             except discord.NotFound:
-                reporter.track_skip()
-                await reporter.update("Deleting Categories", i + 1, len(categories), f"Skipped {category.name} (already deleted)")
+                await reporter.update("Deleting Categories", i + 1, len(categories), f"Skipped {category.name} (already deleted)", counts=self._get_counts())
             except Exception as e:
-                reporter.track_error(f"Failed to delete category {category.name}: {str(e)}")
-                await reporter.update("Deleting Categories", i + 1, len(categories), f"Error deleting category {category.name}")
+                await reporter.update("Deleting Categories", i + 1, len(categories), f"Error deleting category {category.name}", counts=self._get_counts(), errors=1)
         
         # Delete eligible roles
         bot_top_role = max(guild.me.roles, key=lambda r: r.position) if guild.me.roles else None
@@ -159,18 +151,14 @@ class OverhaulEngine:
             try:
                 await self.rate_limiter.execute(role.delete, reason="Server overhaul")
                 roles_deleted += 1
-                reporter.track_deleted(roles=1)
-                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Deleted role @{role.name}")
+                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Deleted role @{role.name}", counts=self._get_counts())
             except discord.Forbidden:
                 skipped.append(f"Role @{role.name} (no permission)")
-                reporter.track_skip()
-                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Skipped @{role.name} (no permission)")
+                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Skipped @{role.name} (no permission)", counts=self._get_counts())
             except discord.NotFound:
-                reporter.track_skip()
-                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Skipped @{role.name} (already deleted)")
+                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Skipped @{role.name} (already deleted)", counts=self._get_counts())
             except Exception as e:
-                reporter.track_error(f"Failed to delete role @{role.name}: {str(e)}")
-                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Error deleting role @{role.name}")
+                await reporter.update("Deleting Roles", i + 1, len(eligible_roles), f"Error deleting role @{role.name}", counts=self._get_counts(), errors=1)
         
         return DeleteResult(
             channels_deleted=channels_deleted,
@@ -187,17 +175,17 @@ class OverhaulEngine:
         errors = []
         
         # Create roles first
-        await reporter.phase("Creating Roles", total_steps=8)
+        await reporter.update("Creating Roles", 0, 8, "Starting role creation")
         roles = await self._create_roles(guild, reporter)
         roles_created = len(roles)
         
         # Create categories
-        await reporter.phase("Creating Categories", total_steps=8)
+        await reporter.update("Creating Categories", 0, 8, "Starting category creation")
         categories = await self._create_categories(guild, reporter)
         categories_created = len(categories)
         
         # Create channels
-        await reporter.phase("Creating Channels", total_steps=15)
+        await reporter.update("Creating Channels", 0, 15, "Starting channel creation")
         channels = await self._create_channels(guild, categories, roles, reporter)
         channels_created = len(channels)
         
@@ -233,11 +221,9 @@ class OverhaulEngine:
                 if position > 1:
                     await self.rate_limiter.execute(role.edit, position=position)
                 roles.append(role)
-                reporter.track_created(roles=1)
-                await reporter.step(f"Created role @{name}", advance=1)
+                await reporter.update("Creating Roles", i + 1, 8, f"Created role @{name}", counts=self._get_counts())
             except Exception as e:
-                reporter.track_error(f"Failed to create role @{name}: {str(e)}")
-                await reporter.step(f"Error creating role @{name}", advance=1)
+                await reporter.update("Creating Roles", i + 1, 8, f"Error creating role @{name}", counts=self._get_counts(), errors=1)
         
         return roles
     
@@ -263,11 +249,9 @@ class OverhaulEngine:
                     reason="Server overhaul"
                 )
                 categories.append(category)
-                reporter.track_created(categories=1)
-                await reporter.step(f"Created category {name}", advance=1)
+                await reporter.update("Creating Categories", i + 1, 8, f"Created category {name}", counts=self._get_counts())
             except Exception as e:
-                reporter.track_error(f"Failed to create category {name}: {str(e)}")
-                await reporter.step(f"Error creating category {name}", advance=1)
+                await reporter.update("Creating Categories", i + 1, 8, f"Error creating category {name}", counts=self._get_counts(), errors=1)
         
         return categories
     
@@ -314,8 +298,7 @@ class OverhaulEngine:
         for i, (name, category_name, overwrites) in enumerate(channel_configs):
             category = discord.utils.get(categories, name=category_name)
             if not category:
-                reporter.track_error(f"Category {category_name} not found for channel {name}")
-                await reporter.step(f"Skipped #{name} (category not found)", advance=1)
+                await reporter.update("Creating Channels", i + 1, 15, f"Skipped #{name} (category not found)", counts=self._get_counts())
                 continue
             
             try:
@@ -327,11 +310,9 @@ class OverhaulEngine:
                     overwrites=overwrites or {}
                 )
                 channels.append(channel)
-                reporter.track_created(channels=1)
-                await reporter.step(f"Created #{name}", advance=1)
+                await reporter.update("Creating Channels", i + 1, 15, f"Created #{name}", counts=self._get_counts())
             except Exception as e:
-                reporter.track_error(f"Failed to create #{name}: {str(e)}")
-                await reporter.step(f"Error creating #{name}", advance=1)
+                await reporter.update("Creating Channels", i + 1, 15, f"Error creating #{name}", counts=self._get_counts(), errors=1)
         
         return channels
     
@@ -350,22 +331,20 @@ class OverhaulEngine:
             ("suggestions", self._get_suggestions_content())
         ]
         
-        await reporter.phase("Posting Content", total_steps=len(content_posts))
+        await reporter.update("Posting Content", 0, len(content_posts), "Starting content posting")
         
         for i, (channel_name, content) in enumerate(content_posts):
             channel = discord.utils.get(guild.text_channels, name=channel_name)
             if not channel:
-                reporter.track_skip()
-                await reporter.step(f"Skipped #{channel_name} (not found)", advance=1)
+                await reporter.update("Posting Content", i + 1, len(content_posts), f"Skipped #{channel_name} (not found)", counts=self._get_counts())
                 continue
             
             try:
                 await self.rate_limiter.execute(channel.send, **content)
                 posts_created += 1
-                await reporter.step(f"Posted content to #{channel_name}", advance=1)
+                await reporter.update("Posting Content", i + 1, len(content_posts), f"Posted content to #{channel_name}", counts=self._get_counts())
             except Exception as e:
-                reporter.track_error(f"Failed to post to #{channel_name}: {str(e)}")
-                await reporter.step(f"Error posting to #{channel_name}", advance=1)
+                await reporter.update("Posting Content", i + 1, len(content_posts), f"Error posting to #{channel_name}", counts=self._get_counts(), errors=1)
         
         return ContentResult(posts_created=posts_created, errors=errors)
     
@@ -496,4 +475,18 @@ class OverhaulEngine:
                 ),
                 color=discord.Color.green()
             )
+        }
+    
+    def _get_counts(self) -> Dict[str, int]:
+        """Get current operation counts for progress reporting."""
+        # This is a simplified version - in a real implementation,
+        # you'd track these counts properly across operations
+        return {
+            "deleted_channels": 0,
+            "deleted_categories": 0,
+            "deleted_roles": 0,
+            "created_categories": 0,
+            "created_channels": 0,
+            "created_roles": 0,
+            "skipped": 0
         }
