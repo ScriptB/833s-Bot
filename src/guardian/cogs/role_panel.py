@@ -205,6 +205,49 @@ class RolePanelCog(commands.Cog):
             f"✅ Role panel deployed: {message.jump_url}",
             ephemeral=True
         )
+    
+    async def _deploy_role_panel_for_overhaul(self, guild: discord.Guild, channel: discord.TextChannel) -> None:
+        """Deploy role panel specifically for overhaul (bypass channel creation)."""
+        if not self.role_config_store or not self.panel_store:
+            return
+        
+        # Get configured roles
+        role_configs = await self.role_config_store.list_roles(guild.id)
+        if not role_configs:
+            return
+        
+        # Create panel embed
+        embed = discord.Embed(
+            title="🎭 Role Selection",
+            description="Select your roles from dropdown below. You can change them anytime!",
+            color=discord.Color.blue()
+        )
+        
+        # Group roles by category
+        role_groups = {}
+        for config in role_configs:
+            group = config.group or "Other"
+            if group not in role_groups:
+                role_groups[group] = []
+            role_groups[group].append(config)
+        
+        # Add role groups to embed
+        for group, configs in role_groups.items():
+            role_text = "\n".join(
+                f"{config.emoji or '•'} {config.label}" 
+                for config in configs[:10]  # Limit display
+            )
+            embed.add_field(name=group, value=role_text, inline=True)
+        
+        # Create and send view
+        view = PersistentRoleView(guild.id, role_configs)
+        message = await channel.send(embed=embed, view=view)
+        
+        # Store panel reference
+        panel_key = f"role_panel_main"
+        await self.panel_store.upsert_panel(
+            panel_key, guild.id, channel.id, message.id
+        )
 
 
 class RoleSelectCog(commands.Cog):

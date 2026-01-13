@@ -374,9 +374,20 @@ class OverhaulEngine:
                 continue
             
             try:
-                await self.rate_limiter.execute(channel.send, **content)
+                message = await self.rate_limiter.execute(channel.send, **content)
                 posts_created += 1
                 await reporter.update("Posting Content", i + 1, len(content_posts), f"Posted content to #{channel_name}", counts=self._get_counts())
+                
+                # Deploy actual role panel UI for reaction-roles channel
+                if channel_name == "reaction-roles":
+                    from ..cogs.role_panel import RolePanelCog
+                    role_panel_cog = RolePanelCog(self.bot)
+                    try:
+                        await role_panel_cog._deploy_role_panel_for_overhaul(guild, channel)
+                        await reporter.update("Posting Content", i + 1, len(content_posts), f"Deployed role panel UI in #{channel_name}", counts=self._get_counts())
+                    except Exception as e:
+                        await reporter.update("Posting Content", i + 1, len(content_posts), f"Error deploying role panel in #{channel_name}", counts=self._get_counts(), errors=1)
+                        
             except Exception as e:
                 await reporter.update("Posting Content", i + 1, len(content_posts), f"Error posting to #{channel_name}", counts=self._get_counts(), errors=1)
         
@@ -537,25 +548,32 @@ class OverhaulEngine:
         }
     
     def _get_reaction_roles_content(self) -> Dict[str, Any]:
-        """Get reaction-roles channel content."""
+        """Get reaction-roles channel content with actual RR UI."""
+        from ..cogs.role_panel import RolePanelCog
+        
+        embed = discord.Embed(
+            title=sanitize_user_text("🎯 Choose Your Roles"),
+            description=sanitize_user_text(
+                "Use the dropdown below to select your roles!\n\n"
+                "🎮 **Game Roles:**\n"
+                "- 🟥 Roblox\n"
+                "- 🟩 Minecraft\n"
+                "- 🟧 ARK\n"
+                "- 🔴 FPS\n\n"
+                "💻 **Interest Roles:**\n"
+                "- 💠 Coding\n"
+                "- 🐍 Snakes\n\n"
+                "Check #role-info for more details about each role."
+            ),
+            color=discord.Color.blue()
+        )
+        
+        # Create role panel cog instance to get role configs
+        # This will deploy the actual working role selection UI
         return {
             "content": sanitize_user_text("🎯 Reaction Roles"),
-            "embed": discord.Embed(
-                title=sanitize_user_text("🎯 Choose Your Roles"),
-                description=sanitize_user_text(
-                    "React to this message to get access to specific channels!\n\n"
-                    "🎮 **Game Roles:**\n"
-                    "- 🟥 Roblox\n"
-                    "- 🟩 Minecraft\n"
-                    "- 🟧 ARK\n"
-                    "- 🔴 FPS\n\n"
-                    "💻 **Interest Roles:**\n"
-                    "- 💠 Coding\n"
-                    "- 🐍 Snakes\n\n"
-                    "Check #role-info for more details about each role."
-                ),
-                color=discord.Color.blue()
-            )
+            "embed": embed,
+            "view": None  # Will be replaced by actual role panel deployment
         }
     
     def _get_role_info_content(self) -> Dict[str, Any]:
