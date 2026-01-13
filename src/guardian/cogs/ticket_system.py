@@ -32,53 +32,59 @@ class TicketConfig:
 class TicketCreateButton(discord.ui.Button):
     """Button for creating a new ticket."""
     
-    def __init__(self, ticket_cog: 'TicketSystemCog'):
+    def __init__(self):
         super().__init__(
             label="Create Ticket",
             style=discord.ButtonStyle.primary,
             custom_id="guardian_ticket_create",
             emoji="🎫"
         )
-        self.ticket_cog = ticket_cog
     
     async def callback(self, interaction: discord.Interaction):
         """Handle ticket creation."""
-        await self.ticket_cog.create_ticket(interaction)
+        # Get the cog from the bot
+        cog = interaction.client.get_cog('TicketSystemCog')
+        if cog:
+            await cog.create_ticket(interaction)
+        else:
+            await interaction.response.send_message("❌ Ticket system cog not found.", ephemeral=True)
 
 
 class TicketCloseButton(discord.ui.Button):
     """Button for closing a ticket."""
     
-    def __init__(self, ticket_cog: 'TicketSystemCog'):
+    def __init__(self):
         super().__init__(
             label="Close Ticket",
             style=discord.ButtonStyle.danger,
             custom_id="guardian_ticket_close",
             emoji="🔒"
         )
-        self.ticket_cog = ticket_cog
     
     async def callback(self, interaction: discord.Interaction):
         """Handle ticket closing."""
-        await self.ticket_cog.close_ticket(interaction)
+        # Get the cog from the bot
+        cog = interaction.client.get_cog('TicketSystemCog')
+        if cog:
+            await cog.close_ticket(interaction)
+        else:
+            await interaction.response.send_message("❌ Ticket system cog not found.", ephemeral=True)
 
 
 class TicketView(discord.ui.View):
     """View for ticket panel with persistent timeout."""
     
-    def __init__(self, ticket_cog: 'TicketSystemCog'):
+    def __init__(self):
         super().__init__(timeout=None)  # Persistent view
-        self.ticket_cog = ticket_cog
-        self.add_item(TicketCreateButton(ticket_cog))
+        self.add_item(TicketCreateButton())
 
 
 class TicketControlView(discord.ui.View):
     """View for ticket control inside ticket channels."""
     
-    def __init__(self, ticket_cog: 'TicketSystemCog'):
+    def __init__(self):
         super().__init__(timeout=None)  # Persistent view
-        self.ticket_cog = ticket_cog
-        self.add_item(TicketCloseButton(ticket_cog))
+        self.add_item(TicketCloseButton())
 
 
 class TicketSystemCog(commands.Cog):
@@ -91,8 +97,8 @@ class TicketSystemCog(commands.Cog):
     
     async def cog_load(self):
         """Register persistent views when cog loads."""
-        self.bot.add_view(TicketView(self))
-        self.bot.add_view(TicketControlView(self))
+        self.bot.add_view(TicketView())
+        self.bot.add_view(TicketControlView())
         log.info("Ticket system views registered")
     
     async def create_ticket(self, interaction: discord.Interaction):
@@ -211,7 +217,7 @@ class TicketSystemCog(commands.Cog):
             
             embed.set_footer(text="Click 'Close Ticket' when your issue is resolved.")
             
-            view = TicketControlView(self)
+            view = TicketControlView()
             
             message_result = await safe_send_message(
                 ticket_channel,
@@ -476,7 +482,7 @@ class TicketSystemCog(commands.Cog):
         
         embed.set_footer(text="Tickets are private between you and our staff team.")
         
-        view = TicketView(self)
+        view = TicketView()
         
         result = await safe_send_message(channel, embed=embed, view=view)
         

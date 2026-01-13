@@ -25,48 +25,61 @@ class RoleCategory:
     roles: List[Dict[str, Any]]  # Each dict has: name, emoji, description
 
 
-class RoleSelectView(discord.ui.View):
-    """View containing role selection dropdowns."""
-    
-    def __init__(self, role_cog: 'RoleAssignmentCog'):
-        super().__init__(timeout=None)  # Persistent view
-        self.role_cog = role_cog
-        
-        # Add select menus for each category
-        for category in role_cog.role_categories:
-            self.add_item(RoleSelectMenu(category, role_cog))
-
-
 class RoleSelectMenu(discord.ui.Select):
     """Select menu for a role category."""
     
-    def __init__(self, category: RoleCategory, role_cog: 'RoleAssignmentCog'):
-        self.category = category
-        self.role_cog = role_cog
-        
+    def __init__(self, category_name: str, display_name: str, roles: List[Dict[str, Any]]):
         # Create options
         options = []
-        for role_info in category.roles:
+        for role_info in roles:
             options.append(
                 discord.SelectOption(
                     label=role_info["name"],
                     description=role_info.get("description", ""),
                     emoji=role_info.get("emoji"),
-                    value=f"{category.name}:{role_info['name']}"
+                    value=f"{category_name}:{role_info['name']}"
                 )
             )
         
         super().__init__(
-            placeholder=f"Select {category.display_name}...",
+            placeholder=f"Select {display_name}...",
             min_values=0,
             max_values=len(options),
             options=options,
-            custom_id=f"guardian_roles_{category.name}"
+            custom_id=f"guardian_roles_{category_name}"
         )
     
     async def callback(self, interaction: discord.Interaction):
         """Handle role selection."""
-        await self.role_cog.handle_role_selection(interaction, self.category, self.values)
+        # Get the cog from the bot
+        cog = interaction.client.get_cog('RoleAssignmentCog')
+        if not cog:
+            await interaction.response.send_message("❌ Role assignment cog not found.", ephemeral=True)
+            return
+        
+        # Extract category name from custom_id
+        category_name = self.custom_id.replace("guardian_roles_", "")
+        
+        # Find the category
+        category = None
+        for cat in cog.role_categories:
+            if cat.name == category_name:
+                category = cat
+                break
+        
+        if category:
+            await cog.handle_role_selection(interaction, category, self.values)
+        else:
+            await interaction.response.send_message("❌ Role category not found.", ephemeral=True)
+
+
+class RoleSelectView(discord.ui.View):
+    """View containing role selection dropdowns."""
+    
+    def __init__(self):
+        super().__init__(timeout=None)  # Persistent view
+        # We'll add the select menus dynamically when the view is created
+        # This is handled in the deploy_role_panel method
 
 
 class RoleAssignmentCog(commands.Cog):
@@ -105,8 +118,9 @@ class RoleAssignmentCog(commands.Cog):
     
     async def cog_load(self):
         """Register persistent views when cog loads."""
-        self.bot.add_view(RoleSelectView(self))
-        log.info("Role assignment views registered")
+        # We can't register the view with parameters in cog_load
+        # The view will be created dynamically when needed
+        log.info("Role assignment cog loaded")
     
     async def handle_role_selection(self, interaction: discord.Interaction, category: RoleCategory, selected_values: List[str]):
         """Handle role selection changes."""
@@ -254,7 +268,10 @@ class RoleAssignmentCog(commands.Cog):
         
         embed.set_footer(text="Use the dropdown menus below to select your roles")
         
-        view = RoleSelectView(self)
+        view = RoleSelectView()
+        # Add select menus to the view
+        for category in self.role_categories:
+            view.add_item(RoleSelectMenu(category.name, category.display_name, category.roles))
         
         try:
             message = await channel.send(embed=embed, view=view)

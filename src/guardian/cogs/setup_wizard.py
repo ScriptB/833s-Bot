@@ -37,36 +37,70 @@ class SetupResult:
 class SetupWizardView(discord.ui.View):
     """Interactive view for setup wizard with fix actions."""
     
-    def __init__(self, setup_result: SetupResult, cog: 'SetupWizardCog'):
+    def __init__(self):
         super().__init__(timeout=None)  # Persistent view
-        self.setup_result = setup_result
-        self.cog = cog
-        self.add_item(FixNowButton(setup_result, cog))
+        self.add_item(FixNowButton())
 
 
 class FixNowButton(discord.ui.Button):
     """Button to automatically fix setup issues."""
     
-    def __init__(self, setup_result: SetupResult, cog: 'SetupWizardCog'):
+    def __init__(self):
         super().__init__(
             label="Fix Now",
             style=discord.ButtonStyle.primary,
-            custom_id="setup_fix_now",
+            custom_id="guardian_setup_fix_now",
             emoji="🔧"
         )
-        self.setup_result = setup_result
-        self.cog = cog
     
     async def callback(self, interaction: discord.Interaction):
         """Handle fix button click."""
         await interaction.response.defer(ephemeral=True)
         
-        # Apply fixes
-        fix_result = await self.cog.apply_fixes(interaction.guild, interaction.user, self.setup_result)
+        # Get the cog from the bot
+        cog = interaction.client.get_cog('SetupWizardCog')
+        if not cog:
+            await interaction.followup.send("❌ Setup wizard cog not found.", ephemeral=True)
+            return
         
-        # Send updated result
-        embed = self.cog.create_setup_embed(fix_result)
-        await interaction.followup.send(embed=embed, ephemeral=True, view=SetupWizardView(fix_result, self.cog))
+        # Apply fixes (we'll need to reconstruct the setup result)
+        # For now, just run a basic setup check
+        try:
+            checks = [
+                cog._check_user_permissions(interaction),
+                cog._check_bot_permissions(interaction.guild),
+                cog._check_bot_role_position(interaction.guild),
+                cog._check_required_channels(interaction.guild),
+                await cog._check_panels(interaction.guild)
+            ]
+            
+            # Determine overall status
+            failed_checks = [c for c in checks if c.status == "fail"]
+            warning_checks = [c for c in checks if c.status == "warning"]
+            
+            if failed_checks:
+                overall_status = "fail"
+            elif warning_checks:
+                overall_status = "warning"
+            else:
+                overall_status = "pass"
+            
+            setup_result = SetupResult(
+                overall_status=overall_status,
+                checks=checks,
+                guild_id=interaction.guild.id,
+                user_id=interaction.user.id
+            )
+            
+            # Apply fixes
+            fix_result = await cog.apply_fixes(interaction.guild, interaction.user, setup_result)
+            
+            # Send updated result
+            embed = cog.create_setup_embed(fix_result)
+            await interaction.followup.send(embed=embed, ephemeral=True, view=SetupWizardView())
+            
+        except Exception as e:
+            await interaction.followup.send(f"❌ Error applying fixes: {str(e)}", ephemeral=True)
 
 
 class SetupWizardCog(commands.Cog):
@@ -92,7 +126,7 @@ class SetupWizardCog(commands.Cog):
     
     async def cog_load(self):
         """Register persistent view when cog loads."""
-        self.bot.add_view(SetupWizardView(None, self))  # View will be updated with actual data
+        self.bot.add_view(SetupWizardView())
     
     def _check_bot_permissions(self, guild: discord.Guild) -> SetupCheck:
         """Check if bot has required permissions."""
