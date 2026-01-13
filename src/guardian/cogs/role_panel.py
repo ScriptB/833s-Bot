@@ -9,6 +9,78 @@ from ..services.panel_store import PanelStore
 from ..services.role_config_store import RoleConfigStore
 
 
+class ReactionRoleButton(discord.ui.Button):
+    """Individual role button for reaction roles UI."""
+    
+    def __init__(self, role_name: str, emoji: str, role_id: int):
+        self.role_name = role_name
+        self.role_id = role_id
+        super().__init__(
+            label=role_name,
+            emoji=emoji,
+            style=discord.ButtonStyle.secondary,
+            custom_id=f"reaction_role:{role_id}"
+        )
+    
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Handle role toggle with stateless logic."""
+        if not interaction.guild or not isinstance(interaction.user, discord.Member):
+            return
+        
+        guild = interaction.guild
+        member = interaction.user
+        role = guild.get_role(self.role_id)
+        
+        if not role:
+            await interaction.response.send_message(
+                "❌ Role not found. Contact server admin.",
+                ephemeral=True
+            )
+            return
+        
+        try:
+            if role in member.roles:
+                # Remove role
+                await member.remove_roles(role, reason="Reaction role toggle")
+                await interaction.response.send_message(
+                    f"❌ Removed {self.role_name} role",
+                    ephemeral=True
+                )
+            else:
+                # Add role
+                await member.add_roles(role, reason="Reaction role toggle")
+                await interaction.response.send_message(
+                    f"✅ Added {self.role_name} role",
+                    ephemeral=True
+                )
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "❌ Missing permissions to manage roles.",
+                ephemeral=True
+            )
+        except discord.HTTPException:
+            await interaction.response.send_message(
+                "❌ API error updating roles.",
+                ephemeral=True
+            )
+
+
+class ReactionRolesView(discord.ui.View):
+    """Persistent reaction roles view with multiple buttons like verify UI."""
+    
+    def __init__(self, guild_id: int, role_configs: list):
+        super().__init__(timeout=None)  # Persistent view
+        self.guild_id = guild_id
+        
+        # Add role buttons
+        for config in role_configs:
+            self.add_item(ReactionRoleButton(
+                config.label,
+                config.emoji or "🎯",
+                config.role_id
+            ))
+
+
 class PersistentRoleSelect(discord.ui.Select):
     """Persistent role selection dropdown."""
     
@@ -115,13 +187,17 @@ class RolePanelCog(commands.Cog):
             
         panels = await self.panel_store.list_all_panels()
         for panel in panels:
-            if panel.panel_key.startswith('role_panel_'):
+            if panel.panel_key.startswith('role_panel_') or panel.panel_key.startswith('reaction_roles_'):
                 try:
                     # Get role configurations for this guild
                     role_configs = await self.role_config_store.list_roles(panel.guild_id)
                     
-                    # Create and register the view
-                    view = PersistentRoleView(panel.guild_id, role_configs)
+                    # Create and register view (button-based for reaction roles)
+                    if 'reaction_roles' in panel.panel_key:
+                        view = ReactionRolesView(panel.guild_id, role_configs)
+                    else:
+                        view = PersistentRoleView(panel.guild_id, role_configs)
+                    
                     self.bot.add_view(view, message_id=panel.message_id)
                     
                     self.bot.logger.info(f"✅ Restored role panel {panel.panel_key} in guild {panel.guild_id}")
@@ -218,8 +294,8 @@ class RolePanelCog(commands.Cog):
         
         # Create panel embed
         embed = discord.Embed(
-            title="🎭 Role Selection",
-            description="Select your roles from dropdown below. You can change them anytime!",
+            title="🎯 Choose Your Roles",
+            description="Click buttons below to toggle roles on/off. You can change them anytime!",
             color=discord.Color.blue()
         )
         
@@ -239,12 +315,12 @@ class RolePanelCog(commands.Cog):
             )
             embed.add_field(name=group, value=role_text, inline=True)
         
-        # Create and send view
-        view = PersistentRoleView(guild.id, role_configs)
+        # Create and send button-based view (like verify UI)
+        view = ReactionRolesView(guild.id, role_configs)
         message = await channel.send(embed=embed, view=view)
         
         # Store panel reference
-        panel_key = f"role_panel_main"
+        panel_key = f"reaction_roles_main"
         await self.panel_store.upsert_panel(
             panel_key, guild.id, channel.id, message.id
         )
