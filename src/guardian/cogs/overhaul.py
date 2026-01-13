@@ -15,6 +15,7 @@ from guardian.services.api_wrapper import safe_send_message, safe_create_channel
 from guardian.observability import observability, log_command_execution
 from guardian.security.permissions import admin_command
 from guardian.constants import COLORS
+from guardian.cogs.activity_manager import ActivityType
 
 log = logging.getLogger("guardian.overhaul")
 

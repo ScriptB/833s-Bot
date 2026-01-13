@@ -340,19 +340,19 @@ class ActivityCog(commands.Cog):
     )
     @app_commands.choices(
         action=[
-            discord.AppCommandOption(name="list", value="list"),
-            discord.AppCommandOption(name="add", value="add"),
-            discord.AppCommandOption(name="remove", value="remove"),
-            discord.AppCommandOption(name="set", value="set")
+            app_commands.Choice(name="list", value="list"),
+            app_commands.Choice(name="add", value="add"),
+            app_commands.Choice(name="remove", value="remove"),
+            app_commands.Choice(name="set", value="set")
         ]
     )
     @app_commands.choices(
         type=[
-            discord.AppCommandOption(name="playing", value="playing"),
-            discord.AppCommandOption(name="watching", value="watching"),
-            discord.AppCommandOption(name="listening", value="listening"),
-            discord.AppCommandOption(name="streaming", value="streaming"),
-            discord.AppCommandOption(name="custom", value="custom")
+            app_commands.Choice(name="playing", value="playing"),
+            app_commands.Choice(name="watching", value="watching"),
+            app_commands.Choice(name="listening", value="listening"),
+            app_commands.Choice(name="streaming", value="streaming"),
+            app_commands.Choice(name="custom", value="custom")
         ]
     )
     async def activity_command(
