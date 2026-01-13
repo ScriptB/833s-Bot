@@ -286,21 +286,21 @@ class OverhaulEngine:
             # 🔐 VERIFY GATE
             ("verify", "🔐 VERIFY GATE", None),
             
-            # 📢 START
-            ("welcome", "📢 START", None),
-            ("rules", "📢 START", None),
-            ("announcements", "📢 START", None),
-            ("server-info", "📢 START", None),
+            # 📢 START - Public for all verified users
+            ("welcome", "📢 START", self._create_public_overwrites(guild, verified_role, support_role, moderator_role, admin_role)),
+            ("rules", "📢 START", self._create_public_overwrites(guild, verified_role, support_role, moderator_role, admin_role)),
+            ("announcements", "📢 START", self._create_announcement_overwrites(guild, support_role, moderator_role, admin_role)),
+            ("server-info", "📢 START", self._create_public_overwrites(guild, verified_role, support_role, moderator_role, admin_role)),
             
-            # 💬 GENERAL
-            ("general-chat", "💬 GENERAL", None),
-            ("media", "💬 GENERAL", None),
-            ("introductions", "💬 GENERAL", None),
-            ("off-topic", "💬 GENERAL", None),
+            # 💬 GENERAL - Public for all verified users
+            ("general-chat", "💬 GENERAL", self._create_public_overwrites(guild, verified_role, support_role, moderator_role, admin_role)),
+            ("media", "💬 GENERAL", self._create_public_overwrites(guild, verified_role, support_role, moderator_role, admin_role)),
+            ("introductions", "💬 GENERAL", self._create_public_overwrites(guild, verified_role, support_role, moderator_role, admin_role)),
+            ("off-topic", "💬 GENERAL", self._create_public_overwrites(guild, verified_role, support_role, moderator_role, admin_role)),
             
-            # 🎛️ REACTION-ROLES
-            ("reaction-roles", "🎛️ REACTION-ROLES", None),
-            ("role-info", "🎛️ REACTION-ROLES", None),
+            # 🎛️ REACTION-ROLES - Public for all verified users
+            ("reaction-roles", "🎛️ REACTION-ROLES", self._create_public_overwrites(guild, verified_role, support_role, moderator_role, admin_role)),
+            ("role-info", "🎛️ REACTION-ROLES", self._create_public_overwrites(guild, verified_role, support_role, moderator_role, admin_role)),
             
             # 🎮 ROBLOX - Role-locked category
             ("roblox-chat", "🎮 ROBLOX", self._create_game_overwrites(guild, roblox_role, verified_role, support_role, moderator_role, admin_role)),
@@ -331,15 +331,15 @@ class OverhaulEngine:
             ("pet-media", "🐍 SNAKES", self._create_game_overwrites(guild, snakes_role, verified_role, support_role, moderator_role, admin_role)),
             ("care-guides", "🐍 SNAKES", self._create_game_overwrites(guild, snakes_role, verified_role, support_role, moderator_role, admin_role)),
             
-            # 🎫 SUPPORT
-            ("tickets", "🎫 SUPPORT", None),
-            ("suggestions", "🎫 SUPPORT", None),
+            # 🎫 SUPPORT - Staff-only channels
+            ("tickets", "🎫 SUPPORT", self._create_support_overwrites(guild, support_role, moderator_role, admin_role)),
+            ("suggestions", "🎫 SUPPORT", self._create_public_overwrites(guild, verified_role, support_role, moderator_role, admin_role)),
             
-            # 🛡️ STAFF
-            ("staff-chat", "🛡️ STAFF", None),
-            ("reports", "🛡️ STAFF", None),
-            ("bot-logs", "🛡️ STAFF", None),
-            ("case-files", "🛡️ STAFF", None),
+            # 🛡️ STAFF - Staff-only channels
+            ("staff-chat", "🛡️ STAFF", self._create_staff_overwrites(guild, support_role, moderator_role, admin_role)),
+            ("reports", "🛡️ STAFF", self._create_staff_overwrites(guild, support_role, moderator_role, admin_role)),
+            ("bot-logs", "🛡️ STAFF", self._create_admin_overwrites(guild, admin_role)),
+            ("case-files", "🛡️ STAFF", self._create_staff_overwrites(guild, support_role, moderator_role, admin_role)),
         ]
         
         for i, (name, category_name, overwrites) in enumerate(channel_configs):
@@ -425,6 +425,273 @@ class OverhaulEngine:
                 ban_members=True
             )
         
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                kick_members=True,
+                ban_members=True,
+                administrator=True
+            )
+        
+        return overwrites
+    
+    def _create_public_overwrites(self, guild: discord.Guild, verified_role: discord.Role, support_role: discord.Role, 
+                             moderator_role: discord.Role, admin_role: discord.Role) -> Dict[discord.Role, discord.PermissionOverwrite]:
+        """Create permission overwrites for public channels (verified users can access)."""
+        overwrites = {}
+        
+        # @everyone: No access until verified
+        overwrites[guild.default_role] = discord.PermissionOverwrite(
+            read_messages=False,
+            send_messages=False,
+            connect=False,
+            speak=False,
+            read_message_history=False
+        )
+        
+        # Verified users get full access
+        if verified_role:
+            overwrites[verified_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                embed_links=True,
+                attach_files=True,
+                add_reactions=True,
+                use_external_emojis=True
+            )
+        
+        # Staff get moderation access
+        if support_role:
+            overwrites[support_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True
+            )
+        
+        if moderator_role:
+            overwrites[moderator_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                kick_members=True,
+                ban_members=True
+            )
+        
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                kick_members=True,
+                ban_members=True,
+                administrator=True
+            )
+        
+        return overwrites
+    
+    def _create_announcement_overwrites(self, guild: discord.Guild, support_role: discord.Role, 
+                                   moderator_role: discord.Role, admin_role: discord.Role) -> Dict[discord.Role, discord.PermissionOverwrite]:
+        """Create permission overwrites for announcement channels (staff only can post)."""
+        overwrites = {}
+        
+        # @everyone: Read-only
+        overwrites[guild.default_role] = discord.PermissionOverwrite(
+            read_messages=True,
+            send_messages=False,
+            connect=False,
+            speak=False,
+            read_message_history=True
+        )
+        
+        # Support and above can post
+        if support_role:
+            overwrites[support_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True
+            )
+        
+        if moderator_role:
+            overwrites[moderator_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                kick_members=True,
+                ban_members=True
+            )
+        
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                kick_members=True,
+                ban_members=True,
+                administrator=True
+            )
+        
+        return overwrites
+    
+    def _create_support_overwrites(self, guild: discord.Guild, support_role: discord.Role, 
+                                moderator_role: discord.Role, admin_role: discord.Role) -> Dict[discord.Role, discord.PermissionOverwrite]:
+        """Create permission overwrites for support channels (support+ only)."""
+        overwrites = {}
+        
+        # @everyone: No access
+        overwrites[guild.default_role] = discord.PermissionOverwrite(
+            read_messages=False,
+            send_messages=False,
+            connect=False,
+            speak=False,
+            read_message_history=False
+        )
+        
+        # Support and above get access
+        if support_role:
+            overwrites[support_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                add_reactions=True,
+                attach_files=True,
+                embed_links=True
+            )
+        
+        if moderator_role:
+            overwrites[moderator_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                kick_members=True,
+                ban_members=True
+            )
+        
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                kick_members=True,
+                ban_members=True,
+                administrator=True
+            )
+        
+        return overwrites
+    
+    def _create_staff_overwrites(self, guild: discord.Guild, support_role: discord.Role, 
+                              moderator_role: discord.Role, admin_role: discord.Role) -> Dict[discord.Role, discord.PermissionOverwrite]:
+        """Create permission overwrites for staff-only channels."""
+        overwrites = {}
+        
+        # @everyone: No access
+        overwrites[guild.default_role] = discord.PermissionOverwrite(
+            read_messages=False,
+            send_messages=False,
+            connect=False,
+            speak=False,
+            read_message_history=False
+        )
+        
+        # Support and above get access
+        if support_role:
+            overwrites[support_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True
+            )
+        
+        if moderator_role:
+            overwrites[moderator_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                kick_members=True,
+                ban_members=True
+            )
+        
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                kick_members=True,
+                ban_members=True,
+                administrator=True
+            )
+        
+        return overwrites
+    
+    def _create_admin_overwrites(self, guild: discord.Guild, admin_role: discord.Role) -> Dict[discord.Role, discord.PermissionOverwrite]:
+        """Create permission overwrites for admin-only channels."""
+        overwrites = {}
+        
+        # @everyone: No access
+        overwrites[guild.default_role] = discord.PermissionOverwrite(
+            read_messages=False,
+            send_messages=False,
+            connect=False,
+            speak=False,
+            read_message_history=False
+        )
+        
+        # Admin only gets access
         if admin_role:
             overwrites[admin_role] = discord.PermissionOverwrite(
                 read_messages=True,
