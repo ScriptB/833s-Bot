@@ -539,6 +539,9 @@ class ReactionRoleCog(commands.Cog):
         self.reaction_role_store = ReactionRoleStore(settings.sqlite_path)
         self.server_config_store = ServerConfigStore(settings.sqlite_path)
         
+        # Initialize database schema
+        await self.reaction_role_store.init()
+        
         # Load all panels
         panels = await self.reaction_role_store.get_all_panels()
         
