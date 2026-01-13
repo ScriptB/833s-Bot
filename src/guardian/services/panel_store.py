@@ -6,6 +6,7 @@ from typing import Optional, List, Dict, Any
 import logging
 
 from .base import BaseService
+from ..interfaces import PanelStore as PanelStoreProtocol, validate_panel_store, DatabaseSafety
 
 log = logging.getLogger("guardian.panel_store")
 
@@ -51,6 +52,9 @@ class PanelStore(BaseService[PanelRecord]):
     
     def __init__(self, db_path: str):
         super().__init__(db_path, cache_ttl_seconds=300)  # 5 minutes cache
+        
+        # Validate interface compliance at runtime
+        validate_panel_store(self)
     
     async def _create_tables(self, db: aiosqlite.Connection) -> None:
         """Create panels table."""
@@ -68,9 +72,13 @@ class PanelStore(BaseService[PanelRecord]):
     
     async def _execute(self, sql: str, params: tuple = ()) -> None:
         """Execute SQL with parameters and commit."""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute(sql, params)
-            await db.commit()
+        async def _db_op():
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute("PRAGMA journal_mode=WAL")
+                await db.execute(sql, params)
+                await db.commit()
+        
+        await DatabaseSafety.safe_execute_with_retry(_db_op)
     
     async def _fetchone(self, sql: str, params: tuple = ()) -> Optional[tuple]:
         """Execute SQL and fetch one row."""

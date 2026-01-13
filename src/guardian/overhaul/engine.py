@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import re
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any, Tuple
 import discord
@@ -9,14 +8,9 @@ import logging
 
 from .rate_limiter import RateLimiter
 from .progress import ProgressReporter
+from ..interfaces import has_required_guild_perms, sanitize_user_text, OperationSnapshot
 
 log = logging.getLogger("guardian.overhaul_engine")
-
-
-def sanitize_user_text(text: str) -> str:
-    """Remove internal bootstrap tags from user-facing text."""
-    # Remove any leading tag like [833s-guardian:bootstrap:v1]
-    return re.sub(r'^\[[^\]]+\]\s*', '', text).strip()
 
 
 @dataclass
@@ -59,15 +53,12 @@ class OverhaulEngine:
         """Validate that overhaul can proceed safely."""
         bot_member = guild.me
         
-        # Check administrator permission first (covers all others)
-        if getattr(bot_member.guild_permissions, 'administrator', False):
+        # Use interface helper for permission checking
+        has_perms, missing = has_required_guild_perms(bot_member)
+        
+        if has_perms:
             return ValidationResult(ok=True, missing=[], reason="All permissions OK")
-        
-        # Check individual required permissions
-        required_perms = ["manage_guild", "manage_roles", "manage_channels"]
-        missing = [name for name in required_perms if not getattr(bot_member.guild_permissions, name, False)]
-        
-        if missing:
+        else:
             return ValidationResult(
                 ok=False,
                 missing=missing,
@@ -94,6 +85,10 @@ class OverhaulEngine:
             )
         
         return ValidationResult(ok=True, missing=[], reason="All validations passed")
+    
+    async def snapshot(self, guild: discord.Guild) -> OperationSnapshot:
+        """Take snapshot before destructive operations."""
+        return OperationSnapshot(guild)
     
     async def delete_all(self, guild: discord.Guild, reporter: ProgressReporter) -> DeleteResult:
         """Phase A: Delete all channels, categories, and eligible roles."""

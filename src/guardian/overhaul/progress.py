@@ -5,6 +5,8 @@ from typing import Optional, Dict
 import discord
 import logging
 
+from ..interfaces import ProgressReporter as ProgressReporterProtocol, validate_progress_reporter
+
 log = logging.getLogger("guardian.progress")
 
 
@@ -16,6 +18,9 @@ class ProgressReporter:
         self.user = interaction.user
         self.client = interaction.client
         self.guild_id = interaction.guild.id if interaction.guild else None
+        
+        # Validate interface compliance at runtime
+        validate_progress_reporter(self)
         
         # DM state
         self.dm_channel: Optional[discord.DMChannel] = None

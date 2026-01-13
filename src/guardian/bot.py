@@ -27,8 +27,9 @@ from .services.suggestions_store import SuggestionsStore
 from .services.channel_bootstrapper import ChannelBootstrapper
 from .services.status_reporter import StatusReporter
 from .services.guild_logger import GuildLogger
-from .services.panel_store import PanelStore
+from .ui.persistent import register_all_views
 from .services.panel_registry import PanelRegistry
+from .startup_diagnostics import StartupDiagnostics
 from .services.role_config_store import RoleConfigStore
 from .services.profiles_store import ProfilesStore
 from .services.titles_store import TitlesStore
@@ -174,9 +175,23 @@ class GuardianBot(commands.Bot):
         
         # Initialize panel registry renderers (will be done by cogs)
         
-        # Repair all panels on startup
-        repair_results = await self.panel_registry.repair_all_guilds_on_startup()
-        log.info(f"Panel repair completed: {repair_results}")
+        # Run startup diagnostics
+        diagnostics = StartupDiagnostics(self)
+        diagnostic_results = await diagnostics.run_diagnostics()
+        
+        # Check if critical systems failed
+        if diagnostics.should_disable_overhaul():
+            log.error("❌ Disabling /overhaul due to critical failures")
+            # TODO: Implement command disabling
+        
+        if diagnostics.should_disable_panels():
+            log.error("❌ Disabling panel operations due to critical failures")
+            # TODO: Implement panel disabling
+        
+        # Repair all panels on startup (only if not disabled)
+        if not diagnostics.should_disable_panels():
+            repair_results = await self.panel_registry.repair_all_guilds_on_startup()
+            log.info(f"Panel repair completed: {repair_results}")
         
         # Start background services
         # self.drift_verifier.start()  # DISABLED - Prevents automatic channel recreation

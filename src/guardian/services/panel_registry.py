@@ -4,6 +4,8 @@ import discord
 from typing import Dict, Any, Tuple, Optional, Callable
 import logging
 
+from ..interfaces import validate_panel_store, has_required_guild_perms, sanitize_user_text
+
 log = logging.getLogger("guardian.panel_registry")
 
 
@@ -14,6 +16,9 @@ class PanelRegistry:
         self.bot = bot
         self.panel_store = panel_store
         self._renderers: Dict[str, Callable] = {}
+        
+        # Validate interface compliance
+        validate_panel_store(panel_store)
         self._fallback_channels: Dict[str, str] = {
             "verify_panel": "verify",
             "role_panel": "roles", 
@@ -37,6 +42,12 @@ class PanelRegistry:
                           target_channel: Optional[discord.TextChannel] = None) -> Optional[discord.Message]:
         """Deploy a panel to a channel and store the record."""
         try:
+            # Check permissions
+            has_perms, missing = has_required_guild_perms(guild.me)
+            if not has_perms:
+                log.warning(f"Missing permissions for panel deploy {panel_key} in guild {guild.id}: {missing}")
+                return None
+            
             # Get or find target channel
             if target_channel is None:
                 channel_name = self._fallback_channels.get(panel_key, f"{panel_key}")
@@ -48,6 +59,12 @@ class PanelRegistry:
             
             # Render panel
             embed, view = await self.render_panel(panel_key, guild)
+            
+            # Sanitize any user-facing text
+            if embed.title:
+                embed.title = sanitize_user_text(embed.title)
+            if embed.description:
+                embed.description = sanitize_user_text(embed.description)
             
             # Send message
             message = await target_channel.send(embed=embed, view=view)
@@ -65,7 +82,7 @@ class PanelRegistry:
             return message
             
         except Exception as e:
-            log.exception(f"Failed to deploy panel {panel_key} in guild {guild.id}: {e}")
+            log.error(f"Failed to deploy panel {panel_key} in guild {guild.id}: {e}")
             return None
     
     async def repair_panel(self, guild_id: int, panel_key: str) -> bool:
@@ -136,9 +153,14 @@ class PanelRegistry:
         }
         
         try:
-            # Get all panels
-            all_panels = await self.panel_store.list_all_panels()
-            results["total_panels"] = len(all_panels)
+            # Get all panels with error handling
+            try:
+                all_panels = await self.panel_store.list_all_panels()
+                results["total_panels"] = len(all_panels)
+            except Exception as e:
+                log.error(f"Failed to list panels for repair: {e}")
+                results["errors"].append("Database unavailable - skipping panel repair")
+                return results
             
             # Group by guild for efficiency
             guild_panels = {}
@@ -147,27 +169,30 @@ class PanelRegistry:
                     guild_panels[panel.guild_id] = []
                 guild_panels[panel.guild_id].append(panel)
             
-            # Repair each guild's panels
+            # Repair each guild's panels with individual error handling
             for guild_id, panels in guild_panels.items():
-                guild = self.bot.get_guild(guild_id)
-                if not guild:
-                    log.warning(f"Guild {guild_id} not found during startup repair")
+                try:
+                    guild = self.bot.get_guild(guild_id)
+                    if not guild:
+                        log.warning(f"Guild {guild_id} not found during startup repair")
+                        results["failed"] += len(panels)
+                        continue
+                    
+                    for panel in panels:
+                        success = await self.repair_panel(guild_id, panel.panel_key)
+                        if success:
+                            results["repaired"] += 1
+                        else:
+                            results["failed"] += 1
+                            
+                except Exception as e:
+                    log.error(f"Failed to repair panels for guild {guild_id}: {e}")
                     results["failed"] += len(panels)
-                    continue
-                
-                for panel in panels:
-                    success = await self.repair_panel(guild_id, panel.panel_key)
-                    if success:
-                        results["repaired"] += 1
-                    else:
-                        results["failed"] += 1
-                        results["errors"].append(f"Guild {guild_id}, Panel {panel.panel_key}")
-            
-            log.info(f"Panel repair completed: {results['repaired']}/{results['total_panels']} repaired, {results['failed']} failed")
-            
+                    results["errors"].append(f"Guild {guild_id} repair failed")
+                        
         except Exception as e:
-            log.exception(f"Critical error during panel repair startup: {e}")
-            results["errors"].append(f"Critical error: {e}")
+            log.error(f"Critical error during panel repair startup: {e}")
+            results["errors"].append("Critical repair failure")
         
         return results
     

@@ -11,6 +11,7 @@ import logging
 from ..overhaul.engine import OverhaulEngine
 from ..overhaul.progress import ProgressReporter
 from ..overhaul.rate_limiter import RateLimiter
+from ..interfaces import validate_progress_reporter
 
 log = logging.getLogger("guardian.overhaul_temp")
 
@@ -95,6 +96,9 @@ class OverhaulTempCog(commands.Cog):
         engine = OverhaulEngine(self.bot, self.rate_limiter)
         reporter = ProgressReporter(interaction)
         
+        # Validate interface compliance
+        validate_progress_reporter(reporter)
+        
         try:
             # Phase A: Validation
             await reporter.init()
@@ -104,20 +108,30 @@ class OverhaulTempCog(commands.Cog):
                 await reporter.finalize(False, f"Validation failed: {validation_result.reason}")
                 return
             
+            # Phase B: Snapshot
             await reporter.update("Snapshot", 0, 1, "Counting existing items")
-            # Note: snapshot could be added here if needed
+            snapshot = await engine.snapshot(interaction.guild)
             
+            # Phase C: Deletion
             await reporter.update("Deleting", 0, 1, "Starting deletion")
             delete_result = await engine.delete_all(interaction.guild, reporter)
             
-            # Fail closed if deletion failed hard
-            if delete_result.channels_deleted == 0 and delete_result.categories_deleted == 0 and delete_result.roles_deleted == 0:
-                await reporter.finalize(False, "Deletion did not execute; check bot role permissions")
+            # Verify deletion actually happened
+            deletion_ok, deletion_msg = snapshot.verify_deletion(
+                delete_result.channels_deleted,
+                delete_result.categories_deleted,
+                delete_result.roles_deleted
+            )
+            
+            if not deletion_ok:
+                await reporter.finalize(False, f"Deletion failed: {deletion_msg}")
                 return
             
+            # Phase D: Rebuilding
             await reporter.update("Rebuilding", 0, 1, "Starting rebuild")
             rebuild_result = await engine.rebuild_all(interaction.guild, reporter)
             
+            # Phase E: Content posting
             await reporter.update("Posting channel posts", 0, 1, "Starting content posting")
             content_result = await engine.post_content(interaction.guild, reporter)
             
