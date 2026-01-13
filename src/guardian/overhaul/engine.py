@@ -225,14 +225,14 @@ class OverhaulEngine:
     async def _create_categories(self, guild: discord.Guild, reporter: ProgressReporter) -> List[discord.CategoryChannel]:
         """Create the category structure."""
         category_names = [
-            "VERIFY GATE",
-            "START", 
-            "GENERAL",
-            "GAME HUB",
-            "GAME SPACES",
-            "INTEREST SPACES",
-            "SUPPORT",
-            "STAFF"
+            "🔐 VERIFY GATE",
+            "🚪 START", 
+            "💬 GENERAL",
+            "🎮 GAME HUB",
+            "🎲 GAME SPACES",
+            "🎨 INTEREST SPACES",
+            "🛠️ SUPPORT",
+            "⚙️ STAFF"
         ]
         
         categories = []
@@ -257,37 +257,37 @@ class OverhaulEngine:
         
         # Channel configurations: (name, category_name, overwrites)
         channel_configs = [
-            # VERIFY GATE
-            ("verify", "VERIFY GATE", None),
+            # 🔐 VERIFY GATE
+            ("verify", "🔐 VERIFY GATE", None),
             
-            # START
-            ("welcome", "START", None),
-            ("rules", "START", None),
-            ("announcements", "START", None),
+            # 🚪 START
+            ("welcome", "🚪 START", None),
+            ("rules", "🚪 START", None),
+            ("announcements", "🚪 START", None),
             
-            # GENERAL
-            ("general", "GENERAL", None),
-            ("chat", "GENERAL", None),
-            ("memes", "GENERAL", None),
+            # 💬 GENERAL
+            ("general", "💬 GENERAL", None),
+            ("chat", "💬 GENERAL", None),
+            ("memes", "💬 GENERAL", None),
             
-            # GAME HUB
-            ("choose-your-games", "GAME HUB", None),
+            # 🎮 GAME HUB
+            ("choose-your-games", "🎮 GAME HUB", None),
             
-            # GAME SPACES
-            ("gaming-discussion", "GAME SPACES", None),
-            ("game-lfg", "GAME SPACES", None),
+            # 🎲 GAME SPACES
+            ("gaming-discussion", "🎲 GAME SPACES", None),
+            ("game-lfg", "🎲 GAME SPACES", None),
             
-            # INTEREST SPACES
-            ("art-showcase", "INTEREST SPACES", None),
-            ("music-chat", "INTEREST SPACES", None),
+            # 🎨 INTEREST SPACES
+            ("art-showcase", "🎨 INTEREST SPACES", None),
+            ("music-chat", "🎨 INTEREST SPACES", None),
             
-            # SUPPORT
-            ("tickets", "SUPPORT", None),
-            ("server-info", "SUPPORT", None),
+            # 🛠️ SUPPORT
+            ("tickets", "🛠️ SUPPORT", None),
+            ("server-info", "🛠️ SUPPORT", None),
             
-            # STAFF
-            ("staff-chat", "STAFF", None),
-            ("mod-logs", "STAFF", None),
+            # ⚙️ STAFF
+            ("staff-chat", "⚙️ STAFF", None),
+            ("mod-logs", "⚙️ STAFF", None),
         ]
         
         for i, (name, category_name, overwrites) in enumerate(channel_configs):
