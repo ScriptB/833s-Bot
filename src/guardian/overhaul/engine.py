@@ -344,11 +344,11 @@ class OverhaulEngine:
         return ContentResult(posts_created=posts_created, errors=errors)
     
     def _get_verify_content(self) -> Dict[str, Any]:
-        """Get verification channel content."""
+        """Get verify channel content."""
         return {
-            "content": sanitize_user_text("Verification Gate"),
+            "content": sanitize_user_text("🔐 Verification Gate"),
             "embed": discord.Embed(
-                title=sanitize_user_text("Verification Gate"),
+                title=sanitize_user_text("🔐 Verification Gate"),
                 description=sanitize_user_text(
                     "Welcome.\n"
                     "This server is role-locked. You will not see anything until you verify.\n\n"
@@ -370,9 +370,9 @@ class OverhaulEngine:
     def _get_tickets_content(self) -> Dict[str, Any]:
         """Get tickets channel content."""
         return {
-            "content": sanitize_user_text("Support System"),
+            "content": sanitize_user_text("🎫 Support System"),
             "embed": discord.Embed(
-                title=sanitize_user_text("Support System"),
+                title=sanitize_user_text("🎫 Support System"),
                 description=sanitize_user_text(
                     "Need help from staff?\n\n"
                     "Open a ticket using the button below.\n\n"
@@ -397,6 +397,7 @@ class OverhaulEngine:
         """Get server-info channel content."""
         return {
             "content": sanitize_user_text(
+                "📋 Server Information\n\n"
                 "This server runs on 833's Guardian.\n\n"
                 "It is built to stay clean, organized, and easy to use.\n\n"
                 "**How access works:**\n"
@@ -417,9 +418,9 @@ class OverhaulEngine:
     def _get_rules_content(self) -> Dict[str, Any]:
         """Get rules channel content."""
         return {
-            "content": sanitize_user_text("These rules apply everywhere."),
+            "content": sanitize_user_text("📜 Server Rules"),
             "embed": discord.Embed(
-                title=sanitize_user_text("Server Rules"),
+                title=sanitize_user_text("📜 Server Rules"),
                 description=sanitize_user_text(
                     "**1) No harassment**\n"
                     "No bullying, threats, slurs, or targeting.\n\n"
@@ -443,6 +444,7 @@ class OverhaulEngine:
         """Get announcements channel content."""
         return {
             "content": sanitize_user_text(
+                "📢 Announcements\n\n"
                 "This channel is used for:\n"
                 "- Server updates\n"
                 "- System changes\n"
@@ -456,9 +458,9 @@ class OverhaulEngine:
     def _get_suggestions_content(self) -> Dict[str, Any]:
         """Get suggestions channel content."""
         return {
-            "content": sanitize_user_text("Have an idea?"),
+            "content": sanitize_user_text("💡 Suggestions"),
             "embed": discord.Embed(
-                title=sanitize_user_text("Suggestions"),
+                title=sanitize_user_text("💡 Suggestions"),
                 description=sanitize_user_text(
                     "Post it here.\n\n"
                     "Suggestions should be:\n"
