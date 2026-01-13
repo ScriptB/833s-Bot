@@ -52,9 +52,9 @@ class PanelStore(BaseService[PanelRecord]):
     def __init__(self, db_path: str):
         super().__init__(db_path, cache_ttl_seconds=300)  # 5 minutes cache
     
-    async def _create_tables(self) -> None:
+    async def _create_tables(self, db: aiosqlite.Connection) -> None:
         """Create panels table."""
-        await self._execute("""
+        await db.execute("""
             CREATE TABLE IF NOT EXISTS panels (
                 guild_id INTEGER NOT NULL,
                 panel_key TEXT NOT NULL,
