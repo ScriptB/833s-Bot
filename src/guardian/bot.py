@@ -30,6 +30,7 @@ from .services.guild_logger import GuildLogger
 from .ui.persistent import register_all_views
 from .services.panel_registry import PanelRegistry
 from .startup_diagnostics import StartupDiagnostics
+from .services.panel_store import PanelStore
 from .services.role_config_store import RoleConfigStore
 from .services.profiles_store import ProfilesStore
 from .services.titles_store import TitlesStore
@@ -130,6 +131,7 @@ class GuardianBot(commands.Bot):
         self.titles_store = TitlesStore(settings.sqlite_path, cache_ttl)
         self.root_store = RootStore(settings.sqlite_path)
         self.panel_store = PanelStore(settings.sqlite_path)
+        log.info("PanelStore loaded: %s", PanelStore.__name__)
         self.role_config_store = RoleConfigStore(settings.sqlite_path)
         
         # Initialize panel registry
