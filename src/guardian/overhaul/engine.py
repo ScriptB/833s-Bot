@@ -378,21 +378,7 @@ class OverhaulEngine:
                 posts_created += 1
                 await reporter.update("Posting Content", i + 1, len(content_posts), f"Posted content to #{channel_name}", counts=self._get_counts())
                 
-                # Deploy actual role panel UI for reaction-roles channel
-                if channel_name == "reaction-roles":
-                    from ..cogs.role_panel import RolePanelCog
-                    from ..services.role_config_store import RoleConfig
-                    
-                    role_panel_cog = RolePanelCog(self.bot)
-                    try:
-                        # Auto-configure canonical roles if not configured
-                        await self._auto_configure_canonical_roles(guild)
-                        
-                        # Deploy role panel
-                        await role_panel_cog._deploy_role_panel_for_overhaul(guild, channel)
-                        await reporter.update("Posting Content", i + 1, len(content_posts), f"Deployed role panel UI in #{channel_name}", counts=self._get_counts())
-                    except Exception as e:
-                        await reporter.update("Posting Content", i + 1, len(content_posts), f"Error deploying role panel in #{channel_name}", counts=self._get_counts(), errors=1)
+                # Note: Reaction role UI deployment removed - will be done manually
                         
             except Exception as e:
                 await reporter.update("Posting Content", i + 1, len(content_posts), f"Error posting to #{channel_name}", counts=self._get_counts(), errors=1)
@@ -603,44 +589,7 @@ class OverhaulEngine:
             )
         }
     
-    async def _auto_configure_canonical_roles(self, guild: discord.Guild) -> None:
-        """Auto-configure canonical roles for role panel."""
-        from ..services.role_config_store import RoleConfig
-        
-        role_config_store = self.bot.role_config_store
-        
-        # Define canonical role configurations
-        canonical_roles = [
-            # Game Roles
-            ("Roblox", "🎮", "Games"),
-            ("Minecraft", "🧱", "Games"),
-            ("ARK", "🦖", "Games"),
-            ("FPS", "🔫", "Games"),
-            # Interest Roles
-            ("Coding", "💻", "Interests"),
-            ("Snakes", "🐍", "Interests"),
-        ]
-        
-        for role_name, emoji, group in canonical_roles:
-            role = discord.utils.get(guild.roles, name=role_name)
-            if role:
-                try:
-                    # Check if already configured
-                    existing = await role_config_store.get(guild.id, role.id)
-                    if not existing:
-                        # Add to role configuration
-                        config = RoleConfig(
-                            guild_id=guild.id,
-                            role_id=role.id,
-                            label=role_name,
-                            emoji=emoji,
-                            group=group,
-                            enabled=True
-                        )
-                        await role_config_store.upsert(config)
-                except Exception:
-                    # Skip if configuration fails
-                    continue
+    # Auto-configure canonical roles removed - will be done manually
     
     def _get_counts(self) -> Dict[str, int]:
         """Get current operation counts for progress reporting."""
