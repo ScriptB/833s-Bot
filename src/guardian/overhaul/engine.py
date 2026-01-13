@@ -269,6 +269,18 @@ class OverhaulEngine:
         """Create channels within categories."""
         channels = []
         
+        # Get role objects for permission overwrites
+        roblox_role = discord.utils.get(roles, name="Roblox")
+        minecraft_role = discord.utils.get(roles, name="Minecraft")
+        ark_role = discord.utils.get(roles, name="ARK")
+        fps_role = discord.utils.get(roles, name="FPS")
+        coding_role = discord.utils.get(roles, name="Coding")
+        snakes_role = discord.utils.get(roles, name="Snakes")
+        verified_role = discord.utils.get(roles, name="Verified")
+        support_role = discord.utils.get(roles, name="Support")
+        moderator_role = discord.utils.get(roles, name="Moderator")
+        admin_role = discord.utils.get(roles, name="Admin")
+        
         # Channel configurations: (name, category_name, overwrites)
         channel_configs = [
             # 🔐 VERIFY GATE
@@ -290,34 +302,34 @@ class OverhaulEngine:
             ("reaction-roles", "🎛️ REACTION-ROLES", None),
             ("role-info", "🎛️ REACTION-ROLES", None),
             
-            # 🧩 GAME SPACES - ROBLOX
-            ("roblox-chat", "🎮 ROBLOX", None),
-            ("bee-swarm", "🎮 ROBLOX", None),
-            ("trading", "🎮 ROBLOX", None),
+            # 🎮 ROBLOX - Role-locked category
+            ("roblox-chat", "🎮 ROBLOX", self._create_game_overwrites(guild, roblox_role, verified_role, support_role, moderator_role, admin_role)),
+            ("bee-swarm", "🎮 ROBLOX", self._create_game_overwrites(guild, roblox_role, verified_role, support_role, moderator_role, admin_role)),
+            ("trading", "🎮 ROBLOX", self._create_game_overwrites(guild, roblox_role, verified_role, support_role, moderator_role, admin_role)),
             
-            # 🧩 GAME SPACES - MINECRAFT
-            ("mc-chat", "🧱 MINECRAFT", None),
-            ("servers", "🧱 MINECRAFT", None),
-            ("builds", "🧱 MINECRAFT", None),
+            # 🧱 MINECRAFT - Role-locked category
+            ("mc-chat", "🧱 MINECRAFT", self._create_game_overwrites(guild, minecraft_role, verified_role, support_role, moderator_role, admin_role)),
+            ("servers", "🧱 MINECRAFT", self._create_game_overwrites(guild, minecraft_role, verified_role, support_role, moderator_role, admin_role)),
+            ("builds", "🧱 MINECRAFT", self._create_game_overwrites(guild, minecraft_role, verified_role, support_role, moderator_role, admin_role)),
             
-            # 🧩 GAME SPACES - ARK
-            ("ark-chat", "🦖 ARK", None),
-            ("maps", "🦖 ARK", None),
-            ("breeding", "🦖 ARK", None),
+            # 🦖 ARK - Role-locked category
+            ("ark-chat", "🦖 ARK", self._create_game_overwrites(guild, ark_role, verified_role, support_role, moderator_role, admin_role)),
+            ("maps", "🦖 ARK", self._create_game_overwrites(guild, ark_role, verified_role, support_role, moderator_role, admin_role)),
+            ("breeding", "🦖 ARK", self._create_game_overwrites(guild, ark_role, verified_role, support_role, moderator_role, admin_role)),
             
-            # 🧩 GAME SPACES - FPS
-            ("fps-chat", "🔫 FPS", None),
-            ("loadouts", "🔫 FPS", None),
+            # 🔫 FPS - Role-locked category
+            ("fps-chat", "🔫 FPS", self._create_game_overwrites(guild, fps_role, verified_role, support_role, moderator_role, admin_role)),
+            ("loadouts", "🔫 FPS", self._create_game_overwrites(guild, fps_role, verified_role, support_role, moderator_role, admin_role)),
             
-            # 🧩 INTEREST SPACES - CODING
-            ("coding-chat", "💻 CODING", None),
-            ("projects", "💻 CODING", None),
-            ("resources", "💻 CODING", None),
+            # 💻 CODING - Role-locked category
+            ("coding-chat", "💻 CODING", self._create_game_overwrites(guild, coding_role, verified_role, support_role, moderator_role, admin_role)),
+            ("projects", "💻 CODING", self._create_game_overwrites(guild, coding_role, verified_role, support_role, moderator_role, admin_role)),
+            ("resources", "💻 CODING", self._create_game_overwrites(guild, coding_role, verified_role, support_role, moderator_role, admin_role)),
             
-            # 🧩 INTEREST SPACES - SNAKES
-            ("snakes-chat", "🐍 SNAKES", None),
-            ("pet-media", "🐍 SNAKES", None),
-            ("care-guides", "🐍 SNAKES", None),
+            # 🐍 SNAKES - Role-locked category
+            ("snakes-chat", "🐍 SNAKES", self._create_game_overwrites(guild, snakes_role, verified_role, support_role, moderator_role, admin_role)),
+            ("pet-media", "🐍 SNAKES", self._create_game_overwrites(guild, snakes_role, verified_role, support_role, moderator_role, admin_role)),
+            ("care-guides", "🐍 SNAKES", self._create_game_overwrites(guild, snakes_role, verified_role, support_role, moderator_role, admin_role)),
             
             # 🎫 SUPPORT
             ("tickets", "🎫 SUPPORT", None),
@@ -350,6 +362,84 @@ class OverhaulEngine:
                 await reporter.update("Creating Channels", i + 1, 28, f"Error creating #{name}", counts=self._get_counts(), errors=1)
         
         return channels
+    
+    def _create_game_overwrites(self, guild: discord.Guild, game_role: discord.Role, verified_role: discord.Role, 
+                           support_role: discord.Role, moderator_role: discord.Role, admin_role: discord.Role) -> Dict[discord.Role, discord.PermissionOverwrite]:
+        """Create permission overwrites for role-locked game categories."""
+        overwrites = {}
+        
+        # Default permissions for @everyone (no access)
+        overwrites[guild.default_role] = discord.PermissionOverwrite(
+            read_messages=False,
+            send_messages=False,
+            connect=False,
+            speak=False,
+            read_message_history=False
+        )
+        
+        # Game role gets full access
+        if game_role:
+            overwrites[game_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                embed_links=True,
+                attach_files=True,
+                add_reactions=True,
+                use_external_emojis=True
+            )
+        
+        # Staff roles get access for moderation
+        if verified_role:
+            overwrites[verified_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=False,  # Can see but not speak unless they have game role
+                connect=False,
+                speak=False,
+                read_message_history=True
+            )
+        
+        if support_role:
+            overwrites[support_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True
+            )
+        
+        if moderator_role:
+            overwrites[moderator_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                kick_members=True,
+                ban_members=True
+            )
+        
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True,
+                connect=True,
+                speak=True,
+                read_message_history=True,
+                manage_messages=True,
+                manage_channels=True,
+                kick_members=True,
+                ban_members=True,
+                administrator=True
+            )
+        
+        return overwrites
     
     async def post_content(self, guild: discord.Guild, reporter: ProgressReporter) -> ContentResult:
         """Phase C: Post prepared content to channels."""
