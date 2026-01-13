@@ -60,13 +60,12 @@ class StartupDiagnostics:
     async def _check_loaded_cogs(self):
         """Check which cogs are loaded."""
         try:
-            loaded_cogs = list(self.bot.extensions.keys())
+            loaded_cogs = list(self.bot.cogs.keys())
             self.results["loaded_cogs"] = loaded_cogs
             
-            # Check for critical cogs - use actual cog names, not module names
+            # Check for critical cogs - use actual cog names
             critical_cogs = ["VerifyPanelCog", "RolePanelCog", "OverhaulCog"]
-            loaded_cog_names = [cog.split('.')[-1] for cog in loaded_cogs]
-            missing_critical = [cog for cog in critical_cogs if cog not in loaded_cog_names]
+            missing_critical = [cog for cog in critical_cogs if cog not in loaded_cogs]
             
             if missing_critical:
                 self.results["critical_failures"].append(f"Missing critical cogs: {missing_critical}")

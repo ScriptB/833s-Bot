@@ -529,8 +529,9 @@ class ReactionRoleCog(commands.Cog):
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.reaction_role_store = ReactionRoleStore(bot.db_path)
-        self.server_config_store = ServerConfigStore(bot.db_path)
+        # Initialize stores using bot's database path
+        self.reaction_role_store = ReactionRoleStore(bot.settings.sqlite_path)
+        self.server_config_store = ServerConfigStore(bot.settings.sqlite_path)
     
     async def cog_load(self):
         """Load all panels on startup."""

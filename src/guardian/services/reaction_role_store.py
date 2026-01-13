@@ -116,6 +116,15 @@ class ReactionRoleStore(BaseService[ReactionRolePanel]):
     def _get_query(self) -> str:
         return "SELECT * FROM reaction_role_panels WHERE panel_id = ?"
     
+    async def get_all_panels(self) -> List[ReactionRolePanel]:
+        """Get all panels."""
+        async with aiosqlite.connect(self._path) as db:
+            async with db.execute(
+                "SELECT * FROM reaction_role_panels ORDER BY created_at DESC"
+            ) as cursor:
+                rows = await cursor.fetchall()
+                return [self._from_row(row) for row in rows]
+    
     async def get_by_guild(self, guild_id: int) -> List[ReactionRolePanel]:
         """Get all panels for a guild."""
         async with aiosqlite.connect(self._path) as db:
