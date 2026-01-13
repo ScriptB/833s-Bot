@@ -447,7 +447,7 @@ class OverhaulEngine:
                 "This server runs on 833's Guardian.\n\n"
                 "It is built to stay clean, organized, and easy to use.\n\n"
                 "**How access works:**\n"
-                "After verifying in #verify you can pick roles in #choose-your-games.\n"
+                "After verifying in #verify you can pick roles in #reaction-roles.\n"
                 "Each role unlocks its own channels.\n"
                 "If you do not choose a role, those channels will not appear for you.\n\n"
                 "**Getting help:**\n"
