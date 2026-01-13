@@ -646,7 +646,7 @@ class OverhaulConfirmationView(discord.ui.View):
     """Persistent confirmation view for overhaul command."""
     
     def __init__(self):
-        super().__init__(timeout=300)  # 5 minutes timeout
+        super().__init__(timeout=None)  # Persistent view
     
     @discord.ui.button(
         label="Confirm Server Overhaul",

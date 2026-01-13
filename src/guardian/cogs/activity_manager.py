@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import random
+import time
 import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
@@ -194,7 +195,31 @@ class ActivityManager:
         return self.get_weighted_random_activity()
     
     async def set_activity(self, activity: ActivityConfig):
-        """Set the bot's activity."""
+        """Set the bot's activity with proper guardrails."""
+        # Validate bot is ready
+        if not self.bot:
+            log.error("Cannot set activity: bot is None")
+            return
+        
+        if not hasattr(self.bot, 'user') or not self.bot.user:
+            log.error("Cannot set activity: bot.user is not available")
+            return
+        
+        # Wait for bot to be ready if needed
+        if not self.bot.is_ready():
+            try:
+                await self.bot.wait_until_ready()
+            except Exception as e:
+                log.error(f"Failed to wait for bot readiness: {e}")
+                return
+        
+        # Rate limiting - don't spam presence updates
+        if hasattr(self, '_last_activity_update'):
+            time_since_last = time.time() - self._last_activity_update
+            if time_since_last < 5:  # Minimum 5 seconds between updates
+                log.debug(f"Skipping activity update - too soon since last update ({time_since_last:.1f}s ago)")
+                return
+        
         try:
             if activity.activity_type == ActivityType.PLAYING:
                 await self.bot.change_presence(
@@ -240,10 +265,20 @@ class ActivityManager:
                     )
                 )
             
+            # Update last activity timestamp
+            self._last_activity_update = time.time()
             log.info(f"Set activity: {activity.name} ({activity.activity_type.value})")
             
+        except discord.HTTPException as e:
+            # Expected Discord API errors
+            log.warning(f"Discord API error setting activity {activity.name}: {e}")
         except Exception as e:
-            log.error(f"Failed to set activity {activity.name}: {e}")
+            # Unexpected errors - log once per cycle
+            if not hasattr(self, '_last_activity_error') or time.time() - self._last_activity_error > 60:
+                log.error(f"Failed to set activity {activity.name}: {e}")
+                self._last_activity_error = time.time()
+            else:
+                log.debug(f"Failed to set activity {activity.name} (error already logged)")
     
     async def start_activity_cycling(self):
         """Start the activity cycling system."""

@@ -79,74 +79,56 @@ class TicketCreateView(ui.View):
 # Registry function to register all persistent views
 def register_all_views(bot: discord.Client) -> None:
     """Register all persistent views with the bot."""
-    try:
-        views_registered = 0
-        
-        # Register verification view
+    registration_results = {
+        'attempted': 0,
+        'succeeded': 0,
+        'failed': 0,
+        'failures': []
+    }
+    
+    views_to_register = [
+        ('VerifyView', lambda: VerifyView()),
+        ('RoleSelectView', lambda: RoleSelectView([])),
+        ('TicketView', lambda: _import_and_create('guardian.cogs.ticket_system', 'TicketView')),
+        ('TicketControlView', lambda: _import_and_create('guardian.cogs.ticket_system', 'TicketControlView')),
+        ('RoleAssignmentView', lambda: _import_and_create('guardian.cogs.role_assignment', 'RoleSelectView')),
+    ]
+    
+    def _import_and_create(module_name: str, class_name: str):
+        """Import and create a view instance."""
+        module = __import__(module_name, fromlist=[class_name])
+        view_class = getattr(module, class_name)
+        return view_class()
+    
+    for view_name, view_factory in views_to_register:
+        registration_results['attempted'] += 1
         try:
-            verify_view = VerifyView()
-            bot.add_view(verify_view)
-            views_registered += 1
-            log.info("Registered persistent VerifyView")
+            view = view_factory()
+            bot.add_view(view)
+            registration_results['succeeded'] += 1
+            log.info(f"✅ Registered persistent {view_name}")
         except Exception as e:
-            log.warning(f"Failed to register VerifyView: {e}")
-        
-        # Register role selection view
-        try:
-            role_view = RoleSelectView([])
-            bot.add_view(role_view)
-            views_registered += 1
-            log.info("Registered persistent RoleSelectView")
-        except Exception as e:
-            log.warning(f"Failed to register RoleSelectView: {e}")
-        
-        # Register ticket creation view
-        try:
-            from guardian.cogs.ticket_system import TicketCreateView
-            ticket_view = TicketCreateView()
-            bot.add_view(ticket_view)
-            views_registered += 1
-            log.info("Registered persistent TicketCreateView")
-        except Exception as e:
-            log.warning(f"Failed to register TicketCreateView: {e}")
-        
-        # Register ticket control view
-        try:
-            from guardian.cogs.ticket_system import TicketControlView
-            ticket_control_view = TicketControlView()
-            bot.add_view(ticket_control_view)
-            views_registered += 1
-            log.info("Registered persistent TicketControlView")
-        except Exception as e:
-            log.warning(f"Failed to register TicketControlView: {e}")
-        
-        # Register role assignment view
-        try:
-            from guardian.cogs.role_assignment import RoleSelectView as RoleAssignmentView
-            role_assignment_view = RoleAssignmentView()
-            bot.add_view(role_assignment_view)
-            views_registered += 1
-            log.info("Registered persistent RoleAssignmentView")
-        except Exception as e:
-            log.warning(f"Failed to register RoleAssignmentView: {e}")
-        
-        # Register overhaul confirmation view
-        try:
-            from guardian.cogs.overhaul import OverhaulConfirmationView
-            overhaul_view = OverhaulConfirmationView()
-            bot.add_view(overhaul_view)
-            views_registered += 1
-            log.info("Registered persistent OverhaulConfirmationView")
-        except Exception as e:
-            log.warning(f"Failed to register OverhaulConfirmationView: {e}")
-        
-        # Set persistent views flag for diagnostics
-        bot._persistent_views_registered = views_registered > 0
-        log.info(f"Registered {views_registered} persistent views successfully")
-        
-    except Exception as e:
-        log.exception(f"Failed to register persistent views: {e}")
-        bot._persistent_views_registered = False
+            registration_results['failed'] += 1
+            error_msg = f"❌ Failed to register {view_name}: {type(e).__name__}: {str(e)}"
+            registration_results['failures'].append(error_msg)
+            log.warning(error_msg)
+    
+    # Set persistent views flag for diagnostics
+    bot._persistent_views_registered = registration_results['succeeded'] > 0
+    bot._persistent_views_stats = registration_results
+    
+    # Log comprehensive summary
+    log.info(f"📊 Persistent Views Registration Summary:")
+    log.info(f"   Attempted: {registration_results['attempted']}")
+    log.info(f"   Succeeded: {registration_results['succeeded']}")
+    log.info(f"   Failed: {registration_results['failed']}")
+    
+    if registration_results['failures']:
+        log.warning("View registration failures:")
+        for failure in registration_results['failures']:
+            log.warning(f"   {failure}")
+    
+    log.info(f"✅ Persistent views registration complete: {registration_results['succeeded']}/{registration_results['attempted']} successful")
 
 
 # View factory functions for creating configured views

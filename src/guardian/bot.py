@@ -265,6 +265,7 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.ticket_system", "TicketSystemCog")
         await _load_cog("guardian.cogs.role_assignment", "RoleAssignmentCog")
         await _load_cog("guardian.cogs.activity_manager", "ActivityCog")
+        await _load_cog("guardian.cogs.health_check", "HealthCheckCog")
         
         # Persistent panels
         await _load_cog("guardian.cogs.verify_panel", "VerifyPanelCog")
@@ -313,7 +314,76 @@ class GuardianBot(commands.Bot):
         startup_duration = (datetime.utcnow() - start_time).total_seconds() * 1000 if 'start_time' in locals() else 0
         observability.log_startup_complete(startup_duration)
         
+        # Run startup self-check
+        await self._run_startup_self_check()
+        
         log.info("🚀 Guardian Bot startup complete - All systems operational")
+    
+    async def _run_startup_self_check(self):
+        """Run comprehensive startup self-check."""
+        try:
+            log.info("🔍 Running startup self-check...")
+            
+            # Check critical cogs
+            critical_cogs = {
+                'OverhaulCog': self.get_cog('OverhaulCog') is not None,
+                'VerifyPanelCog': self.get_cog('VerifyPanelCog') is not None,
+                'RolePanelCog': self.get_cog('RolePanelCog') is not None,
+                'ActivityCog': self.get_cog('ActivityCog') is not None,
+                'TicketSystemCog': self.get_cog('TicketSystemCog') is not None,
+                'RoleAssignmentCog': self.get_cog('RoleAssignmentCog') is not None,
+                'HealthCheckCog': self.get_cog('HealthCheckCog') is not None,
+            }
+            
+            failed_cogs = [name for name, loaded in critical_cogs.items() if not loaded]
+            if failed_cogs:
+                log.error(f"❌ Self-check failed - Missing critical cogs: {failed_cogs}")
+            else:
+                log.info("✅ All critical cogs loaded successfully")
+            
+            # Check critical commands
+            commands = list(self.tree.get_commands())
+            critical_commands = {
+                'overhaul': any(cmd.name == 'overhaul' for cmd in commands),
+                'verifypanel': any(cmd.name == 'verifypanel' for cmd in commands),
+                'rolepanel': any(cmd.name == 'rolepanel' for cmd in commands),
+                'activity': any(cmd.name == 'activity' for cmd in commands),
+                'setup': any(cmd.name == 'setup' for cmd in commands),
+                'health': any(cmd.name == 'health' for cmd in commands),
+            }
+            
+            failed_commands = [name for name, available in critical_commands.items() if not available]
+            if failed_commands:
+                log.error(f"❌ Self-check failed - Missing critical commands: {failed_commands}")
+            else:
+                log.info("✅ All critical commands registered successfully")
+            
+            # Check persistent views
+            if hasattr(self, '_persistent_views_stats'):
+                stats = self._persistent_views_stats
+                if stats['succeeded'] > 0:
+                    log.info(f"✅ Persistent views registered: {stats['succeeded']}/{stats['attempted']}")
+                else:
+                    log.error("❌ Self-check failed - No persistent views registered")
+                
+                if stats['failed'] > 0:
+                    log.warning(f"⚠️ Some views failed to register: {stats['failed']}")
+            
+            # Check activity manager
+            activity_cog = self.get_cog('ActivityCog')
+            if activity_cog and hasattr(activity_cog, 'activity_manager'):
+                log.info("✅ Activity manager is operational")
+            else:
+                log.error("❌ Self-check failed - Activity manager not available")
+            
+            # Overall result
+            if not failed_cogs and not failed_commands:
+                log.info("🎉 Startup self-check passed - All systems operational")
+            else:
+                log.warning("⚠️ Startup self-check completed with issues - Some systems may be degraded")
+                
+        except Exception as e:
+            log.error(f"❌ Startup self-check failed with exception: {e}")
 
     async def close(self) -> None:
         try:
