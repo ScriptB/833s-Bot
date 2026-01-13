@@ -73,8 +73,9 @@ class PanelStore(BaseService[PanelRecord]):
     async def _execute(self, sql: str, params: tuple = ()) -> None:
         """Execute SQL with parameters and commit."""
         async def _db_op():
-            async with aiosqlite.connect(self.db_path) as db:
+            async with aiosqlite.connect(self._path) as db:
                 await db.execute("PRAGMA journal_mode=WAL")
+                await db.execute("PRAGMA foreign_keys=ON")
                 await db.execute(sql, params)
                 await db.commit()
         
@@ -82,13 +83,13 @@ class PanelStore(BaseService[PanelRecord]):
     
     async def _fetchone(self, sql: str, params: tuple = ()) -> Optional[tuple]:
         """Execute SQL and fetch one row."""
-        async with aiosqlite.connect(self.db_path) as db:
+        async with aiosqlite.connect(self._path) as db:
             cursor = await db.execute(sql, params)
             return await cursor.fetchone()
     
     async def _fetchall(self, sql: str, params: tuple = ()) -> List[tuple]:
         """Execute SQL and fetch all rows."""
-        async with aiosqlite.connect(self.db_path) as db:
+        async with aiosqlite.connect(self._path) as db:
             cursor = await db.execute(sql, params)
             return await cursor.fetchall()
     
@@ -121,7 +122,7 @@ class PanelStore(BaseService[PanelRecord]):
             INSERT OR REPLACE INTO panels 
             (guild_id, panel_key, channel_id, message_id, schema_version, last_deployed_at)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, guild_id, panel_key, channel_id, message_id, schema_version, datetime.utcnow().isoformat())
+        """, (guild_id, panel_key, channel_id, message_id, schema_version, datetime.utcnow().isoformat()))
         
         # Clear cache for this record
         cache_key = f"{guild_id}:{panel_key}"
@@ -172,7 +173,7 @@ class PanelStore(BaseService[PanelRecord]):
     
     async def delete(self, guild_id: int, panel_key: str) -> None:
         """Delete a panel record."""
-        await self._execute("DELETE FROM panels WHERE guild_id = ? AND panel_key = ?", guild_id, panel_key)
+        await self._execute("DELETE FROM panels WHERE guild_id = ? AND panel_key = ?", (guild_id, panel_key))
         
         # Clear cache
         cache_key = f"{guild_id}:{panel_key}"
