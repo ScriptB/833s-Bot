@@ -73,7 +73,8 @@ class OverhaulTempCog(commands.Cog):
         )
         embed.set_footer(text="This command is temporary and will be removed after use")
         
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.response.defer(ephemeral=True)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
         
         # Store pending confirmation
         self.pending_confirmations[interaction.user.id] = interaction
