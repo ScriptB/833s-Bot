@@ -36,11 +36,14 @@ from .services.profiles_store import ProfilesStore
 from .services.titles_store import TitlesStore
 from .services.root_store import RootStore
 from .ui.persistent import register_all_views
+from .observability import observability
+from .migration import initialize_migration_system
 
 log = logging.getLogger("guardian.bot")
 
 
 import asyncio
+from datetime import datetime
 
 
 class _CommandSyncManager:
@@ -145,6 +148,8 @@ class GuardianBot(commands.Bot):
         self.guild_logger = GuildLogger(self)
 
     async def setup_hook(self) -> None:
+        start_time = datetime.utcnow()
+        
         # Initialize all stores with centralized database initialization
         stores = [
             self.guild_store,
@@ -175,14 +180,20 @@ class GuardianBot(commands.Bot):
         register_all_views(self)
         log.info("Registered all persistent views")
         
+        # Initialize production systems
+        initialize_migration_system(self.settings.sqlite_path)
+        observability.log_startup_event("migration_system", "OK")
+        
         # Initialize panel registry renderers (will be done by cogs)
         
         # Start background services
         # self.drift_verifier.start()  # DISABLED - Prevents automatic channel recreation
         self.task_queue.start()
+        observability.log_startup_event("task_queue", "OK")
         
         # Setup error handlers
         await setup_error_handlers(self)
+        observability.log_startup_event("error_handlers", "OK")
 
         loaded: list[str] = []
         failed: list[str] = []
@@ -246,6 +257,11 @@ class GuardianBot(commands.Bot):
             await _load_cog("guardian.cogs.prefix_community", "PrefixCommunityCog")
 
         
+        # Production-ready systems
+        await _load_cog("guardian.cogs.setup_wizard", "SetupWizardCog")
+        await _load_cog("guardian.cogs.ticket_system", "TicketSystemCog")
+        await _load_cog("guardian.cogs.role_assignment", "RoleAssignmentCog")
+        
         # Persistent panels
         await _load_cog("guardian.cogs.verify_panel", "VerifyPanelCog")
         await _load_cog("guardian.cogs.role_panel", "RolePanelCog")
@@ -283,6 +299,13 @@ class GuardianBot(commands.Bot):
         
         await self._sync_mgr.sync_startup()
         log.info("Command sync complete")
+        observability.log_startup_event("command_sync", "OK")
+        
+        # Log startup complete with health summary
+        startup_duration = (datetime.utcnow() - start_time).total_seconds() * 1000 if 'start_time' in locals() else 0
+        observability.log_startup_complete(startup_duration)
+        
+        log.info("🚀 Guardian Bot startup complete - All systems operational")
 
     async def close(self) -> None:
         try:
