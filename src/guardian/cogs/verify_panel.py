@@ -4,21 +4,23 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from typing import Optional
+import logging
 
-from ..services.panel_store import PanelStore
+from ..ui.persistent import GUARDIAN_V1
+
+log = logging.getLogger("guardian.verify_panel")
 
 
-class PersistentVerifyView(discord.ui.View):
-    """Persistent verification view that survives bot restarts."""
+class VerifyView(discord.ui.View):
+    """Persistent verification view with stable custom_id."""
     
-    def __init__(self, guild_id: int):
+    def __init__(self):
         super().__init__(timeout=None)  # Persistent view
-        self.guild_id = guild_id
     
     @discord.ui.button(
         label="✅ Verify", 
         style=discord.ButtonStyle.success, 
-        custom_id="persistent_verify"
+        custom_id=f"{GUARDIAN_V1}:verify:accept"
     )
     async def verify(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         """Handle verification with stateless logic."""
@@ -69,32 +71,24 @@ class VerifyPanelCog(commands.Cog):
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.panel_store: Optional[PanelStore] = None
     
     async def cog_load(self) -> None:
-        """Initialize store and register persistent views."""
-        # Use bot's panel store
-        self.panel_store = self.bot.panel_store
-        
-        # Register persistent views for all existing panels
-        await self._restore_panels()
+        """Initialize panel registry renderer."""
+        # Register renderer with panel registry
+        self.bot.panel_registry.register_renderer("verify_panel", self._render_verify_panel)
+        log.info("Registered verify_panel renderer")
     
-    async def _restore_panels(self) -> None:
-        """Restore all persistent verification panels on startup."""
-        if not self.panel_store:
-            return
-            
-        panels = await self.panel_store.list_panels()
-        for panel in panels:
-            if panel.panel_key.startswith('verify_panel_'):
-                try:
-                    # Create and register the view
-                    view = PersistentVerifyView(panel.guild_id)
-                    self.bot.add_view(view, message_id=panel.message_id)
-                    
-                    self.bot.logger.info(f"✅ Restored verify panel {panel.panel_key} in guild {panel.guild_id}")
-                except Exception as e:
-                    self.bot.logger.exception(f"❌ Failed to restore verify panel {panel.panel_key} in guild {panel.guild_id}: {e}")
+    async def _render_verify_panel(self, guild: discord.Guild):
+        """Render verification panel embed and view."""
+        embed = discord.Embed(
+            title="🔐 Verification Required",
+            description="Click the button below to verify and gain access to the server.",
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text="Verification is required to access server channels")
+        
+        view = VerifyView()
+        return embed, view
     
     @app_commands.command(name="verifypanel", description="Deploy verification panel")
     @app_commands.checks.has_permissions(administrator=True)
@@ -103,11 +97,7 @@ class VerifyPanelCog(commands.Cog):
         await self._deploy_verify_panel(interaction)
     
     async def _deploy_verify_panel(self, interaction: discord.Interaction) -> None:
-        """Deploy a persistent verification panel."""
-        if not self.panel_store:
-            await interaction.response.send_message("Store not initialized.", ephemeral=True)
-            return
-        
+        """Deploy a persistent verification panel using panel registry."""
         await interaction.response.defer(ephemeral=True)
         
         guild = interaction.guild
@@ -121,46 +111,19 @@ class VerifyPanelCog(commands.Cog):
             )
             return
         
-        # Find or create verification channel
-        channel = discord.utils.get(guild.text_channels, name="verify")
-        if not channel:
-            try:
-                channel = await guild.create_text_channel(
-                    "verify", 
-                    reason="Verification panel channel"
-                )
-            except discord.Forbidden:
-                await interaction.followup.send(
-                    "❌ Missing permissions to create channels.",
-                    ephemeral=True
-                )
-                return
+        # Deploy using panel registry
+        message = await self.bot.panel_registry.deploy_panel("verify_panel", guild)
         
-        # Create panel embed
-        embed = discord.Embed(
-            title="✅ Server Verification",
-            description=(
-                "Click the button below to verify your account and gain access to the server.\n\n"
-                "Verification grants you the **Verified** role and unlocks server features."
-            ),
-            color=discord.Color.green()
-        )
-        embed.set_footer(text="Verification is persistent - click once per account")
-        
-        # Create and send view
-        view = PersistentVerifyView(guild.id)
-        message = await channel.send(embed=embed, view=view)
-        
-        # Store panel reference
-        panel_key = f"verify_panel_main"
-        await self.panel_store.upsert_panel(
-            panel_key, guild.id, channel.id, message.id
-        )
-        
-        await interaction.followup.send(
-            f"✅ Verification panel deployed: {message.jump_url}",
-            ephemeral=True
-        )
+        if message:
+            await interaction.followup.send(
+                f"✅ Verification panel deployed successfully.",
+                ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                "❌ Failed to deploy verification panel. Check logs for details.",
+                ephemeral=True
+            )
 
 
 # Setup function for adding cog

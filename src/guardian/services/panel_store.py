@@ -1,22 +1,49 @@
 from __future__ import annotations
 
 import aiosqlite
-import datetime
-from dataclasses import dataclass
-from typing import Optional, List
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+import logging
 
 from .base import BaseService
 
+log = logging.getLogger("guardian.panel_store")
 
-@dataclass
+
 class PanelRecord:
-    """Represents a persistent UI panel record."""
-    panel_key: str
-    guild_id: int
-    channel_id: int
-    message_id: int
-    updated_at: str
-    schema_version: int = 1
+    """Represents a stored panel record."""
+    
+    def __init__(self, guild_id: int, panel_key: str, channel_id: int, message_id: int, 
+                 schema_version: int = 1, last_deployed_at: Optional[datetime] = None):
+        self.guild_id = guild_id
+        self.panel_key = panel_key
+        self.channel_id = channel_id
+        self.message_id = message_id
+        self.schema_version = schema_version
+        self.last_deployed_at = last_deployed_at or datetime.utcnow()
+    
+    @classmethod
+    def from_row(cls, row: aiosqlite.Row) -> PanelRecord:
+        """Create PanelRecord from database row."""
+        return cls(
+            guild_id=row["guild_id"],
+            panel_key=row["panel_key"],
+            channel_id=row["channel_id"],
+            message_id=row["message_id"],
+            schema_version=row["schema_version"],
+            last_deployed_at=datetime.fromisoformat(row["last_deployed_at"]) if row["last_deployed_at"] else None
+        )
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for database operations."""
+        return {
+            "guild_id": self.guild_id,
+            "panel_key": self.panel_key,
+            "channel_id": self.channel_id,
+            "message_id": self.message_id,
+            "schema_version": self.schema_version,
+            "last_deployed_at": self.last_deployed_at.isoformat() if self.last_deployed_at else None
+        }
 
 
 class PanelStore(BaseService[PanelRecord]):
@@ -25,103 +52,83 @@ class PanelStore(BaseService[PanelRecord]):
     def __init__(self, db_path: str):
         super().__init__(db_path, cache_ttl_seconds=300)  # 5 minutes cache
     
-    async def _create_tables(self, db: aiosqlite.Connection) -> None:
-        """Create the panels table."""
-        await db.execute("""
+    async def _create_tables(self) -> None:
+        """Create panels table."""
+        await self._execute("""
             CREATE TABLE IF NOT EXISTS panels (
-                panel_key TEXT NOT NULL,
                 guild_id INTEGER NOT NULL,
+                panel_key TEXT NOT NULL,
                 channel_id INTEGER NOT NULL,
                 message_id INTEGER NOT NULL,
-                updated_at TEXT NOT NULL,
                 schema_version INTEGER NOT NULL DEFAULT 1,
-                PRIMARY KEY (panel_key, guild_id)
+                last_deployed_at TEXT,
+                PRIMARY KEY (guild_id, panel_key)
             )
         """)
     
     def _from_row(self, row: aiosqlite.Row) -> PanelRecord:
-        """Convert a database row to PanelRecord."""
-        return PanelRecord(
-            panel_key=row["panel_key"],
-            guild_id=row["guild_id"],
-            channel_id=row["channel_id"],
-            message_id=row["message_id"],
-            updated_at=row["updated_at"],
-            schema_version=row["schema_version"]
-        )
+        """Convert database row to PanelRecord."""
+        return PanelRecord.from_row(row)
     
-    @property
     def _get_query(self) -> str:
-        """SQL query for getting a panel by composite key."""
-        # This is a placeholder - we'll use custom queries
-        return "SELECT * FROM panels WHERE panel_key = ? AND guild_id = ?"
+        """Get query for fetching a single record."""
+        return "SELECT * FROM panels WHERE guild_id = ? AND panel_key = ?"
     
-    async def upsert_panel(
-        self, 
-        panel_key: str, 
-        guild_id: int, 
-        channel_id: int, 
-        message_id: int,
-        schema_version: int = 1
-    ) -> None:
+    async def upsert(self, guild_id: int, panel_key: str, channel_id: int, 
+                    message_id: int, schema_version: int = 1) -> None:
         """Insert or update a panel record."""
-        now = datetime.datetime.utcnow().isoformat()
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute("""
-                INSERT OR REPLACE INTO panels 
-                (panel_key, guild_id, channel_id, message_id, updated_at, schema_version)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (panel_key, guild_id, channel_id, message_id, now, schema_version))
-            await db.commit()
+        await self._execute("""
+            INSERT OR REPLACE INTO panels 
+            (guild_id, panel_key, channel_id, message_id, schema_version, last_deployed_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, guild_id, panel_key, channel_id, message_id, schema_version, datetime.utcnow().isoformat())
+        
+        # Clear cache for this record
+        cache_key = f"{guild_id}:{panel_key}"
+        self._cache.delete(cache_key)
     
-    async def get_panel(self, panel_key: str, guild_id: int) -> Optional[PanelRecord]:
-        """Get a specific panel record."""
+    async def get(self, guild_id: int, panel_key: str) -> Optional[PanelRecord]:
+        """Get a panel record."""
+        cache_key = f"{guild_id}:{panel_key}"
+        cached = self._cache.get(cache_key)
+        if cached is not None:
+            return cached
+        
         async with aiosqlite.connect(self._path) as db:
             db.row_factory = aiosqlite.Row
-            cursor = await db.execute("""
-                SELECT panel_key, guild_id, channel_id, message_id, updated_at, schema_version
-                FROM panels
-                WHERE panel_key = ? AND guild_id = ?
-            """, (panel_key, guild_id))
-            row = await cursor.fetchone()
-            if row:
-                return self._from_row(row)
-            return None
+            cur = await db.execute(self._get_query(), (guild_id, panel_key))
+            row = await cur.fetchone()
+            await cur.close()
+            
+            if row is None:
+                return None
+            
+            record = self._from_row(row)
+            self._cache.set(cache_key, record)
+            return record
     
-    async def list_panels(self, guild_id: Optional[int] = None) -> List[PanelRecord]:
-        """List all panels, optionally filtered by guild."""
+    async def list_guild_panels(self, guild_id: int) -> List[PanelRecord]:
+        """List all panels for a guild."""
         async with aiosqlite.connect(self._path) as db:
             db.row_factory = aiosqlite.Row
-            if guild_id:
-                cursor = await db.execute("""
-                    SELECT panel_key, guild_id, channel_id, message_id, updated_at, schema_version
-                    FROM panels
-                    WHERE guild_id = ?
-                    ORDER BY panel_key
-                """, (guild_id,))
-            else:
-                cursor = await db.execute("""
-                    SELECT panel_key, guild_id, channel_id, message_id, updated_at, schema_version
-                    FROM panels
-                    ORDER BY guild_id, panel_key
-                """)
-            rows = await cursor.fetchall()
+            cur = await db.execute("SELECT * FROM panels WHERE guild_id = ?", (guild_id,))
+            rows = await cur.fetchall()
+            await cur.close()
             return [self._from_row(row) for row in rows]
     
-    async def delete_panel(self, panel_key: str, guild_id: int) -> None:
-        """Delete a specific panel record."""
+    async def list_all_panels(self) -> List[PanelRecord]:
+        """List all panels across all guilds."""
         async with aiosqlite.connect(self._path) as db:
-            await db.execute("""
-                DELETE FROM panels
-                WHERE panel_key = ? AND guild_id = ?
-            """, (panel_key, guild_id))
-            await db.commit()
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT * FROM panels")
+            rows = await cur.fetchall()
+            await cur.close()
+            return [self._from_row(row) for row in rows]
     
-    async def delete_guild_panels(self, guild_id: int) -> None:
-        """Delete all panels for a guild (useful for guild removal)."""
-        async with aiosqlite.connect(self._path) as db:
-            await db.execute("""
-                DELETE FROM panels
-                WHERE guild_id = ?
-            """, (guild_id,))
-            await db.commit()
+    async def delete(self, guild_id: int, panel_key: str) -> None:
+        """Delete a panel record."""
+        await self._execute("DELETE FROM panels WHERE guild_id = ? AND panel_key = ?", guild_id, panel_key)
+        
+        # Clear cache
+        cache_key = f"{guild_id}:{panel_key}"
+        self._cache.delete(cache_key)

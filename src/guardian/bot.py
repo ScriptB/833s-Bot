@@ -28,10 +28,12 @@ from .services.channel_bootstrapper import ChannelBootstrapper
 from .services.status_reporter import StatusReporter
 from .services.guild_logger import GuildLogger
 from .services.panel_store import PanelStore
+from .services.panel_registry import PanelRegistry
 from .services.role_config_store import RoleConfigStore
 from .services.profiles_store import ProfilesStore
 from .services.titles_store import TitlesStore
 from .services.root_store import RootStore
+from .ui.persistent import register_all_views
 
 log = logging.getLogger("guardian.bot")
 
@@ -129,7 +131,8 @@ class GuardianBot(commands.Bot):
         self.panel_store = PanelStore(settings.sqlite_path)
         self.role_config_store = RoleConfigStore(settings.sqlite_path)
         
-        # Panel stores are already initialized above
+        # Initialize panel registry
+        self.panel_registry = PanelRegistry(self, self.panel_store)
         
         # Initialize bot-specific services
         self.drift_verifier = DriftVerifier(self)
@@ -161,6 +164,16 @@ class GuardianBot(commands.Bot):
         ]
         
         await initialize_database(self.settings.sqlite_path, stores)
+        
+        # Initialize persistent UI framework
+        register_all_views(self)
+        log.info("Registered all persistent views")
+        
+        # Initialize panel registry renderers (will be done by cogs)
+        
+        # Repair all panels on startup
+        repair_results = await self.panel_registry.repair_all_guilds_on_startup()
+        log.info(f"Panel repair completed: {repair_results}")
         
         # Start background services
         # self.drift_verifier.start()  # DISABLED - Prevents automatic channel recreation
@@ -230,12 +243,15 @@ class GuardianBot(commands.Bot):
         elif self.settings.prefix_commands_enabled:
             await _load_cog("guardian.cogs.prefix_community", "PrefixCommunityCog")
 
-
         
         # Persistent panels
         await _load_cog("guardian.cogs.verify_panel", "VerifyPanelCog")
         await _load_cog("guardian.cogs.role_panel", "RolePanelCog")
         await _load_cog("guardian.cogs.role_panel", "RoleSelectCog")
+        
+        # TEMPORARY: Load overhaul cog - REMOVE AFTER USE
+        await _load_cog("guardian.cogs.overhaul_temp", "OverhaulTempCog")
+        log.warning("TEMPORARY OverhaulTempCog loaded - REMEMBER TO REMOVE")
         
 
         log.info("Startup cog load summary: loaded=%d failed=%d", len(loaded), len(failed))

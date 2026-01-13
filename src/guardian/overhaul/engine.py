@@ -1,529 +1,459 @@
-"""
-Overhaul Engine
-
-Core overhaul logic with phases and error handling.
-"""
-
 from __future__ import annotations
 
 import asyncio
-import logging
-import time
-import traceback
-import unicodedata
 from dataclasses import dataclass
-from typing import Dict, List
-
+from typing import Optional, List, Dict, Any, Tuple
 import discord
+import logging
 
-from .spec import (
-    CANONICAL_TEMPLATE, ROLE_DEFINITIONS, STAFF_ROLES, BOT_ROLE_ID,
-    CategorySpec, ChannelSpec, ChannelKind
-)
-from .http_safety import http_safety
-from .progress import ProgressReporter
-from .reporting import send_safe_message
+from .rate_limiter import RateLimiter
+from .progress_reporter import ProgressReporter
 
-log = logging.getLogger("guardian.overhaul.engine")
+log = logging.getLogger("guardian.overhaul_engine")
 
 
 @dataclass
-class OverhaulStats:
-    """Overhaul execution statistics."""
-    deleted_channels: int = 0
-    deleted_categories: int = 0
-    deleted_roles: int = 0
-    created_channels: int = 0
-    created_categories: int = 0
-    created_roles: int = 0
-    failures: List[str] = None
-    start_time: float = None
-    end_time: float = None
-    
-    def __post_init__(self):
-        if self.failures is None:
-            self.failures = []
-        if self.start_time is None:
-            self.start_time = time.time()
+class ValidationResult:
+    valid: bool
+    errors: List[str]
+
+
+@dataclass
+class DeleteResult:
+    channels_deleted: int
+    categories_deleted: int
+    roles_deleted: int
+    skipped: List[str]
+
+
+@dataclass
+class RebuildResult:
+    categories_created: int
+    channels_created: int
+    roles_created: int
+    errors: List[str]
+
+
+@dataclass
+class ContentResult:
+    posts_created: int
+    errors: List[str]
 
 
 class OverhaulEngine:
-    """Main overhaul execution engine."""
+    """Engine for performing server overhaul operations."""
     
-    def __init__(self, guild: discord.Guild):
-        self.guild = guild
-        self.stats = OverhaulStats()
-        self.progress = ProgressReporter()
-        self._cancelled = False
+    def __init__(self, bot: discord.Client, rate_limiter: RateLimiter):
+        self.bot = bot
+        self.rate_limiter = rate_limiter
     
-    def cancel(self):
-        """Cancel overhaul execution."""
-        self._cancelled = True
-        self.progress.cancel()
-    
-    async def run(self, message: discord.Message) -> str:
-        """Execute overhaul with full error handling."""
-        try:
-            # Set up progress tracking
-            self.progress.set_user(message.author)
-            # Don't set interaction since we're using a message
-            
-            # Execute phases
-            await self._phase_1_preflight()
-            await self._phase_2_wipe()
-            await self._phase_3_apply_guild_settings()
-            await self._phase_4_create_roles()
-            await self._phase_5_create_structure()
-            await self._phase_6_apply_overwrites()
-            await self._phase_7_validate()
-            await self._phase_8_completion()
-            
-            return await self._generate_report()
-            
-        except Exception as e:
-            log.error(f"Overhaul failed: {e}")
-            log.error(traceback.format_exc())
-            raise
-        finally:
-            self.stats.end_time = time.time()
-            self.progress.cancel()
-    
-    async def _phase_1_preflight(self):
-        """Phase 1: Preflight checks."""
-        await self.progress.schedule_update("**Phase 1/8: Preflight Checks**\nVerifying permissions and setup")
+    async def validate(self, guild: discord.Guild) -> ValidationResult:
+        """Validate that overhaul can proceed safely."""
+        errors = []
         
         # Check bot permissions
-        required_permissions = [
-            "manage_channels",
-            "manage_roles", 
-            "manage_guild",
-            "read_messages",
-            "send_messages"
+        bot_member = guild.me
+        required_perms = [
+            discord.Permissions.manage_channels,
+            discord.Permissions.manage_roles,
+            discord.Permissions.manage_guild
         ]
         
-        missing_perms = []
-        for perm in required_permissions:
-            if not getattr(self.guild.me.guild_permissions, perm, False):
-                missing_perms.append(perm)
-        
+        missing_perms = [perm for perm in required_perms if not bot_member.guild_permissions.value & perm.value]
         if missing_perms:
-            raise PermissionError(f"Bot missing permissions: {', '.join(missing_perms)}")
+            errors.append(f"Missing permissions: {', '.join(perm.name for perm in missing_perms)}")
         
-        # Check bot role preservation
-        bot_role = self.guild.get_role(BOT_ROLE_ID)
-        if bot_role and bot_role.position > self.guild.me.top_role.position:
-            log.warning(f"Bot role {bot_role.name} is above bot's top role")
+        # Check bot role hierarchy
+        if bot_member.roles:
+            bot_top_role = max(bot_member.roles, key=lambda r: r.position)
+            roles_above_bot = [r for r in guild.roles if r.position > bot_top_role.position and r.name != "@everyone"]
+            if roles_above_bot:
+                errors.append(f"Cannot delete roles above bot: {', '.join(r.name for r in roles_above_bot[:5])}")
+        
+        # Check guild size
+        if guild.member_count > 10000:
+            errors.append(f"Large guild ({guild.member_count} members) - overhaul may take significant time")
+        
+        return ValidationResult(valid=len(errors) == 0, errors=errors)
     
-    async def _phase_2_wipe(self):
-        """Phase 2: Wipe existing structure."""
-        await self.progress.schedule_update("**Phase 2/8: Wipe**\nDeleting existing channels, categories, and roles")
+    async def delete_all(self, guild: discord.Guild, reporter: ProgressReporter) -> DeleteResult:
+        """Phase A: Delete all channels, categories, and eligible roles."""
+        channels_deleted = 0
+        categories_deleted = 0
+        roles_deleted = 0
+        skipped = []
         
-        # Delete channels first (more efficient than individual)
-        for channel in list(self.guild.channels):
-            if self._cancelled:
-                return
-            
+        # Delete channels first (must be done before categories)
+        channels = [c for c in guild.channels if not isinstance(c, discord.CategoryChannel)]
+        await reporter.start("Deleting Channels", len(channels))
+        
+        for channel in channels:
             try:
-                await http_safety.execute_with_retry(
-                    lambda: channel.delete(reason="Overhaul - Wipe")
-                )
-                self.stats.deleted_channels += 1
+                await self.rate_limiter.execute(channel.delete, reason="Server overhaul")
+                channels_deleted += 1
+                await reporter.step(f"Deleted #{channel.name}")
+            except discord.Forbidden:
+                skipped.append(f"Channel #{channel.name} (no permission)")
+                await reporter.skip(f"#{channel.name} (no permission)")
+            except discord.NotFound:
+                await reporter.skip(f"#{channel.name} (already deleted)")
             except Exception as e:
-                self.stats.failures.append(f"Error deleting channel {channel.name}: {e}")
+                await reporter.error(f"Failed to delete #{channel.name}", [str(e)])
         
         # Delete categories
-        for category in list(self.guild.categories):
-            if self._cancelled:
-                return
-            
+        categories = guild.categories
+        await reporter.start("Deleting Categories", len(categories))
+        
+        for category in categories:
             try:
-                await http_safety.execute_with_retry(
-                    lambda: category.delete(reason="Overhaul - Wipe")
-                )
-                self.stats.deleted_categories += 1
+                await self.rate_limiter.execute(category.delete, reason="Server overhaul")
+                categories_deleted += 1
+                await reporter.step(f"Deleted category {category.name}")
+            except discord.Forbidden:
+                skipped.append(f"Category {category.name} (no permission)")
+                await reporter.skip(f"{category.name} (no permission)")
+            except discord.NotFound:
+                await reporter.skip(f"{category.name} (already deleted)")
             except Exception as e:
-                self.stats.failures.append(f"Error deleting category {category.name}: {e}")
+                await reporter.error(f"Failed to delete category {category.name}", [str(e)])
         
-        # Delete roles
-        for role in list(self.guild.roles):
-            if self._cancelled:
-                return
-            
-            # Skip protected roles
-            if role.name == "@everyone":
-                continue
-            if role.managed:
-                continue
-            if role.position >= self.guild.me.top_role.position:
-                continue
-            if role.id == BOT_ROLE_ID:
-                log.info(f"Preserved bot role: {role.name}")
-                continue
-            
-            try:
-                await http_safety.execute_with_retry(
-                    lambda: role.delete(reason="Overhaul - Wipe")
-                )
-                self.stats.deleted_roles += 1
-            except Exception as e:
-                self.stats.failures.append(f"Error deleting role {role.name}: {e}")
-    
-    async def _phase_3_apply_guild_settings(self):
-        """Phase 3: Apply guild settings."""
-        await self.progress.schedule_update("**Phase 3/8: Guild Settings**\nApplying server configuration")
-        
-        try:
-            # Apply guild settings using discord.py 2.x enums
-            await http_safety.execute_with_retry(
-                lambda: self.guild.edit(
-                    system_channel=None,  # Clear system channel
-                    rules_channel=None,   # Clear rules channel
-                    public_updates_channel=None,  # Clear updates channel
-                    preferred_locale=None  # Clear preferred locale
-                )
-            )
-        except Exception as e:
-            self.stats.failures.append(f"Error applying guild settings: {e}")
-    
-    async def _phase_4_create_roles(self):
-        """Phase 4: Create roles."""
-        await self.progress.schedule_update("**Phase 4/8: Create Roles**\nBuilding role hierarchy")
-        
-        # Create roles in position order (highest first)
-        sorted_roles = sorted(
-            ROLE_DEFINITIONS.items(),
-            key=lambda x: x[1]["position"],
-            reverse=True
-        )
-        
-        for role_name, role_def in sorted_roles:
-            if self._cancelled:
-                return
-            
-            # Check if bot role already exists
-            if role_name == "Bots":
-                existing_bot_role = self.guild.get_role(BOT_ROLE_ID)
-                if existing_bot_role:
-                    log.info(f"Reusing existing bot role: {existing_bot_role.name}")
-                    continue
-            
-            try:
-                # Create permissions
-                if role_def.get("administrator"):
-                    permissions = discord.Permissions.all()
-                else:
-                    permissions = discord.Permissions.none()
-                    for perm_name in role_def.get("permissions", []):
-                        setattr(permissions, perm_name, True)
-                
-                # Create role
-                role = await http_safety.execute_with_retry(
-                    lambda: self.guild.create_role(
-                        name=role_name,
-                        permissions=permissions,
-                        hoist=role_name in ["Owner", "Admin", "Moderator", "Support"],
-                        reason="Overhaul - Role Creation"
-                    )
-                )
-                
-                # Set position
-                await http_safety.execute_with_retry(
-                    lambda: role.edit(position=role_def["position"])
-                )
-                
-                self.stats.created_roles += 1
-                
-            except Exception as e:
-                self.stats.failures.append(f"Error creating role {role_name}: {e}")
-    
-    async def _phase_5_create_structure(self):
-        """Phase 5: Create categories and channels."""
-        await self.progress.schedule_update("**Phase 5/8: Create Structure**\nBuilding categories and channels")
-        
-        # Get created roles for permission mapping
-        role_map = {role.name: role for role in self.guild.roles}
-        
-        for cat_idx, cat_spec in enumerate(CANONICAL_TEMPLATE):
-            if self._cancelled:
-                return
-            
-            try:
-                # Create category
-                overwrites = self._get_category_overwrites(cat_spec, role_map)
-                
-                category = await http_safety.execute_with_retry(
-                    lambda: self.guild.create_category(
-                        name=cat_spec.name,
-                        overwrites=overwrites,
-                        position=cat_spec.position,
-                        reason="Overhaul - Category Creation"
-                    )
-                )
-                self.stats.created_categories += 1
-                
-                # Create channels
-                for channel_spec in cat_spec.channels:
-                    if self._cancelled:
-                        return
-                    
-                    try:
-                        overwrites = self._get_channel_overwrites(cat_spec, channel_spec, role_map)
-                        
-                        # Create channel
-                        if channel_spec.kind == ChannelKind.VOICE:
-                            channel = await http_safety.execute_with_retry(
-                                lambda: category.create_voice_channel(
-                                    name=channel_spec.name,
-                                    overwrites=overwrites,
-                                    reason="Overhaul - Voice Channel Creation"
-                                )
-                            )
-                        else:
-                            channel = await http_safety.execute_with_retry(
-                                lambda: category.create_text_channel(
-                                    name=channel_spec.name,
-                                    overwrites=overwrites,
-                                    reason="Overhaul - Text Channel Creation"
-                                )
-                            )
-                        
-                        self.stats.created_channels += 1
-                        
-                    except Exception as e:
-                        self.stats.failures.append(f"Error creating channel {channel_spec.name}: {e}")
-                
-                # Update progress
-                details = f"Created {cat_idx + 1}/{len(CANONICAL_TEMPLATE)} categories"
-                await self.progress.schedule_update(f"**Phase 5/8: Create Structure**\n{details}")
-                
-            except Exception as e:
-                self.stats.failures.append(f"Error creating category {cat_spec.name}: {e}")
-    
-    async def _phase_6_apply_overwrites(self):
-        """Phase 6: Apply special overwrites."""
-        await self.progress.schedule_update("**Phase 6/8: Apply Overwrites**\nApplying special permissions")
-        
-        # Apply muted role restrictions
-        muted_role = discord.utils.get(self.guild.roles, name="Muted")
-        if not muted_role:
-            log.warning("Muted role not found - skipping muted restrictions")
-            return
-        
-        channels_to_mute = [ch for ch in self.guild.channels if isinstance(ch, (discord.TextChannel, discord.VoiceChannel))]
-        
-        for channel in channels_to_mute:
-            if self._cancelled:
-                return
-            
-            try:
-                await http_safety.execute_with_retry(
-                    lambda: channel.set_permissions(
-                        muted_role,
-                        send_messages=False,
-                        add_reactions=False,
-                        create_public_threads=False,
-                        create_private_threads=False,
-                        speak=False,
-                        reason="Overhaul - Muted Role Restrictions"
-                    )
-                )
-            except Exception as e:
-                self.stats.failures.append(f"Error applying muted restrictions to {channel.name}: {e}")
-        
-        # Apply read-only announcements
-        announcements_channel = discord.utils.get(self.guild.text_channels, name="📣 announcements")
-        if announcements_channel:
-            try:
-                staff_role = discord.utils.get(self.guild.roles, name="Staff")
-                if staff_role:
-                    await http_safety.execute_with_retry(
-                        lambda: announcements_channel.set_permissions(
-                            self.guild.default_role,
-                            send_messages=False,
-                            reason="Overhaul - Read-only Announcements"
-                        )
-                    )
-                    await http_safety.execute_with_retry(
-                        lambda: announcements_channel.set_permissions(
-                            staff_role,
-                            send_messages=True,
-                            reason="Overhaul - Staff Announcements"
-                        )
-                    )
-            except Exception as e:
-                self.stats.failures.append(f"Error applying announcements overwrites: {e}")
-    
-    async def _phase_7_validate(self):
-        """Phase 7: Validation against API-fetched state."""
-        await self.progress.schedule_update("**Phase 7/8: Validation**\nVerifying structure matches template")
-        
-        # Stabilization loop
-        for attempt in range(5):
-            try:
-                await asyncio.sleep(1)  # Wait for Discord to stabilize
-                channels = await http_safety.execute_with_retry(
-                    lambda: self.guild.fetch_channels()
-                )
-                break
-            except Exception as e:
-                if attempt == 4:
-                    raise
-                log.warning(f"Validation stabilization attempt {attempt + 1} failed: {e}")
-        
-        # Build lookup maps with normalized names
-        category_map = {
-            self._normalize_name(cat.name): cat 
-            for cat in channels 
-            if isinstance(cat, discord.CategoryChannel)
-        }
-        
-        # Validate categories and channels
-        for cat_spec in CANONICAL_TEMPLATE:
-            cat_name_norm = self._normalize_name(cat_spec.name)
-            category = category_map.get(cat_name_norm)
-            
-            if not category:
-                self.stats.failures.append(f"Missing category: {cat_spec.name}")
-                continue
-            
-            # Validate channels
-            channel_map = {
-                self._normalize_name(ch.name): ch 
-                for ch in category.channels
-            }
-            
-            for channel_spec in cat_spec.channels:
-                ch_name_norm = self._normalize_name(channel_spec.name)
-                channel = channel_map.get(ch_name_norm)
-                
-                if not channel:
-                    self.stats.failures.append(f"Missing channel: {channel_spec.name} in {cat_spec.name}")
-                    continue
-                
-                # Validate channel type
-                expected_type = (
-                    discord.VoiceChannel 
-                    if channel_spec.kind == ChannelKind.VOICE 
-                    else discord.TextChannel
-                )
-                if not isinstance(channel, expected_type):
-                    self.stats.failures.append(
-                        f"Wrong type for {channel_spec.name}: expected {channel_spec.kind.value}"
-                    )
-    
-    async def _phase_8_completion(self):
-        """Phase 8: Completion and level rewards."""
-        await self.progress.schedule_update("**Phase 8/8: Completion**\nFinalizing overhaul")
-        
-        # Set up level rewards if available
-        try:
-            # This would need to be implemented based on the bot's leveling system
-            log.info("Level rewards configuration would go here")
-        except Exception as e:
-            log.warning(f"Failed to configure level rewards: {e}")
-    
-    async def _generate_report(self) -> str:
-        """Generate completion report."""
-        duration = (self.stats.end_time or time.time()) - self.stats.start_time
-        
-        # Create summary report
-        summary_lines = [
-            "🏰 **OVERHAUL COMPLETED**",
-            "",
-            "📊 **STATISTICS**",
-            f"• Duration: {duration:.1f}s",
-            f"• Deleted: {self.stats.deleted_channels} channels, {self.stats.deleted_categories} categories, {self.stats.deleted_roles} roles",
-            f"• Created: {self.stats.created_channels} channels, {self.stats.created_categories} categories, {self.stats.created_roles} roles",
-            f"• Failures: {len(self.stats.failures)}",
+        # Delete eligible roles
+        bot_top_role = max(guild.me.roles, key=lambda r: r.position) if guild.me.roles else None
+        eligible_roles = [
+            r for r in guild.roles 
+            if r.name != "@everyone" 
+            and not r.managed 
+            and (not bot_top_role or r.position < bot_top_role.position)
         ]
         
-        if self.stats.failures:
-            summary_lines.extend([
-                "",
-                "⚠️ **FAILURES**",
-                *[f"• {failure}" for failure in self.stats.failures[:5]]
-            ])
-            if len(self.stats.failures) > 5:
-                summary_lines.append(f"• ... and {len(self.stats.failures) - 5} more")
+        await reporter.start("Deleting Roles", len(eligible_roles))
         
-        summary_lines.extend([
-            "",
-            "✅ **OPERATION COMPLETED**",
-            "• Emoji template structure created",
-            "• Permissions applied correctly", 
-            "• Server ready for use",
-            "",
-            "🚀 **DEPLOYMENT COMPLETE**"
-        ])
+        for role in eligible_roles:
+            try:
+                await self.rate_limiter.execute(role.delete, reason="Server overhaul")
+                roles_deleted += 1
+                await reporter.step(f"Deleted role @{role.name}")
+            except discord.Forbidden:
+                skipped.append(f"Role @{role.name} (no permission)")
+                await reporter.skip(f"@{role.name} (no permission)")
+            except discord.NotFound:
+                await reporter.skip(f"@{role.name} (already deleted)")
+            except Exception as e:
+                await reporter.error(f"Failed to delete role @{role.name}", [str(e)])
         
-        return "\n".join(summary_lines)
+        return DeleteResult(
+            channels_deleted=channels_deleted,
+            categories_deleted=categories_deleted,
+            roles_deleted=roles_deleted,
+            skipped=skipped
+        )
     
-    def _normalize_name(self, name: str) -> str:
-        """Normalize Unicode names for comparison."""
-        return unicodedata.normalize('NFC', name).strip()
+    async def rebuild_all(self, guild: discord.Guild, reporter: ProgressReporter) -> RebuildResult:
+        """Phase B: Rebuild clean server architecture."""
+        categories_created = 0
+        channels_created = 0
+        roles_created = 0
+        errors = []
+        
+        # Create roles first
+        await reporter.start("Creating Roles", 8)
+        roles = await self._create_roles(guild, reporter)
+        roles_created = len(roles)
+        
+        # Create categories
+        await reporter.start("Creating Categories", 8)
+        categories = await self._create_categories(guild, reporter)
+        categories_created = len(categories)
+        
+        # Create channels
+        await reporter.start("Creating Channels", 15)
+        channels = await self._create_channels(guild, categories, roles, reporter)
+        channels_created = len(channels)
+        
+        return RebuildResult(
+            categories_created=categories_created,
+            channels_created=channels_created,
+            roles_created=roles_created,
+            errors=errors
+        )
     
-    def _get_category_overwrites(self, cat_spec: CategorySpec, role_map: Dict[str, discord.Role]):
-        """Generate permission overwrites for a category."""
-        overwrites = {}
+    async def _create_roles(self, guild: discord.Guild, reporter: ProgressReporter) -> List[discord.Role]:
+        """Create the role hierarchy."""
+        role_configs = [
+            ("Verified", discord.Color.green(), 1),
+            ("Staff", discord.Color.blue(), 2),
+            ("Moderator", discord.Color.purple(), 3),
+            ("Admin", discord.Color.red(), 4),
+            ("Gamer", discord.Color.orange(), 1),
+            ("Developer", discord.Color.dark_grey(), 1),
+            ("Artist", discord.Color.magenta(), 1),
+            ("Music Lover", discord.Color.teal(), 1)
+        ]
         
-        try:
-            # @everyone default
-            everyone_role = self.guild.default_role
-            everyone_can_view = cat_spec.visibility.get("@everyone", False)
-            overwrites[everyone_role] = discord.PermissionOverwrite(read_messages=everyone_can_view)
-            
-            # Apply visibility rules
-            for role_name, can_view in cat_spec.visibility.items():
-                if role_name == "@everyone":
-                    continue
-                
-                if role_name == "staff":
-                    # Apply to all staff roles
-                    for staff_role_name in STAFF_ROLES:
-                        staff_role = role_map.get(staff_role_name)
-                        if staff_role:
-                            overwrites[staff_role] = discord.PermissionOverwrite(read_messages=can_view)
-                else:
-                    role = role_map.get(role_name)
-                    if role:
-                        overwrites[role] = discord.PermissionOverwrite(read_messages=can_view)
-        
-        except Exception as e:
-            log.error(f"Error creating category overwrites for {cat_spec.name}: {e}")
-            raise
-        
-        return overwrites
-    
-    def _get_channel_overwrites(self, cat_spec: CategorySpec, channel_spec: ChannelSpec, role_map: Dict[str, discord.Role]):
-        """Generate permission overwrites for a channel."""
-        overwrites = {}
-        
-        try:
-            # Start with category overwrites
-            overwrites.update(self._get_category_overwrites(cat_spec, role_map))
-            
-            # Apply channel-specific flags
-            if channel_spec.read_only:
-                everyone_role = self.guild.default_role
-                current = overwrites.get(everyone_role, discord.PermissionOverwrite())
-                overwrites[everyone_role] = discord.PermissionOverwrite(
-                    read_messages=current.read_messages,
-                    send_messages=False
+        roles = []
+        for name, color, position in role_configs:
+            try:
+                role = await self.rate_limiter.execute(
+                    guild.create_role, 
+                    name=name, 
+                    color=color, 
+                    reason="Server overhaul"
                 )
+                if position > 1:
+                    await self.rate_limiter.execute(role.edit, position=position)
+                roles.append(role)
+                await reporter.step(f"Created role @{name}")
+            except Exception as e:
+                await reporter.error(f"Failed to create role @{name}", [str(e)])
+        
+        return roles
+    
+    async def _create_categories(self, guild: discord.Guild, reporter: ProgressReporter) -> List[discord.CategoryChannel]:
+        """Create the category structure."""
+        category_names = [
+            "VERIFY GATE",
+            "START", 
+            "GENERAL",
+            "GAME HUB",
+            "GAME SPACES",
+            "INTEREST SPACES",
+            "SUPPORT",
+            "STAFF"
+        ]
+        
+        categories = []
+        for name in category_names:
+            try:
+                category = await self.rate_limiter.execute(
+                    guild.create_category,
+                    name,
+                    reason="Server overhaul"
+                )
+                categories.append(category)
+                await reporter.step(f"Created category {name}")
+            except Exception as e:
+                await reporter.error(f"Failed to create category {name}", [str(e)])
+        
+        return categories
+    
+    async def _create_channels(self, guild: discord.Guild, categories: List[discord.CategoryChannel], 
+                            roles: List[discord.Role], reporter: ProgressReporter) -> List[discord.TextChannel]:
+        """Create channels within categories."""
+        channels = []
+        
+        # Channel configurations: (name, category_name, overwrites)
+        channel_configs = [
+            # VERIFY GATE
+            ("verify", "VERIFY GATE", None),
             
-            if channel_spec.staff_only:
-                # Remove access for non-staff roles
-                everyone_role = self.guild.default_role
-                overwrites[everyone_role] = discord.PermissionOverwrite(read_messages=False)
-                
-                # Keep staff access
-                for staff_role_name in STAFF_ROLES:
-                    staff_role = role_map.get(staff_role_name)
-                    if staff_role:
-                        overwrites[staff_role] = discord.PermissionOverwrite(read_messages=True)
+            # START
+            ("welcome", "START", None),
+            ("rules", "START", None),
+            ("announcements", "START", None),
+            
+            # GENERAL
+            ("general", "GENERAL", None),
+            ("chat", "GENERAL", None),
+            ("memes", "GENERAL", None),
+            
+            # GAME HUB
+            ("choose-your-games", "GAME HUB", None),
+            
+            # GAME SPACES
+            ("gaming-discussion", "GAME SPACES", None),
+            ("game-lfg", "GAME SPACES", None),
+            
+            # INTEREST SPACES
+            ("art-showcase", "INTEREST SPACES", None),
+            ("music-chat", "INTEREST SPACES", None),
+            
+            # SUPPORT
+            ("tickets", "SUPPORT", None),
+            ("server-info", "SUPPORT", None),
+            
+            # STAFF
+            ("staff-chat", "STAFF", None),
+            ("mod-logs", "STAFF", None),
+        ]
         
-        except Exception as e:
-            log.error(f"Error creating channel overwrites for {channel_spec.name}: {e}")
-            raise
+        for name, category_name, overwrites in channel_configs:
+            category = discord.utils.get(categories, name=category_name)
+            if not category:
+                await reporter.error(f"Category {category_name} not found for channel {name}")
+                continue
+            
+            try:
+                channel = await self.rate_limiter.execute(
+                    guild.create_text_channel,
+                    name,
+                    category=category,
+                    reason="Server overhaul",
+                    overwrites=overwrites or {}
+                )
+                channels.append(channel)
+                await reporter.step(f"Created #{name}")
+            except Exception as e:
+                await reporter.error(f"Failed to create #{name}", [str(e)])
         
-        return overwrites
+        return channels
+    
+    async def post_content(self, guild: discord.Guild, reporter: ProgressReporter) -> ContentResult:
+        """Phase C: Post prepared content to channels."""
+        posts_created = 0
+        errors = []
+        
+        # Content definitions
+        content_posts = [
+            ("verify", self._get_verify_content()),
+            ("tickets", self._get_tickets_content()),
+            ("server-info", self._get_server_info_content()),
+            ("rules", self._get_rules_content()),
+            ("announcements", self._get_announcements_content()),
+            ("suggestions", self._get_suggestions_content())
+        ]
+        
+        await reporter.start("Posting Content", len(content_posts))
+        
+        for channel_name, content in content_posts:
+            channel = discord.utils.get(guild.text_channels, name=channel_name)
+            if not channel:
+                await reporter.skip(f"Channel #{channel_name} not found")
+                continue
+            
+            try:
+                await self.rate_limiter.execute(channel.send, **content)
+                posts_created += 1
+                await reporter.step(f"Posted content to #{channel_name}")
+            except Exception as e:
+                await reporter.error(f"Failed to post to #{channel_name}", [str(e)])
+        
+        return ContentResult(posts_created=posts_created, errors=errors)
+    
+    def _get_verify_content(self) -> Dict[str, Any]:
+        """Get verification channel content."""
+        return {
+            "content": "Verification Gate",
+            "embed": discord.Embed(
+                title="Verification Gate",
+                description=(
+                    "Welcome.\n"
+                    "This server is role-locked. You will not see anything until you verify.\n\n"
+                    "Click the button below to:\n"
+                    "- Confirm you are human\n"
+                    "- Accept the rules\n"
+                    "- Enter the live server\n\n"
+                    "Once verified:\n"
+                    "- The gate disappears\n"
+                    "- You get access to public areas\n"
+                    "- You can pick your game and interest roles\n\n"
+                    "If the button does nothing, refresh Discord or rejoin.\n\n"
+                    "Verification is required to use this server."
+                ),
+                color=discord.Color.blue()
+            )
+        }
+    
+    def _get_tickets_content(self) -> Dict[str, Any]:
+        """Get tickets channel content."""
+        return {
+            "content": "Support System",
+            "embed": discord.Embed(
+                title="Support System",
+                description=(
+                    "Need help from staff?\n\n"
+                    "Open a ticket using the button below.\n\n"
+                    "Tickets are used for:\n"
+                    "- Rule issues\n"
+                    "- Member problems\n"
+                    "- Reports\n"
+                    "- Technical problems\n"
+                    "- Role or access issues\n\n"
+                    "What happens when you open one:\n"
+                    "- A private channel is created\n"
+                    "- Only you and staff can see it\n"
+                    "- Everything stays logged\n\n"
+                    "Do not DM staff directly.\n"
+                    "Use the ticket system."
+                ),
+                color=discord.Color.orange()
+            )
+        }
+    
+    def _get_server_info_content(self) -> Dict[str, Any]:
+        """Get server-info channel content."""
+        return {
+            "content": (
+                "This server runs on 833's Guardian.\n\n"
+                "It is built to stay clean, organized, and easy to use.\n\n"
+                "**How access works:**\n"
+                "After verifying in #verify you can pick roles in #choose-your-games.\n"
+                "Each role unlocks its own channels.\n"
+                "If you do not choose a role, those channels will not appear for you.\n\n"
+                "**Getting help:**\n"
+                "Open a ticket in #tickets.\n\n"
+                "**Suggestions:**\n"
+                "Post ideas in #suggestions.\n\n"
+                "**Profiles and levels:**\n"
+                "Use !rank to see your level.\n\n"
+                "**Rules:**\n"
+                "The rules in #rules apply everywhere. No scams, no harassment, no NSFW."
+            )
+        }
+    
+    def _get_rules_content(self) -> Dict[str, Any]:
+        """Get rules channel content."""
+        return {
+            "content": "These rules apply everywhere.",
+            "embed": discord.Embed(
+                title="Server Rules",
+                description=(
+                    "**1) No harassment**\n"
+                    "No bullying, threats, slurs, or targeting.\n\n"
+                    "**2) No scams or fraud**\n"
+                    "No fake trades, fake links, impersonation, or tricking people.\n\n"
+                    "**3) No NSFW**\n"
+                    "No sexual content, gore, or explicit material.\n\n"
+                    "**4) No illegal activity**\n"
+                    "No piracy, malware, or anything illegal.\n\n"
+                    "**5) No spam**\n"
+                    "No floods, no self-promo without permission, no bot abuse.\n\n"
+                    "**6) Respect staff decisions**\n"
+                    "If you disagree, open a ticket. Do not argue publicly.\n\n"
+                    "Breaking rules removes access to the server."
+                ),
+                color=discord.Color.red()
+            )
+        }
+    
+    def _get_announcements_content(self) -> Dict[str, Any]:
+        """Get announcements channel content."""
+        return {
+            "content": (
+                "This channel is used for:\n"
+                "- Server updates\n"
+                "- System changes\n"
+                "- Events\n"
+                "- Important notices\n\n"
+                "Do not chat here.\n"
+                "Everything posted here matters."
+            )
+        }
+    
+    def _get_suggestions_content(self) -> Dict[str, Any]:
+        """Get suggestions channel content."""
+        return {
+            "content": "Have an idea?",
+            "embed": discord.Embed(
+                title="Suggestions",
+                description=(
+                    "Post it here.\n\n"
+                    "Suggestions should be:\n"
+                    "- Clear\n"
+                    "- Useful\n"
+                    "- Realistic\n\n"
+                    "Spam or joke suggestions will be removed.\n\n"
+                    "Good ideas get reviewed."
+                ),
+                color=discord.Color.green()
+            )
+        }
