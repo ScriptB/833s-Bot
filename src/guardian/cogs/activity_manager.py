@@ -11,6 +11,7 @@ from enum import Enum
 import discord
 from discord import app_commands
 from discord.ext import commands
+from guardian.permissions import require_staff
 
 log = logging.getLogger("guardian.activity_manager")
 
@@ -390,6 +391,7 @@ class ActivityCog(commands.Cog):
             app_commands.Choice(name="custom", value="custom")
         ]
     )
+    @require_staff()
     async def activity_command(
         self,
         interaction: discord.Interaction,

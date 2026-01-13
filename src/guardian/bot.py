@@ -31,6 +31,7 @@ from .ui.persistent import register_all_views
 from .services.panel_registry import PanelRegistry
 from .startup_diagnostics import StartupDiagnostics
 from .services.panel_store import PanelStore
+from .permissions import validate_command_permissions
 from .services.role_config_store import RoleConfigStore
 from .services.profiles_store import ProfilesStore
 from .services.titles_store import TitlesStore
@@ -379,8 +380,14 @@ class GuardianBot(commands.Bot):
             else:
                 log.error("❌ Self-check failed - Activity manager not available")
             
+            # Validate command permissions
+            if validate_command_permissions():
+                log.info("✅ Command permissions validation passed")
+            else:
+                log.error("❌ Self-check failed - Command permissions validation failed")
+            
             # Overall result
-            if not failed_cogs and not failed_commands:
+            if not failed_cogs and not failed_commands and validate_command_permissions():
                 log.info("🎉 Startup self-check passed - All systems operational")
             else:
                 log.warning("⚠️ Startup self-check completed with issues - Some systems may be degraded")

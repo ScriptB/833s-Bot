@@ -17,6 +17,7 @@ from guardian.services.server_config_store import ServerConfigStore
 from guardian.services.api_wrapper import safe_create_channel, safe_send_message, safe_edit_message
 from guardian.security.permissions import admin_command
 from guardian.constants import COLORS
+from guardian.permissions import require_admin, require_verified, is_verified
 
 log = logging.getLogger("guardian.reaction_roles")
 
@@ -428,6 +429,14 @@ class ReactionRolePanelView(View):
     
     async def _handle_role_action(self, interaction: discord.Interaction, role_id: int):
         """Handle role assignment/removal."""
+        # Check if user is verified
+        if not await is_verified(interaction):
+            await interaction.response.send_message(
+                "❌ You must be verified to use reaction roles.",
+                ephemeral=True
+            )
+            return
+        
         panel = await self._get_panel()
         if not panel:
             await interaction.response.send_message(
@@ -552,7 +561,7 @@ class ReactionRoleCog(commands.Cog):
             app_commands.Choice(name="delete", value="delete")
         ]
     )
-    @admin_command()
+    @require_admin()
     async def rr_command(
         self,
         interaction: discord.Interaction,

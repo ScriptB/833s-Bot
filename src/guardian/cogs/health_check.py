@@ -7,6 +7,8 @@ import logging
 import time
 from typing import Optional
 
+from guardian.permissions import require_verified, validate_command_permissions, list_commands_by_tier
+
 log = logging.getLogger("guardian.health_check")
 
 
@@ -20,6 +22,7 @@ class HealthCheckCog(commands.Cog):
         name="health",
         description="Display bot health status and system information"
     )
+    @require_verified()
     async def health(self, interaction: discord.Interaction):
         """Display comprehensive health status."""
         await interaction.response.defer(ephemeral=True)
@@ -125,6 +128,35 @@ class HealthCheckCog(commands.Cog):
                 value="\n".join(cmd_status),
                 inline=False
             )
+            
+            # Permission validation
+            validation_status = "✅" if validate_command_permissions() else "❌"
+            embed.add_field(
+                name="🔐 Permission Validation",
+                value=f"{validation_status} Command permissions mapped",
+                inline=False
+            )
+            
+            # Command tier summary (only show to admins)
+            if interaction.user.guild_permissions.administrator:
+                tier_commands = list_commands_by_tier()
+                tier_info = []
+                for tier, commands in tier_commands.items():
+                    tier_names = {
+                        1: "Verified",
+                        3: "Staff", 
+                        4: "Admin",
+                        5: "Owner",
+                        6: "Root"
+                    }
+                    tier_name = tier_names.get(tier, f"Tier {tier}")
+                    tier_info.append(f"**{tier_name}**: {len(commands)} commands")
+                
+                embed.add_field(
+                    name="📊 Command Tiers",
+                    value="\n".join(tier_info),
+                    inline=False
+                )
             
             # Overall health
             all_critical_loaded = all(critical_cogs.values())

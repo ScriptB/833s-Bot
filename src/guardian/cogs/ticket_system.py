@@ -12,6 +12,7 @@ from discord.ext import commands
 from guardian.services.api_wrapper import safe_send_message, safe_edit_message, safe_create_channel
 from guardian.security.permissions import staff_command, requires_manage_channels
 from guardian.constants import COLORS
+from guardian.permissions import require_verified, require_ticket_owner_or_staff
 
 log = logging.getLogger("guardian.ticket_system")
 
@@ -441,6 +442,7 @@ class TicketSystemCog(commands.Cog):
         name="ticket",
         description="Create a new support ticket"
     )
+    @require_verified()
     async def ticket_command(self, interaction: discord.Interaction):
         """Slash command to create a ticket."""
         await self.create_ticket(interaction)
@@ -449,7 +451,7 @@ class TicketSystemCog(commands.Cog):
         name="close",
         description="Close the current ticket"
     )
-    @staff_command()
+    @require_ticket_owner_or_staff()
     async def close_command(self, interaction: discord.Interaction):
         """Slash command to close a ticket."""
         await self.close_ticket(interaction)

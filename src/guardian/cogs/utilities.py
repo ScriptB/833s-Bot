@@ -4,12 +4,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from guardian.permissions import require_verified
+
 
 class UtilitiesCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot  # type: ignore[assignment]
 
     @app_commands.command(name="avatar", description="Show a user's avatar.")
+    @require_verified()
     async def avatar(self, interaction: discord.Interaction, user: discord.Member | None = None) -> None:
         target = user or interaction.user  # type: ignore[assignment]
         embed = discord.Embed(title=f"{target.display_name}'s avatar")
@@ -17,6 +20,7 @@ class UtilitiesCog(commands.Cog):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="userinfo", description="Show basic user info.")
+    @require_verified()
     async def userinfo(self, interaction: discord.Interaction, user: discord.Member | None = None) -> None:
         assert interaction.guild is not None
         m = user or interaction.user  # type: ignore[assignment]
@@ -31,6 +35,7 @@ class UtilitiesCog(commands.Cog):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="serverinfo", description="Show basic server info.")
+    @require_verified()
     async def serverinfo(self, interaction: discord.Interaction) -> None:
         assert interaction.guild is not None
         g = interaction.guild
