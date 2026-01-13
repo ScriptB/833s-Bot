@@ -4,40 +4,20 @@ import json
 import discord
 
 
-class LanguageSelect(discord.ui.Select):
-    def __init__(self) -> None:
-        options = [
-            discord.SelectOption(label="English", value="en"),
-            discord.SelectOption(label="Spanish", value="es"),
-            discord.SelectOption(label="French", value="fr"),
-            discord.SelectOption(label="German", value="de"),
-        ]
-        super().__init__(
-            placeholder="Language", 
-            min_values=1, 
-            max_values=1, 
-            options=options,
-            custom_id="onboarding_language"
-        )
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        view: OnboardingView = self.view  # type: ignore
-        view.language = self.values[0]
-        await interaction.response.send_message("Language saved.", ephemeral=True)
-
-
 class InterestSelect(discord.ui.Select):
     def __init__(self) -> None:
         options = [
-            discord.SelectOption(label="Gamer", value="Gamer"),
-            discord.SelectOption(label="Developer", value="Developer"),
-            discord.SelectOption(label="Artist", value="Artist"),
-            discord.SelectOption(label="Music", value="Music"),
+            discord.SelectOption(label="🎮 Roblox", value="Roblox"),
+            discord.SelectOption(label="🧱 Minecraft", value="Minecraft"),
+            discord.SelectOption(label="🦖 ARK", value="ARK"),
+            discord.SelectOption(label="🔫 FPS", value="FPS"),
+            discord.SelectOption(label="💻 Coding", value="Coding"),
+            discord.SelectOption(label="🐍 Snakes", value="Snakes"),
         ]
         super().__init__(
-            placeholder="Interests (optional)", 
+            placeholder="Select your interests (optional)", 
             min_values=0, 
-            max_values=4, 
+            max_values=6, 
             options=options,
             custom_id="onboarding_interests"
         )
@@ -56,9 +36,7 @@ class OnboardingView(discord.ui.View):
         self.bot = bot
         self.guild_id = guild_id
         self.user_id = user_id
-        self.language: str | None = None
         self.interests: list[str] = []
-        self.add_item(LanguageSelect())
         self.add_item(InterestSelect())
 
     @discord.ui.button(label="Accept Rules", style=discord.ButtonStyle.success, custom_id="onboarding_accept_rules")
@@ -68,7 +46,7 @@ class OnboardingView(discord.ui.View):
             return
         st = await self.bot.onboarding_store.get(self.guild_id, self.user_id)
         if st.step < 1:
-            await self.bot.onboarding_store.upsert(type(st)(self.guild_id, self.user_id, 1, st.language, st.interests_json, False))
+            await self.bot.onboarding_store.upsert(type(st)(self.guild_id, self.user_id, 1, None, st.interests_json, False))
         await interaction.response.send_message("Rules accepted.", ephemeral=True)
 
     @discord.ui.button(label="18+ Confirm", style=discord.ButtonStyle.primary, custom_id="onboarding_age_confirm")
@@ -78,7 +56,7 @@ class OnboardingView(discord.ui.View):
             return
         st = await self.bot.onboarding_store.get(self.guild_id, self.user_id)
         if st.step < 2:
-            await self.bot.onboarding_store.upsert(type(st)(self.guild_id, self.user_id, 2, st.language, st.interests_json, False))
+            await self.bot.onboarding_store.upsert(type(st)(self.guild_id, self.user_id, 2, None, st.interests_json, False))
         await interaction.response.send_message("Age confirmed.", ephemeral=True)
 
     @discord.ui.button(label="Finish", style=discord.ButtonStyle.success, custom_id="onboarding_finish")
@@ -92,9 +70,8 @@ class OnboardingView(discord.ui.View):
             await interaction.response.send_message("Complete Rules + 18+ first.", ephemeral=True)
             return
 
-        lang = self.language or st.language
         interests_json = json.dumps(self.interests, separators=(",", ":"), ensure_ascii=False)
-        await self.bot.onboarding_store.upsert(type(st)(self.guild_id, self.user_id, 3, lang, interests_json, True))
+        await self.bot.onboarding_store.upsert(type(st)(self.guild_id, self.user_id, 3, None, interests_json, True))
 
         guild = interaction.guild
         if not guild:

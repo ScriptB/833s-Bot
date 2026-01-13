@@ -27,26 +27,25 @@ class WelcomeCog(commands.Cog):
                 except (discord.Forbidden, discord.HTTPException):
                     pass
 
-        # Welcome message
-        if cfg.welcome_channel_id:
-            channel = member.guild.get_channel(cfg.welcome_channel_id)
-            if isinstance(channel, discord.TextChannel):
-                try:
-                    embed = discord.Embed(
-                        title="Welcome to the server!",
-                        description=(
-                            f"Hey {member.mention} — welcome in.\n\n"
-                            "• Check the rules\n"
-                            "• Grab roles if available\n"
-                            "• Say hi and enjoy your stay 👊"
-                        ),
-                    )
-                    embed.set_thumbnail(url=member.display_avatar.url)
-                    await channel.send(embed=embed)
-                    self.bot.stats.welcomes_sent += 1  # type: ignore[attr-defined]
-                    await asyncio.sleep(0.2)
-                except discord.HTTPException:
-                    pass
+        # Welcome message (send DM instead of public channel)
+        try:
+            embed = discord.Embed(
+                title="Welcome to the server!",
+                description=(
+                    f"Hey {member.mention} — welcome!\n\n"
+                    "• Read the rules in #rules\n"
+                    "• Verify in #verify to get access\n"
+                    "• Pick roles in #reaction-roles\n"
+                    "• Enjoy your stay! 🎯"
+                ),
+                color=discord.Color.green()
+            )
+            embed.set_thumbnail(url=member.display_avatar.url)
+            await member.send(embed=embed)
+            self.bot.stats.welcomes_sent += 1  # type: ignore[attr-defined]
+            await asyncio.sleep(0.2)
+        except discord.HTTPException:
+            pass
 
         # Log
         await self.bot.guild_logger.send(  # type: ignore[attr-defined]
