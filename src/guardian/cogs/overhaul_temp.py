@@ -9,7 +9,7 @@ from discord.ext import commands
 import logging
 
 from ..overhaul.engine import OverhaulEngine
-from ..overhaul.progress_reporter import ProgressReporter
+from ..overhaul.progress import ProgressReporter
 from ..overhaul.rate_limiter import RateLimiter
 
 log = logging.getLogger("guardian.overhaul_temp")
@@ -93,35 +93,40 @@ class OverhaulTempCog(commands.Cog):
         
         # Initialize components
         engine = OverhaulEngine(self.bot, self.rate_limiter)
-        reporter = ProgressReporter(self.bot, interaction.user)
+        reporter = ProgressReporter(interaction.user, self.bot, interaction.guild.id)
         
         try:
             # Phase A: Validation
-            await reporter.send()  # Send initial DM
-            await reporter.update("Validating…")
+            await reporter.init()
+            await reporter.phase("Validating")
             validation_result = await engine.validate(interaction.guild)
             if not validation_result.ok:
-                await reporter.finalize(False, f"Validation failed: {validation_result.reason}")
+                await reporter.fail(f"Validation failed: {validation_result.reason}")
                 return
             
-            await reporter.update("Snapshot…")
+            await reporter.phase("Snapshot")
             # Note: snapshot could be added here if needed
             
-            await reporter.update("Deleting…")
+            await reporter.phase("Deleting")
             delete_result = await engine.delete_all(interaction.guild, reporter)
             
             # Fail closed if deletion failed hard
             if delete_result.channels_deleted == 0 and delete_result.categories_deleted == 0 and delete_result.roles_deleted == 0:
-                await reporter.finalize(False, "Deletion phase failed - no items deleted")
+                await reporter.fail("Deletion did not execute; check bot role permissions")
                 return
             
-            await reporter.update("Rebuilding…")
+            await reporter.phase("Rebuilding")
             rebuild_result = await engine.rebuild_all(interaction.guild, reporter)
             
-            await reporter.update("Posting channel texts…")
+            await reporter.phase("Posting channel posts")
             content_result = await engine.post_content(interaction.guild, reporter)
             
-            await reporter.finalize(True, "Overhaul completed successfully")
+            final_summary = (
+                f"Deleted: {delete_result.channels_deleted} channels, {delete_result.categories_deleted} categories, {delete_result.roles_deleted} roles. "
+                f"Created: {rebuild_result.categories_created} categories, {rebuild_result.channels_created} channels, {rebuild_result.roles_created} roles. "
+                f"Posted: {content_result.posts_created} content messages."
+            )
+            await reporter.finalize(final_summary)
             
         except Exception as e:
             log.exception(f"Critical error during overhaul: {e}")

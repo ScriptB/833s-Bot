@@ -8,7 +8,7 @@ import discord
 import logging
 
 from .rate_limiter import RateLimiter
-from .progress_reporter import ProgressReporter
+from .progress import ProgressReporter
 
 log = logging.getLogger("guardian.overhaul_engine")
 
@@ -187,17 +187,17 @@ class OverhaulEngine:
         errors = []
         
         # Create roles first
-        await reporter.start("Creating Roles", 8)
+        await reporter.phase("Creating Roles", total_steps=8)
         roles = await self._create_roles(guild, reporter)
         roles_created = len(roles)
         
         # Create categories
-        await reporter.start("Creating Categories", 8)
+        await reporter.phase("Creating Categories", total_steps=8)
         categories = await self._create_categories(guild, reporter)
         categories_created = len(categories)
         
         # Create channels
-        await reporter.start("Creating Channels", 15)
+        await reporter.phase("Creating Channels", total_steps=15)
         channels = await self._create_channels(guild, categories, roles, reporter)
         channels_created = len(channels)
         
@@ -222,7 +222,7 @@ class OverhaulEngine:
         ]
         
         roles = []
-        for name, color, position in role_configs:
+        for i, (name, color, position) in enumerate(role_configs):
             try:
                 role = await self.rate_limiter.execute(
                     guild.create_role, 
@@ -233,9 +233,11 @@ class OverhaulEngine:
                 if position > 1:
                     await self.rate_limiter.execute(role.edit, position=position)
                 roles.append(role)
-                await reporter.step(f"Created role @{name}")
+                reporter.track_created(roles=1)
+                await reporter.step(f"Created role @{name}", advance=1)
             except Exception as e:
-                await reporter.error(f"Failed to create role @{name}", [str(e)])
+                reporter.track_error(f"Failed to create role @{name}: {str(e)}")
+                await reporter.step(f"Error creating role @{name}", advance=1)
         
         return roles
     
@@ -253,7 +255,7 @@ class OverhaulEngine:
         ]
         
         categories = []
-        for name in category_names:
+        for i, name in enumerate(category_names):
             try:
                 category = await self.rate_limiter.execute(
                     guild.create_category,
@@ -261,9 +263,11 @@ class OverhaulEngine:
                     reason="Server overhaul"
                 )
                 categories.append(category)
-                await reporter.step(f"Created category {name}")
+                reporter.track_created(categories=1)
+                await reporter.step(f"Created category {name}", advance=1)
             except Exception as e:
-                await reporter.error(f"Failed to create category {name}", [str(e)])
+                reporter.track_error(f"Failed to create category {name}: {str(e)}")
+                await reporter.step(f"Error creating category {name}", advance=1)
         
         return categories
     
@@ -307,10 +311,11 @@ class OverhaulEngine:
             ("mod-logs", "STAFF", None),
         ]
         
-        for name, category_name, overwrites in channel_configs:
+        for i, (name, category_name, overwrites) in enumerate(channel_configs):
             category = discord.utils.get(categories, name=category_name)
             if not category:
-                await reporter.error(f"Category {category_name} not found for channel {name}")
+                reporter.track_error(f"Category {category_name} not found for channel {name}")
+                await reporter.step(f"Skipped #{name} (category not found)", advance=1)
                 continue
             
             try:
@@ -322,9 +327,11 @@ class OverhaulEngine:
                     overwrites=overwrites or {}
                 )
                 channels.append(channel)
-                await reporter.step(f"Created #{name}")
+                reporter.track_created(channels=1)
+                await reporter.step(f"Created #{name}", advance=1)
             except Exception as e:
-                await reporter.error(f"Failed to create #{name}", [str(e)])
+                reporter.track_error(f"Failed to create #{name}: {str(e)}")
+                await reporter.step(f"Error creating #{name}", advance=1)
         
         return channels
     
@@ -343,20 +350,22 @@ class OverhaulEngine:
             ("suggestions", self._get_suggestions_content())
         ]
         
-        await reporter.start("Posting Content", len(content_posts))
+        await reporter.phase("Posting Content", total_steps=len(content_posts))
         
-        for channel_name, content in content_posts:
+        for i, (channel_name, content) in enumerate(content_posts):
             channel = discord.utils.get(guild.text_channels, name=channel_name)
             if not channel:
-                await reporter.skip(f"Channel #{channel_name} not found")
+                reporter.track_skip()
+                await reporter.step(f"Skipped #{channel_name} (not found)", advance=1)
                 continue
             
             try:
                 await self.rate_limiter.execute(channel.send, **content)
                 posts_created += 1
-                await reporter.step(f"Posted content to #{channel_name}")
+                await reporter.step(f"Posted content to #{channel_name}", advance=1)
             except Exception as e:
-                await reporter.error(f"Failed to post to #{channel_name}", [str(e)])
+                reporter.track_error(f"Failed to post to #{channel_name}: {str(e)}")
+                await reporter.step(f"Error posting to #{channel_name}", advance=1)
         
         return ContentResult(posts_created=posts_created, errors=errors)
     
