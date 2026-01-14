@@ -301,7 +301,6 @@ COMMAND_TIER_MAPPING = {
     "rr": PermissionTier.ADMIN,
     
     # OWNER (Tier 5)
-    "overhaul": PermissionTier.OWNER,
     
     # ROOT (Tier 6)
     "root_request": PermissionTier.ROOT,
@@ -315,7 +314,7 @@ COMMAND_TIER_MAPPING = {
 def validate_command_permissions():
     """Validate that all commands have permission tiers assigned."""
     total_commands = len(COMMAND_TIER_MAPPING)
-    expected_commands = 35  # Updated based on actual command count
+    expected_commands = 34  # Updated after removing overhaul command
     
     if total_commands != expected_commands:
         log.warning(f"Command permission mapping incomplete: {total_commands}/{expected_commands} commands mapped")

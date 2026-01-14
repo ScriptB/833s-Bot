@@ -64,7 +64,7 @@ class StartupDiagnostics:
             self.results["loaded_cogs"] = loaded_cogs
             
             # Check for critical cogs - match bot's self-check
-            critical_cogs = ["OverhaulCog", "VerifyPanelCog", "RolePanelCog", "ActivityCog", "TicketSystemCog", "RoleAssignmentCog", "HealthCheckCog", "ReactionRoleCog"]
+            critical_cogs = ["VerifyPanelCog", "RolePanelCog", "ActivityCog", "TicketSystemCog", "RoleAssignmentCog", "HealthCheckCog", "ReactionRoleCog"]
             missing_critical = [cog for cog in critical_cogs if cog not in loaded_cogs]
             
             if missing_critical:

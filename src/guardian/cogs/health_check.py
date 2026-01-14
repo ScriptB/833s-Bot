@@ -58,18 +58,17 @@ class HealthCheckCog(commands.Cog):
             
             # Check critical cogs
             critical_cogs = {
-                'OverhaulCog': self.bot.get_cog('OverhaulCog') is not None,
                 'VerifyPanelCog': self.bot.get_cog('VerifyPanelCog') is not None,
                 'RolePanelCog': self.bot.get_cog('RolePanelCog') is not None,
                 'ActivityCog': self.bot.get_cog('ActivityCog') is not None,
                 'TicketSystemCog': self.bot.get_cog('TicketSystemCog') is not None,
                 'RoleAssignmentCog': self.bot.get_cog('RoleAssignmentCog') is not None,
+                'HealthCheckCog': self.bot.get_cog('HealthCheckCog') is not None,
                 'ReactionRoleCog': self.bot.get_cog('ReactionRoleCog') is not None,
             }
             
             # Check critical commands
             critical_commands = {
-                'overhaul': any(cmd.name == 'overhaul' for cmd in commands),
                 'verifypanel': any(cmd.name == 'verifypanel' for cmd in commands),
                 'rolepanel': any(cmd.name == 'rolepanel' for cmd in commands),
                 'activity': any(cmd.name == 'activity' for cmd in commands),

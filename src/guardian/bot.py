@@ -274,10 +274,6 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.role_panel", "RolePanelCog")
         await _load_cog("guardian.cogs.role_panel", "RoleSelectCog")
         
-        # Production-grade overhaul system
-        await _load_cog("guardian.cogs.overhaul", "OverhaulCog")
-        log.info("Production-grade OverhaulCog loaded")
-        
 
         log.info("Startup cog load summary: loaded=%d failed=%d", len(loaded), len(failed))
         if loaded:
@@ -290,11 +286,7 @@ class GuardianBot(commands.Bot):
         diagnostics = StartupDiagnostics(self)
         diagnostic_results = await diagnostics.run_diagnostics()
         
-        # Check if critical systems failed
-        if diagnostics.should_disable_overhaul():
-            log.error("❌ Disabling /overhaul due to critical failures")
-            # TODO: Implement command disabling
-        
+                
         if diagnostics.should_disable_panels():
             log.error("❌ Disabling panel operations due to critical failures")
             # TODO: Implement panel disabling
@@ -328,7 +320,6 @@ class GuardianBot(commands.Bot):
             
             # Check critical cogs
             critical_cogs = {
-                'OverhaulCog': self.get_cog('OverhaulCog') is not None,
                 'VerifyPanelCog': self.get_cog('VerifyPanelCog') is not None,
                 'RolePanelCog': self.get_cog('RolePanelCog') is not None,
                 'ActivityCog': self.get_cog('ActivityCog') is not None,
@@ -347,12 +338,17 @@ class GuardianBot(commands.Bot):
             # Check critical commands
             commands = list(self.tree.get_commands())
             critical_commands = {
-                'overhaul': any(cmd.name == 'overhaul' for cmd in commands),
                 'verifypanel': any(cmd.name == 'verifypanel' for cmd in commands),
                 'rolepanel': any(cmd.name == 'rolepanel' for cmd in commands),
                 'activity': any(cmd.name == 'activity' for cmd in commands),
-                'setup': any(cmd.name == 'setup' for cmd in commands),
+                'ticket': any(cmd.name == 'ticket' for cmd in commands),
+                'close': any(cmd.name == 'close' for cmd in commands),
+                'roles': any(cmd.name == 'roles' for cmd in commands),
+                'myroles': any(cmd.name == 'myroles' for cmd in commands),
                 'health': any(cmd.name == 'health' for cmd in commands),
+                'verifypanel': any(cmd.name == 'verifypanel' for cmd in commands),
+                'rolepanel': any(cmd.name == 'rolepanel' for cmd in commands),
+                'roleselect': any(cmd.name == 'roleselect' for cmd in commands),
                 'rr': any(cmd.name == 'rr' for cmd in commands),
             }
             
