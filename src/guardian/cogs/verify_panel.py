@@ -7,7 +7,7 @@ from typing import Optional
 import logging
 
 from ..ui.persistent import GUARDIAN_V1
-from guardian.permissions import require_admin
+from ..permissions import require_admin
 
 log = logging.getLogger("guardian.verify_panel")
 

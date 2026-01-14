@@ -9,7 +9,7 @@ from discord.ext import commands
 
 from ..services.levels_config_store import LevelsConfig
 from ..services.levels_store import LevelsStore
-from guardian.permissions import require_verified
+from ..permissions import require_verified
 
 
 class LevelsCog(commands.Cog):

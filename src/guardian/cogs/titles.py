@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from guardian.permissions import require_verified
+from ..permissions import require_verified
 
 
 TITLE_CATALOG: list[tuple[int, str]] = [

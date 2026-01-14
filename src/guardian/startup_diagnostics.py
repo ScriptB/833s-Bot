@@ -64,7 +64,7 @@ class StartupDiagnostics:
             self.results["loaded_cogs"] = loaded_cogs
             
             # Check for critical cogs - match bot's self-check
-            critical_cogs = ["VerifyPanelCog", "RolePanelCog", "ActivityCog", "TicketSystemCog", "RoleAssignmentCog", "HealthCheckCog"]
+            critical_cogs = ["VerifyPanelCog", "RolePanelCog", "ActivityCog", "TicketSystemCog", "RoleAssignmentCog", "HealthCheckCog", "ReactionRolesCog"]
             missing_critical = [cog for cog in critical_cogs if cog not in loaded_cogs]
             
             if missing_critical:
@@ -100,7 +100,7 @@ class StartupDiagnostics:
     async def _check_overhaul_system(self):
         """Check production overhaul system."""
         try:
-            from guardian.cogs.overhaul import OverhaulEngine, OverhaulConfig
+            from .cogs.overhaul import OverhaulEngine, OverhaulConfig
             
             # Check that the overhaul system can be imported
             config = OverhaulConfig()
@@ -114,7 +114,7 @@ class StartupDiagnostics:
     async def _check_panel_store_schema(self):
         """Check PanelStore schema version."""
         try:
-            from guardian.services.panel_store import PanelStore
+            from .services.panel_store import PanelStore
             
             # Check required methods
             required_methods = ['init', 'upsert', 'get', 'delete', 'list_guild']

@@ -11,7 +11,7 @@ from enum import Enum
 import discord
 from discord import app_commands
 from discord.ext import commands
-from guardian.permissions import require_staff
+from ..permissions import require_staff
 
 log = logging.getLogger("guardian.activity_manager")
 

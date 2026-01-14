@@ -6,8 +6,8 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 
-from guardian.services.api_wrapper import safe_send_message, safe_edit_message, APIResult
-from guardian.interfaces import validate_panel_store, has_required_guild_perms, sanitize_user_text
+from .api_wrapper import safe_send_message, safe_edit_message, APIResult
+from ..interfaces import validate_panel_store, has_required_guild_perms, sanitize_user_text
 
 log = logging.getLogger("guardian.enhanced_panel_registry")
 
@@ -55,6 +55,13 @@ class EnhancedPanelRegistry:
                 panel_key="ticket_panel",
                 channel_name="support-start", 
                 custom_id="guardian_ticket_panel_v1",
+                timeout=None,  # Persistent
+                required_permissions=["send_messages", "embed_links"]
+            ),
+            "reaction_roles_panel": PanelConfig(
+                panel_key="reaction_roles_panel",
+                channel_name="reaction-roles",
+                custom_id="guardian_reaction_roles_v1",
                 timeout=None,  # Persistent
                 required_permissions=["send_messages", "embed_links"]
             )

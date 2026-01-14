@@ -9,10 +9,10 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from guardian.services.api_wrapper import safe_send_message, safe_edit_message, safe_create_channel
-from guardian.security.permissions import staff_command, requires_manage_channels
-from guardian.constants import COLORS
-from guardian.permissions import require_verified, require_ticket_owner_or_staff
+from ..services.api_wrapper import safe_send_message, safe_edit_message, safe_create_channel
+from ..security.permissions import staff_command, requires_manage_channels
+from ..constants import COLORS
+from ..permissions import require_verified, require_ticket_owner_or_staff
 
 log = logging.getLogger("guardian.ticket_system")
 

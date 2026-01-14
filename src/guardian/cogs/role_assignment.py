@@ -8,9 +8,9 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from guardian.services.api_wrapper import safe_add_role, safe_remove_role
-from guardian.security.permissions import user_command
-from guardian.constants import COLORS
+from ..services.api_wrapper import safe_add_role, safe_remove_role
+from ..security.permissions import user_command
+from ..constants import COLORS
 
 log = logging.getLogger("guardian.role_assignment")
 

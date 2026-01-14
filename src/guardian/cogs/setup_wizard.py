@@ -8,9 +8,9 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from guardian.services.api_wrapper import APIResult, safe_send_message, safe_create_channel
-from guardian.interfaces import has_required_guild_perms
-from guardian.constants import COLORS
+from ..services.api_wrapper import APIResult, safe_send_message, safe_create_channel
+from ..interfaces import has_required_guild_perms
+from ..constants import COLORS
 
 log = logging.getLogger("guardian.setup_wizard")
 
