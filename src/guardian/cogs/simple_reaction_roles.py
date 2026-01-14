@@ -414,11 +414,7 @@ class SimpleReactionRolesCog(commands.Cog):
         
         await self.store.init()
         
-        # Register persistent member view for all guilds
-        # This will be called when the bot starts up to reattach views to existing messages
-        self.bot.add_view(MemberView(self, 0))  # Generic view, guild_id will be checked in interaction_check
-        
-        log.info("SimpleReactionRolesCog loaded with persistent view registration")
+        log.info("SimpleReactionRolesCog loaded successfully")
 
     @app_commands.command(
         name="reactionroles",
