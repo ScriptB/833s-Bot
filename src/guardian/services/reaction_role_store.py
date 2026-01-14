@@ -81,8 +81,8 @@ class ReactionRolePanel:
 class ReactionRoleStore(BaseService[ReactionRolePanel]):
     """Store for reaction role panels."""
     
-    def __init__(self, sqlite_path: str, cache_ttl: int = 300) -> None:
-        super().__init__(sqlite_path, cache_ttl)
+    def __init__(self, sqlite_path: str, cache_ttl_seconds: int = 300) -> None:
+        super().__init__(sqlite_path, cache_ttl_seconds)
 
     async def _create_tables(self, db: aiosqlite.Connection) -> None:
         """Create reaction role panels table."""
