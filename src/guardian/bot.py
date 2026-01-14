@@ -267,6 +267,7 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.role_assignment", "RoleAssignmentCog")
         await _load_cog("guardian.cogs.activity_manager", "ActivityCog")
         await _load_cog("guardian.cogs.health_check", "HealthCheckCog")
+        await _load_cog("guardian.cogs.reaction_roles", "ReactionRolesCog")
         
         # Persistent panels
         await _load_cog("guardian.cogs.verify_panel", "VerifyPanelCog")
@@ -286,17 +287,10 @@ class GuardianBot(commands.Bot):
         diagnostic_results = await diagnostics.run_diagnostics()
         
                 
-        if diagnostics.should_disable_panels():
-            log.error("❌ Disabling panel operations due to critical failures")
-            # TODO: Implement panel disabling
-        
-        # Repair all panels on startup (only if not disabled)
-        if not diagnostics.should_disable_panels():
-            repair_results = await self.panel_registry.repair_all_guilds_on_startup()
-            log.info(f"Panel repair completed: {repair_results}")
-            observability.log_startup_event("panel_registry_ready", "OK")
-        else:
-            observability.log_startup_event("panel_registry_ready", "DISABLED")
+        # Repair all panels on startup
+        repair_results = await self.panel_registry.repair_all_guilds_on_startup()
+        log.info(f"Panel repair completed: {repair_results}")
+        observability.log_startup_event("panel_registry_ready", "OK")
         
         await self._sync_mgr.sync_startup()
         log.info("Command sync complete")
@@ -325,6 +319,7 @@ class GuardianBot(commands.Bot):
                 'TicketSystemCog': self.get_cog('TicketSystemCog') is not None,
                 'RoleAssignmentCog': self.get_cog('RoleAssignmentCog') is not None,
                 'HealthCheckCog': self.get_cog('HealthCheckCog') is not None,
+                'ReactionRolesCog': self.get_cog('ReactionRolesCog') is not None,
             }
             
             failed_cogs = [name for name, loaded in critical_cogs.items() if not loaded]
@@ -347,6 +342,7 @@ class GuardianBot(commands.Bot):
                 'verifypanel': any(cmd.name == 'verifypanel' for cmd in commands),
                 'rolepanel': any(cmd.name == 'rolepanel' for cmd in commands),
                 'roleselect': any(cmd.name == 'roleselect' for cmd in commands),
+                'reactionroles': any(cmd.name == 'reactionroles' for cmd in commands),
             }
             
             failed_commands = [name for name, available in critical_commands.items() if not available]
