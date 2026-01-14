@@ -10,11 +10,11 @@ from discord import app_commands, ui
 from discord.ext import commands
 import logging
 
-from guardian.services.reaction_roles_store import ReactionRolesStore, ReactionRoleConfig
-from guardian.services.panel_store import PanelStore
-from guardian.security.permissions import require_admin, require_staff
-from guardian.utils import info_embed, error_embed, success_embed
-from guardian.constants import COLORS
+from ..services.reaction_roles_store import ReactionRolesStore, ReactionRoleConfig
+from ..services.panel_store import PanelStore
+from ..security.permissions import admin_command
+from ..utils import info_embed, error_embed, success_embed
+from ..constants import COLORS
 
 log = logging.getLogger("guardian.reaction_roles")
 
@@ -541,7 +541,7 @@ class ReactionRolesCog(commands.Cog):
     @app_commands.describe(
         action="Choose an action: deploy, manage, list, clear_user, repair"
     )
-    @require_admin()
+    @admin_command()
     async def reactionroles(
         self, 
         interaction: discord.Interaction, 

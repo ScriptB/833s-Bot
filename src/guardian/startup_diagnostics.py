@@ -40,9 +40,7 @@ class StartupDiagnostics:
         # Check registered commands
         await self._check_registered_commands()
         
-        # Check overhaul system
-        await self._check_overhaul_system()
-        
+                
         # Check PanelStore schema
         await self._check_panel_store_schema()
         
@@ -83,7 +81,7 @@ class StartupDiagnostics:
                 self.results["registered_commands"] = [cmd.name for cmd in commands]
                 
                 # Check for critical commands (without slash prefix)
-                critical_commands = ["overhaul", "verifypanel", "rolepanel"]
+                critical_commands = ["verifypanel", "rolepanel", "activity", "ticket", "close", "roles", "myroles", "health", "setup", "reactionroles"]
                 registered_names = [cmd.name for cmd in commands]
                 missing_commands = [cmd for cmd in critical_commands if cmd not in registered_names]
                 
@@ -97,20 +95,7 @@ class StartupDiagnostics:
         except Exception as e:
             self.results["warnings"].append(f"Failed to check registered commands: {e}")
     
-    async def _check_overhaul_system(self):
-        """Check production overhaul system."""
-        try:
-            from .cogs.overhaul import OverhaulEngine, OverhaulConfig
-            
-            # Check that the overhaul system can be imported
-            config = OverhaulConfig()
-            log.info("✅ Production overhaul system check passed")
-                
-        except ImportError as e:
-            self.results["warnings"].append(f"Overhaul system import failed: {e}")
-        except Exception as e:
-            self.results["warnings"].append(f"Overhaul system check failed: {e}")
-    
+        
     async def _check_panel_store_schema(self):
         """Check PanelStore schema version."""
         try:
@@ -191,18 +176,4 @@ class StartupDiagnostics:
         if not self.results["critical_failures"] and not self.results["warnings"]:
             log.info("🎉 All systems operational!")
     
-    def should_disable_overhaul(self) -> bool:
-        """Check if overhaul should be disabled due to failures."""
-        overhaul_critical_failures = [
-            failure for failure in self.results["critical_failures"]
-            if any(keyword in failure.lower() for keyword in ["progress_reporter", "panel_store", "database"])
-        ]
-        return len(overhaul_critical_failures) > 0
     
-    def should_disable_panels(self) -> bool:
-        """Check if panels should be disabled due to failures."""
-        panel_critical_failures = [
-            failure for failure in self.results["critical_failures"]
-            if any(keyword in failure.lower() for keyword in ["panel_store", "database"])
-        ]
-        return len(panel_critical_failures) > 0
