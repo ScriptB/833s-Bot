@@ -18,20 +18,49 @@ REACTION_ROLES_CHANNEL = "reaction-roles"
 
 
 class ManagerView(ui.View):
-    """Simple admin manager UI."""
+    """Simple admin manager UI with proper error handling."""
     
     def __init__(self, cog: 'SimpleReactionRolesCog'):
         super().__init__(timeout=300)  # 5 minutes
         self.cog = cog
         self.message = None
+        self.user = None  # Track the user who opened this view
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        """Ensure only the original user can interact with the view."""
+        if self.user and interaction.user.id != self.user.id:
+            await interaction.response.send_message("You cannot interact with this management panel.", ephemeral=True)
+            return False
+        return True
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: ui.Item) -> None:
+        """Handle view errors gracefully."""
+        log.error(f"ManagerView error: {error}", exc_info=True)
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send("❌ An error occurred. Please try again.", ephemeral=True)
+            else:
+                await interaction.response.send_message("❌ An error occurred. Please try again.", ephemeral=True)
+        except:
+            pass  # If we can't even send an error message, just log it
 
     async def on_timeout(self) -> None:
-        """Handle view timeout."""
+        """Handle view timeout by disabling all components."""
+        # Disable all components
+        for child in self.children:
+            child.disabled = True
+        
+        # Update the message if it exists
         if self.message:
             try:
-                await self.message.edit(content="🔐 Management panel timed out.", view=None, embed=None)
+                await self.message.edit(
+                    content="🔐 Management panel timed out.", 
+                    view=self,  # Show disabled buttons
+                    embed=None
+                )
             except:
                 pass
+        self.stop()
 
     @ui.button(label="Add Roles", style=discord.ButtonStyle.primary, custom_id="rr_add", row=0)
     async def add_roles(self, interaction: discord.Interaction, button: ui.Button):
@@ -250,15 +279,32 @@ class ManagerView(ui.View):
 
 
 class MemberView(ui.View):
-    """Simple member panel for role selection."""
+    """Simple member panel for role selection with proper persistence."""
     
     def __init__(self, cog: 'SimpleReactionRolesCog', guild_id: int):
-        super().__init__(timeout=None)  # Persistent
+        super().__init__(timeout=None)  # Persistent view
         self.cog = cog
         self.guild_id = guild_id
 
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        """Ensure interaction is from the correct guild."""
+        if interaction.guild_id != self.guild_id:
+            return False
+        return True
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: ui.Item) -> None:
+        """Handle member view errors gracefully."""
+        log.error(f"MemberView error: {error}", exc_info=True)
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send("❌ Failed to update roles. Please try again.", ephemeral=True)
+            else:
+                await interaction.response.send_message("❌ Failed to update roles. Please try again.", ephemeral=True)
+        except:
+            pass
+
     async def refresh_view(self):
-        """Refresh view with current roles."""
+        """Refresh view with current roles using persistent custom IDs."""
         self.clear_items()
         
         guild = self.cog.bot.get_guild(self.guild_id)
@@ -270,7 +316,7 @@ class MemberView(ui.View):
         if not all_roles:
             return
 
-        # Create select menus for each group
+        # Create select menus for each group with proper custom IDs
         for group_key, role_ids in all_roles.items():
             if not role_ids:
                 continue
@@ -281,7 +327,7 @@ class MemberView(ui.View):
             
             select = ui.Select(
                 placeholder=f"Select {group_key.title()} roles...",
-                custom_id=f"rr_member_{group_key}",
+                custom_id=f"guardian:rr:member:{group_key}",  # Proper persistent custom ID
                 max_values=len(role_ids)
             )
             
@@ -295,7 +341,16 @@ class MemberView(ui.View):
                     )
             
             async def select_callback(interaction: discord.Interaction):
+                """Handle role selection with proper error handling."""
                 try:
+                    # Extract group key from custom_id
+                    custom_id = interaction.data.get('custom_id', '')
+                    if ':' in custom_id:
+                        group_key = custom_id.split(':')[-1]
+                    else:
+                        await interaction.response.send_message("❌ Invalid interaction.", ephemeral=True)
+                        return
+                    
                     await interaction.response.defer(ephemeral=True)
                     
                     if not interaction.data.get('values'):
@@ -333,9 +388,11 @@ class MemberView(ui.View):
                     
                     await interaction.followup.send(message, ephemeral=True)
                     
+                except discord.Forbidden:
+                    await interaction.followup.send("❌ I don't have permission to manage your roles.", ephemeral=True)
                 except Exception as e:
-                    log.error(f"Member role selection error: {e}")
-                    await interaction.followup.send("❌ Failed to update roles.", ephemeral=True)
+                    log.error(f"Member role selection error: {e}", exc_info=True)
+                    await interaction.followup.send("❌ Failed to update roles. Please try again.", ephemeral=True)
             
             select.callback = select_callback
             self.add_item(select)
@@ -357,7 +414,11 @@ class SimpleReactionRolesCog(commands.Cog):
         
         await self.store.init()
         
-        log.info("SimpleReactionRolesCog loaded")
+        # Register persistent member view for all guilds
+        # This will be called when the bot starts up to reattach views to existing messages
+        self.bot.add_view(MemberView(self, 0))  # Generic view, guild_id will be checked in interaction_check
+        
+        log.info("SimpleReactionRolesCog loaded with persistent view registration")
 
     @app_commands.command(
         name="reactionroles",
@@ -395,7 +456,7 @@ class SimpleReactionRolesCog(commands.Cog):
             await interaction.followup.send("❌ Command failed. Please try again.", ephemeral=True)
 
     async def open_manager(self, interaction: discord.Interaction):
-        """Open admin manager UI."""
+        """Open admin manager UI with proper user tracking."""
         try:
             if not interaction.guild:
                 await interaction.followup.send("❌ This command can only be used in a server.", ephemeral=True)
@@ -436,13 +497,14 @@ class SimpleReactionRolesCog(commands.Cog):
 
             # Create and send view
             view = ManagerView(self)
+            view.user = interaction.user  # Track the user who opened this view
             message = await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             view.message = message
             
-            log.info(f"Manager view sent: guild={interaction.guild.id}")
+            log.info(f"Manager view sent: guild={interaction.guild.id}, user={interaction.user.id}")
             
         except Exception as e:
-            log.error(f"Open manager error: {e}")
+            log.error(f"Open manager error: {e}", exc_info=True)
             await interaction.followup.send("❌ Failed to open manager.", ephemeral=True)
 
     async def publish_panel(self, interaction: discord.Interaction):
@@ -492,7 +554,7 @@ class SimpleReactionRolesCog(commands.Cog):
                     )
                     return
 
-            # Create member panel view
+            # Create member panel view with proper guild_id
             view = MemberView(self, guild.id)
             await view.refresh_view()
 
