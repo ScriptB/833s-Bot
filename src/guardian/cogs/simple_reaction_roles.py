@@ -357,8 +357,6 @@ class SimpleReactionRolesCog(commands.Cog):
         
         await self.store.init()
         
-        # Register persistent member view
-        self.bot.add_view(MemberView(self, 0))
         log.info("SimpleReactionRolesCog loaded")
 
     @app_commands.command(
