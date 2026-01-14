@@ -267,7 +267,6 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.role_assignment", "RoleAssignmentCog")
         await _load_cog("guardian.cogs.activity_manager", "ActivityCog")
         await _load_cog("guardian.cogs.health_check", "HealthCheckCog")
-        await _load_cog("guardian.cogs.reaction_roles", "ReactionRoleCog")
         
         # Persistent panels
         await _load_cog("guardian.cogs.verify_panel", "VerifyPanelCog")
@@ -326,7 +325,6 @@ class GuardianBot(commands.Bot):
                 'TicketSystemCog': self.get_cog('TicketSystemCog') is not None,
                 'RoleAssignmentCog': self.get_cog('RoleAssignmentCog') is not None,
                 'HealthCheckCog': self.get_cog('HealthCheckCog') is not None,
-                'ReactionRoleCog': self.get_cog('ReactionRoleCog') is not None,
             }
             
             failed_cogs = [name for name, loaded in critical_cogs.items() if not loaded]
@@ -349,7 +347,6 @@ class GuardianBot(commands.Bot):
                 'verifypanel': any(cmd.name == 'verifypanel' for cmd in commands),
                 'rolepanel': any(cmd.name == 'rolepanel' for cmd in commands),
                 'roleselect': any(cmd.name == 'roleselect' for cmd in commands),
-                'rr': any(cmd.name == 'rr' for cmd in commands),
             }
             
             failed_commands = [name for name, available in critical_commands.items() if not available]

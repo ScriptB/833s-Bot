@@ -51,13 +51,6 @@ class EnhancedPanelRegistry:
                 timeout=None,  # Persistent
                 required_permissions=["send_messages", "embed_links"]
             ),
-            "role_panel": PanelConfig(
-                panel_key="role_panel", 
-                channel_name="reaction-roles",
-                custom_id="guardian_role_panel_v1",
-                timeout=None,  # Persistent
-                required_permissions=["send_messages", "embed_links"]
-            ),
             "ticket_panel": PanelConfig(
                 panel_key="ticket_panel",
                 channel_name="support-start", 

@@ -197,33 +197,7 @@ class ConfigValidator:
         
         return result
     
-    def validate_reaction_roles_config(self, config: Dict[str, Any]) -> ValidationResult:
-        """Validate reaction roles configuration."""
-        result = ValidationResult()
         
-        # Validate channel name
-        channel_name = config.get("reaction_roles_channel", "")
-        if not channel_name:
-            result.add_error("reaction_roles_channel", "Reaction roles channel name is required")
-        elif len(channel_name) > 100:
-            result.add_error("reaction_roles_channel", "Channel name is too long (max 100 characters)")
-        
-        # Validate message title
-        message_title = config.get("reaction_roles_message_title", "")
-        if not message_title:
-            result.add_error("reaction_roles_message_title", "Message title is required")
-        elif len(message_title) > 256:
-            result.add_error("reaction_roles_message_title", "Message title is too long (max 256 characters)")
-        
-        # Validate message description
-        message_description = config.get("reaction_roles_message_description", "")
-        if not message_description:
-            result.add_warning("reaction_roles_message_description", "No message description provided")
-        elif len(message_description) > 4000:
-            result.add_error("reaction_roles_message_description", "Message description is too long (max 4000 characters)")
-        
-        return result
-    
     def validate_full_config(self, config: Dict[str, Any]) -> ValidationResult:
         """Validate the complete configuration."""
         result = ValidationResult()
@@ -248,12 +222,7 @@ class ConfigValidator:
         result.warnings.extend(categories_result.warnings)
         result.info.extend(categories_result.info)
         
-        # Validate reaction roles
-        reaction_roles_result = self.validate_reaction_roles_config(config)
-        result.errors.extend(reaction_roles_result.errors)
-        result.warnings.extend(reaction_roles_result.warnings)
-        result.info.extend(reaction_roles_result.info)
-        
+                
         # Cross-validation
         role_names = {role.get("name", "") for role in roles}
         category_names = {cat.get("name", "") for cat in categories}

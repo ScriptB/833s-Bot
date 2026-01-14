@@ -64,7 +64,6 @@ class HealthCheckCog(commands.Cog):
                 'TicketSystemCog': self.bot.get_cog('TicketSystemCog') is not None,
                 'RoleAssignmentCog': self.bot.get_cog('RoleAssignmentCog') is not None,
                 'HealthCheckCog': self.bot.get_cog('HealthCheckCog') is not None,
-                'ReactionRoleCog': self.bot.get_cog('ReactionRoleCog') is not None,
             }
             
             # Check critical commands
@@ -73,7 +72,6 @@ class HealthCheckCog(commands.Cog):
                 'rolepanel': any(cmd.name == 'rolepanel' for cmd in commands),
                 'activity': any(cmd.name == 'activity' for cmd in commands),
                 'setup': any(cmd.name == 'setup' for cmd in commands),
-                'rr': any(cmd.name == 'rr' for cmd in commands),
             }
             
             # Create embed

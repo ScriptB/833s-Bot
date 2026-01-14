@@ -298,7 +298,6 @@ COMMAND_TIER_MAPPING = {
     "setup": PermissionTier.ADMIN,
     "verifypanel": PermissionTier.ADMIN,
     "rolepanel": PermissionTier.ADMIN,
-    "rr": PermissionTier.ADMIN,
     
     # OWNER (Tier 5)
     
@@ -314,7 +313,7 @@ COMMAND_TIER_MAPPING = {
 def validate_command_permissions():
     """Validate that all commands have permission tiers assigned."""
     total_commands = len(COMMAND_TIER_MAPPING)
-    expected_commands = 34  # Updated after removing overhaul command
+    expected_commands = 33  # Updated after removing rr command
     
     if total_commands != expected_commands:
         log.warning(f"Command permission mapping incomplete: {total_commands}/{expected_commands} commands mapped")
