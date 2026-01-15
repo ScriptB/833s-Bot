@@ -50,8 +50,22 @@ class ReactionRolesManagerView(ui.View):
                     "❌ An error occurred. Please try again.", 
                     ephemeral=True
                 )
-        except:
-            pass  # If we can't send an error message, just log it
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ I don't have permission to manage your roles.", 
+                ephemeral=True
+                )
+        except discord.HTTPException:
+            await interaction.followup.send(
+                "❌ Discord API error. Please try again.", 
+                ephemeral=True
+                )
+        except Exception as e:
+            log.error(f"ReactionRolesManagerView error callback: {e}", exc_info=True)
+            await interaction.followup.send(
+                "❌ Failed to handle error.", 
+                ephemeral=True
+                )
 
     async def on_timeout(self) -> None:
         """Handle view timeout by disabling all components."""
@@ -65,7 +79,7 @@ class ReactionRolesManagerView(ui.View):
                     view=self,
                     embed=None
                 )
-            except:
+            except Exception:
                 pass
         self.stop()
 
@@ -189,12 +203,22 @@ class ReactionRolesManagerView(ui.View):
                     
                     await confirm_interaction.followup.send(embed=embed, ephemeral=True)
                     
+                except discord.Forbidden:
+                    await confirm_interaction.followup.send(
+                        "❌ I don't have permission to manage your roles.", 
+                        ephemeral=True
+                        )
+                except discord.HTTPException:
+                    await confirm_interaction.followup.send(
+                        "❌ Discord API error. Please try again.", 
+                        ephemeral=True
+                        )
                 except Exception as e:
                     log.error(f"Add roles confirm error: {e}", exc_info=True)
                     await confirm_interaction.followup.send(
                         "❌ Operation failed. Please try again.", 
                         ephemeral=True
-                    )
+                        )
 
             confirm_btn.callback = confirm_callback
             
@@ -208,14 +232,24 @@ class ReactionRolesManagerView(ui.View):
                 "Select roles and group to add:", 
                 view=view, 
                 ephemeral=True
-            )
+                )
             
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ I don't have permission to manage your roles.", 
+                ephemeral=True
+                )
+        except discord.HTTPException:
+            await interaction.followup.send(
+                "❌ Discord API error. Please try again.", 
+                ephemeral=True
+                )
         except Exception as e:
             log.error(f"Add roles error: {e}", exc_info=True)
             await interaction.followup.send(
                 "❌ Failed to open role selection.", 
                 ephemeral=True
-            )
+                )
 
     @ui.button(label="Remove Roles", style=discord.ButtonStyle.danger, custom_id="rr:remove", row=0)
     async def remove_roles(self, interaction: discord.Interaction, button: ui.Button):
@@ -281,12 +315,22 @@ class ReactionRolesManagerView(ui.View):
                     
                     await confirm_interaction.followup.send(embed=embed, ephemeral=True)
                     
+                except discord.Forbidden:
+                    await confirm_interaction.followup.send(
+                        "❌ I don't have permission to manage your roles.", 
+                        ephemeral=True
+                        )
+                except discord.HTTPException:
+                    await confirm_interaction.followup.send(
+                        "❌ Discord API error. Please try again.", 
+                        ephemeral=True
+                        )
                 except Exception as e:
                     log.error(f"Remove roles confirm error: {e}", exc_info=True)
                     await confirm_interaction.followup.send(
                         "❌ Operation failed. Please try again.", 
                         ephemeral=True
-                    )
+                        )
 
             confirm_btn.callback = confirm_callback
             
@@ -299,14 +343,24 @@ class ReactionRolesManagerView(ui.View):
                 "Select roles to remove:", 
                 view=view, 
                 ephemeral=True
-            )
+                )
             
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ I don't have permission to manage your roles.", 
+                ephemeral=True
+                )
+        except discord.HTTPException:
+            await interaction.followup.send(
+                "❌ Discord API error. Please try again.", 
+                ephemeral=True
+                )
         except Exception as e:
             log.error(f"Remove roles error: {e}", exc_info=True)
             await interaction.followup.send(
                 "❌ Failed to open role removal.", 
                 ephemeral=True
-            )
+                )
 
     @ui.button(label="Publish Panel", style=discord.ButtonStyle.success, custom_id="rr:publish", row=1)
     async def publish_panel(self, interaction: discord.Interaction, button: ui.Button):
@@ -315,12 +369,22 @@ class ReactionRolesManagerView(ui.View):
             await interaction.response.defer(ephemeral=True)
             log.info(f"Publish panel called: guild={interaction.guild.id}, user={interaction.user.id}")
             await self.cog.publish_member_panel(interaction)
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ I don't have permission to manage your roles.", 
+                ephemeral=True
+                )
+        except discord.HTTPException:
+            await interaction.followup.send(
+                "❌ Discord API error. Please try again.", 
+                ephemeral=True
+                )
         except Exception as e:
             log.error(f"Publish panel error: {e}", exc_info=True)
             await interaction.followup.send(
                 "❌ Failed to publish panel.", 
                 ephemeral=True
-            )
+                )
 
     @ui.button(label="Close", style=discord.ButtonStyle.secondary, custom_id="rr:close", row=1)
     async def close(self, interaction: discord.Interaction, button: ui.Button):
@@ -330,10 +394,24 @@ class ReactionRolesManagerView(ui.View):
                 content="🔐 Management panel closed.", 
                 view=None, 
                 embed=None
-            )
+                )
             self.stop()
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ I don't have permission to manage your roles.", 
+                ephemeral=True
+                )
+        except discord.HTTPException:
+            await interaction.followup.send(
+                "❌ Discord API error. Please try again.", 
+                ephemeral=True
+                )
         except Exception as e:
             log.error(f"Close panel error: {e}", exc_info=True)
+            await interaction.followup.send(
+                "❌ Failed to close panel.", 
+                ephemeral=True
+                )
 
 
 class ReactionRolesMemberView(ui.View):
@@ -362,10 +440,24 @@ class ReactionRolesMemberView(ui.View):
                     "❌ Failed to update roles. Please try again.", 
                     ephemeral=True
                 )
-        except:
-            pass
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ I don't have permission to manage your roles.", 
+                ephemeral=True
+                )
+        except discord.HTTPException:
+            await interaction.followup.send(
+                "❌ Discord API error. Please try again.", 
+                ephemeral=True
+                )
+        except Exception as e:
+            log.error(f"Member role selection error: {e}", exc_info=True)
+            await interaction.followup.send(
+                "❌ Failed to update roles. Please try again.", 
+                ephemeral=True
+                )
 
-    def build_select_menus(self, guild: discord.Guild, all_roles: Dict[str, List[int]]) -> bool:
+    def build_select_menus(self, guild: discord.Guild, all_roles: dict[str, list[int]]) -> bool:
         """Build select menus for role groups. Returns False if any group exceeds 25 roles."""
         self.clear_items()
         
@@ -448,6 +540,11 @@ class ReactionRolesMemberView(ui.View):
                         "❌ I don't have permission to manage your roles.", 
                         ephemeral=True
                     )
+                except discord.HTTPException:
+                    await interaction.followup.send(
+                        "❌ Discord API error. Please try again.", 
+                        ephemeral=True
+                    )
                 except Exception as e:
                     log.error(f"Member role selection error: {e}", exc_info=True)
                     await interaction.followup.send(
@@ -513,12 +610,22 @@ class ReactionRolesCog(commands.Cog):
                     f"❌ Unknown action: {action}. Available: manage, publish, list, clear_user",
                     ephemeral=True
                 )
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ You need 'Manage Roles' permission to use this command.", 
+                ephemeral=True
+                )
+        except discord.HTTPException:
+            await interaction.followup.send(
+                "❌ Discord API error. Please try again.", 
+                ephemeral=True
+                )
         except Exception as e:
             log.error(f"Reaction roles command error: {e}", exc_info=True)
             await interaction.followup.send(
                 "❌ Command failed. Please try again.", 
                 ephemeral=True
-            )
+                )
 
     async def open_manager(self, interaction: discord.Interaction):
         """Open admin manager UI."""
@@ -573,12 +680,22 @@ class ReactionRolesCog(commands.Cog):
             
             log.info(f"Manager view sent: guild={interaction.guild.id}, user={interaction.user.id}")
             
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ You need 'Manage Roles' permission to use this command.", 
+                ephemeral=True
+                )
+        except discord.HTTPException:
+            await interaction.followup.send(
+                "❌ Discord API error. Please try again.", 
+                ephemeral=True
+                )
         except Exception as e:
             log.error(f"Open manager error: {e}", exc_info=True)
             await interaction.followup.send(
                 "❌ Failed to open manager.", 
                 ephemeral=True
-            )
+                )
 
     async def publish_member_panel(self, interaction: discord.Interaction):
         """Deploy or update the member panel."""
@@ -690,12 +807,22 @@ class ReactionRolesCog(commands.Cog):
                 )
                 log.info(f"Panel created: guild={guild.id}, message_id={message.id}")
 
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ I don't have permission to manage your roles.", 
+                ephemeral=True
+                )
+        except discord.HTTPException:
+            await interaction.followup.send(
+                "❌ Discord API error. Please try again.", 
+                ephemeral=True
+                )
         except Exception as e:
             log.error(f"Publish panel error: {e}", exc_info=True)
             await interaction.followup.send(
                 "❌ Failed to publish panel.", 
                 ephemeral=True
-            )
+                )
 
     async def list_roles(self, interaction: discord.Interaction):
         """List all configured roles."""
@@ -737,12 +864,22 @@ class ReactionRolesCog(commands.Cog):
 
             await interaction.followup.send(embed=embed, ephemeral=True)
             
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ You need 'Manage Roles' permission to use this command.", 
+                ephemeral=True
+                )
+        except discord.HTTPException:
+            await interaction.followup.send(
+                "❌ Discord API error. Please try again.", 
+                ephemeral=True
+                )
         except Exception as e:
             log.error(f"List roles error: {e}", exc_info=True)
             await interaction.followup.send(
                 "❌ Failed to list roles.", 
                 ephemeral=True
-            )
+                )
 
     async def clear_user_roles(self, interaction: discord.Interaction):
         """Clear reaction roles from a member."""
@@ -786,12 +923,22 @@ class ReactionRolesCog(commands.Cog):
                     ephemeral=True
                 )
                 
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ I don't have permission to manage your roles.", 
+                ephemeral=True
+                )
+        except discord.HTTPException:
+            await interaction.followup.send(
+                "❌ Discord API error. Please try again.", 
+                ephemeral=True
+                )
         except Exception as e:
             log.error(f"Clear user roles error: {e}", exc_info=True)
             await interaction.followup.send(
                 "❌ Failed to clear roles.", 
                 ephemeral=True
-            )
+                )
 
     async def cog_unload(self):
         """Clean up when cog is unloaded."""
