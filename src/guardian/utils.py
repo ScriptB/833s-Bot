@@ -6,6 +6,7 @@ from typing import Optional, Any, Union
 
 import discord
 from discord import ui
+from discord.ext import commands
 
 from .constants import (
     MAX_MESSAGE_LENGTH,
@@ -65,17 +66,20 @@ async def safe_followup(
 
 
 async def safe_response(
-    interaction: discord.Interaction,
+    target: Union[discord.Interaction, commands.Context],
     content: Optional[str] = None,
     embed: Optional[discord.Embed] = None,
     ephemeral: bool = False,
     **kwargs: Any,
 ) -> bool:
-    """Safely respond to an interaction with error handling."""
+    """Safely respond to an interaction or context with error handling."""
     try:
-        await interaction.response.send_message(
-            content=content, embed=embed, ephemeral=ephemeral, **kwargs
-        )
+        if isinstance(target, discord.Interaction):
+            await target.response.send_message(
+                content=content, embed=embed, ephemeral=ephemeral, **kwargs
+            )
+        elif isinstance(target, commands.Context):
+            await target.reply(content=content, embed=embed, **kwargs)
         return True
     except discord.HTTPException as e:
         log.error(f"Failed to send response: {e}")

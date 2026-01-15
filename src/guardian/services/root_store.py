@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import aiosqlite
 import datetime
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 from dataclasses import dataclass
 
 from .base import BaseService
@@ -75,10 +75,11 @@ class RootStore(BaseService):
         """Initialize the database tables."""
         await self.init()
     
-    async def _execute(self, query: str, params: tuple = ()) -> aiosqlite.Cursor:
-        """Execute a database query."""
+    async def _execute(self, query: str, params: tuple = ()) -> None:
+        """Execute a database query with commit."""
         async with aiosqlite.connect(self._path) as db:
-            return await db.execute(query, params)
+            await db.execute(query, params)
+            await db.commit()
     
     async def _fetchone(self, query: str, params: tuple = ()) -> Optional[tuple]:
         """Execute a query and fetch one row."""
@@ -116,12 +117,14 @@ class RootStore(BaseService):
         
         # Create new request
         now = datetime.datetime.utcnow().isoformat()
-        cursor = await self._execute(
-            """INSERT INTO root_pending (target_id, requester_id, requested_at, status)
-               VALUES (?, ?, ?, 'pending')""",
-            (target_id, requester_id, now)
-        )
-        return cursor.lastrowid
+        async with aiosqlite.connect(self._path) as db:
+            cursor = await db.execute(
+                """INSERT INTO root_pending (target_id, requester_id, requested_at, status)
+                   VALUES (?, ?, ?, 'pending')""",
+                (target_id, requester_id, now)
+            )
+            await db.commit()
+            return cursor.lastrowid
     
     async def approve_request(self, request_id: int, approver_id: int) -> bool:
         """Approve a pending root request and add user to root_users."""

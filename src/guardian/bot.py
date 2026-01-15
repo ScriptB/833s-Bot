@@ -27,7 +27,6 @@ from .services.suggestions_store import SuggestionsStore
 from .services.channel_bootstrapper import ChannelBootstrapper
 from .services.status_reporter import StatusReporter
 from .services.guild_logger import GuildLogger
-from .ui.persistent import register_all_views
 from .services.panel_registry import PanelRegistry
 from .startup_diagnostics import StartupDiagnostics
 from .services.panel_store import PanelStore
@@ -95,7 +94,6 @@ class GuardianBot(commands.Bot):
 
         log.info("INTENTS: guilds=%s members=%s message_content=%s", intents.guilds, intents.members, intents.message_content)
 
-        self.log = log
         super().__init__(
             command_prefix=commands.when_mentioned_or("!", "?"),
             intents=intents,
@@ -174,10 +172,6 @@ class GuardianBot(commands.Bot):
         
         await initialize_database(self.settings.sqlite_path, stores)
         observability.log_startup_event("database", "OK")
-        
-        # Initialize panel store schema
-        await self.panel_store.init()
-        observability.log_startup_event("panel_store", "OK")
         
         # Initialize persistent UI framework
         register_all_views(self)
@@ -333,15 +327,13 @@ class GuardianBot(commands.Bot):
             critical_commands = {
                 'verifypanel': any(cmd.name == 'verifypanel' for cmd in commands),
                 'rolepanel': any(cmd.name == 'rolepanel' for cmd in commands),
+                'roleselect': any(cmd.name == 'roleselect' for cmd in commands),
                 'activity': any(cmd.name == 'activity' for cmd in commands),
                 'ticket': any(cmd.name == 'ticket' for cmd in commands),
                 'close': any(cmd.name == 'close' for cmd in commands),
                 'roles': any(cmd.name == 'roles' for cmd in commands),
                 'myroles': any(cmd.name == 'myroles' for cmd in commands),
                 'health': any(cmd.name == 'health' for cmd in commands),
-                'verifypanel': any(cmd.name == 'verifypanel' for cmd in commands),
-                'rolepanel': any(cmd.name == 'rolepanel' for cmd in commands),
-                'roleselect': any(cmd.name == 'roleselect' for cmd in commands),
                 'reactionroles': any(cmd.name == 'reactionroles' for cmd in commands),
             }
             

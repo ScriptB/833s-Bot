@@ -43,15 +43,14 @@ class BaseService(ABC, Generic[T]):
         
         async with aiosqlite.connect(self._path) as db:
             db.row_factory = aiosqlite.Row
-            cur = await db.execute(self._get_query, (key,))
-            row = await cur.fetchone()
-            await cur.close()
-            if row is None:
-                return None
-            
-            data = self._from_row(row)
-            self._cache.set(key, data)
-            return data
+            async with db.execute(self._get_query, (key,)) as cur:
+                row = await cur.fetchone()
+                if row is None:
+                    return None
+                
+                data = self._from_row(row)
+                self._cache.set(key, data)
+                return data
     
     @property
     @abstractmethod

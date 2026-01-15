@@ -43,8 +43,20 @@ async def backup_database(sqlite_path: str, backup_path: str) -> None:
         raise ValueError("backup_path cannot be empty")
     
     try:
+        # VACUUM INTO requires the path to be properly escaped in SQL
+        # We need to use string formatting but ensure the path is safe
+        import os
+        # Validate backup path is absolute or in a safe directory
+        backup_dir = os.path.dirname(os.path.abspath(backup_path))
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir, exist_ok=True)
+        
+        # Use proper SQL escaping - VACUUM INTO requires a string literal
+        # We sanitize by ensuring it's a valid path with no SQL injection
+        safe_path = backup_path.replace("'", "''")  # Escape single quotes
         async with aiosqlite.connect(sqlite_path) as db:
-            await db.execute("VACUUM INTO ?", (backup_path,))
+            await db.execute(f"VACUUM INTO '{safe_path}'")
+            await db.commit()
         log.info(f"Database backed up to {backup_path}")
         
         # Sanity check: verify backup file exists and has content

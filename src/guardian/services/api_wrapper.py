@@ -66,10 +66,7 @@ class APIWrapper:
         if isinstance(error, asyncio.TimeoutError):
             return True
         
-        # Retry on unknown HTTP errors
-        if isinstance(error, discord.HTTPException):
-            return True
-        
+        # Don't retry on other HTTP errors (4xx client errors)
         return False
     
     def _log_error(self, operation: str, error: Exception, attempt: int, guild_id: Optional[int] = None):
