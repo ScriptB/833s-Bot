@@ -261,6 +261,8 @@ class GuardianBot(commands.Bot):
         
         # Production-ready systems
         await _load_cog("guardian.cogs.setup_wizard", "SetupWizardCog")
+        # Server template overhaul command (idempotent structural deploy)
+        await _load_cog("guardian.cogs.server_template_overhaul", "ServerTemplateOverhaulCog")
         await _load_cog("guardian.cogs.ticket_system", "TicketSystemCog")
         await _load_cog("guardian.cogs.role_assignment", "RoleAssignmentCog")
         await _load_cog("guardian.cogs.activity_manager", "ActivityCog")

@@ -308,6 +308,7 @@ COMMAND_TIER_MAPPING = {
     
     # ADMIN (Tier 4)
     "setup": PermissionTier.ADMIN,
+    "overhaul": PermissionTier.ADMIN,
     "verifypanel": PermissionTier.ADMIN,
     "rolepanel": PermissionTier.ADMIN,
 
