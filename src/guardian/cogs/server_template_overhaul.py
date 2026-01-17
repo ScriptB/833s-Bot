@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 class RoleDef:
     name: str
     perms: discord.Permissions
+    color: Optional[discord.Colour] = None
     mentionable: bool = False
 
 
@@ -59,6 +60,15 @@ def _perm(**kwargs: bool) -> discord.Permissions:
         setattr(p, k, v)
     return p
 
+def _hex_color(hex_str: str) -> discord.Colour:
+    """Convert a hex color like #FFAA00 or FFAA00 into discord.Colour."""
+    s = hex_str.strip().lstrip("#")
+    if len(s) < 6:
+        s = (s + "0"*6)[:6]
+    else:
+        s = s[:6]
+    return discord.Colour(int(s, 16))
+
 
 class ServerTemplateOverhaulCog(commands.Cog):
     """Overhaul the current guild to match the 833s server template."""
@@ -71,14 +81,36 @@ class ServerTemplateOverhaulCog(commands.Cog):
     # ------------------------
 
     def _role_defs(self) -> List[RoleDef]:
+        # Colors are intentionally opinionated defaults.
+        # Change them here if you want a different palette.
+        C = {
+            "Owner": _hex_color("F1C40F"),
+            "Admin": _hex_color("E74C3C"),
+            "Moderator": _hex_color("3498DB"),
+            "Helper": _hex_color("2ECC71"),
+            "Bot": _hex_color("9B59B6"),
+            "Verified": _hex_color("95A5A6"),
+            "Member": _hex_color("BDC3C7"),
+            "Muted": _hex_color("2F3136"),
+            "Games Ping": _hex_color("E67E22"),
+            "Coding Ping": _hex_color("1ABC9C"),
+            "Events Ping": _hex_color("8E44AD"),
+            "Announcements Ping": _hex_color("F39C12"),
+            "Regular": _hex_color("7F8C8D"),
+            "Active": _hex_color("27AE60"),
+            "Veteran": _hex_color("8E44AD"),
+        }
+
         # Staff
         owner = RoleDef(
-            "Owner",
-            discord.Permissions(administrator=True),
+            name="Owner",
+            perms=discord.Permissions(administrator=True),
+            color=C["Owner"],
         )
+
         admin = RoleDef(
-            "Admin",
-            _perm(
+            name="Admin",
+            perms=_perm(
                 manage_guild=True,
                 manage_roles=True,
                 manage_channels=True,
@@ -87,48 +119,61 @@ class ServerTemplateOverhaulCog(commands.Cog):
                 view_audit_log=True,
                 manage_messages=True,
                 manage_threads=True,
+                # Explicitly disallow @everyone mentions
                 mention_everyone=False,
             ),
+            color=C["Admin"],
         )
+
         moderator = RoleDef(
-            "Moderator",
-            _perm(
+            name="Moderator",
+            perms=_perm(
                 kick_members=True,
                 moderate_members=True,
                 manage_messages=True,
                 manage_threads=True,
                 view_audit_log=True,
+                # Explicitly disallow these
                 ban_members=False,
                 manage_roles=False,
             ),
+            color=C["Moderator"],
         )
+
         helper = RoleDef(
-            "Helper",
-            _perm(
+            name="Helper",
+            perms=_perm(
                 manage_messages=True,
                 moderate_members=True,
+                # Explicitly disallow
+                kick_members=False,
+                ban_members=False,
             ),
+            color=C["Helper"],
         )
-        bot = RoleDef("Bot", discord.Permissions(administrator=True))
+
+        # Trusted bots only
+        bot = RoleDef(
+            name="Bot",
+            perms=discord.Permissions(administrator=True),
+            color=C["Bot"],
+        )
 
         # Core
-        verified = RoleDef("Verified", discord.Permissions.none())
-        member = RoleDef("Member", discord.Permissions.none())
-        muted = RoleDef(
-            "Muted",
-            discord.Permissions.none(),
-        )
+        verified = RoleDef(name="Verified", perms=discord.Permissions.none(), color=C["Verified"])
+        member = RoleDef(name="Member", perms=discord.Permissions.none(), color=C["Member"])
+        muted = RoleDef(name="Muted", perms=discord.Permissions.none(), color=C["Muted"])
 
-        # Utility/pings
-        games_ping = RoleDef("Games Ping", discord.Permissions.none(), mentionable=True)
-        coding_ping = RoleDef("Coding Ping", discord.Permissions.none(), mentionable=True)
-        events_ping = RoleDef("Events Ping", discord.Permissions.none(), mentionable=True)
-        announcements_ping = RoleDef("Announcements Ping", discord.Permissions.none(), mentionable=True)
+        # Utility / pings
+        games_ping = RoleDef(name="Games Ping", perms=discord.Permissions.none(), color=C["Games Ping"], mentionable=True)
+        coding_ping = RoleDef(name="Coding Ping", perms=discord.Permissions.none(), color=C["Coding Ping"], mentionable=True)
+        events_ping = RoleDef(name="Events Ping", perms=discord.Permissions.none(), color=C["Events Ping"], mentionable=True)
+        announcements_ping = RoleDef(name="Announcements Ping", perms=discord.Permissions.none(), color=C["Announcements Ping"], mentionable=True)
 
-        # Activity (optional)
-        regular = RoleDef("Regular", discord.Permissions.none())
-        active = RoleDef("Active", discord.Permissions.none())
-        veteran = RoleDef("Veteran", discord.Permissions.none())
+        # Activity (optional, cosmetic)
+        regular = RoleDef(name="Regular", perms=discord.Permissions.none(), color=C["Regular"])
+        active = RoleDef(name="Active", perms=discord.Permissions.none(), color=C["Active"])
+        veteran = RoleDef(name="Veteran", perms=discord.Permissions.none(), color=C["Veteran"])
 
         # Order here is the intended hierarchy top -> bottom.
         return [
@@ -533,6 +578,7 @@ class ServerTemplateOverhaulCog(commands.Cog):
                     role = await guild.create_role(
                         name=rd.name,
                         permissions=rd.perms,
+                        colour=rd.color or discord.Colour.default(),
                         mentionable=rd.mentionable,
                         reason="833s template overhaul",
                     )
@@ -546,6 +592,9 @@ class ServerTemplateOverhaulCog(commands.Cog):
                     changed = False
                     if role.permissions != rd.perms:
                         await role.edit(permissions=rd.perms, reason="833s template overhaul")
+                        changed = True
+                    if rd.color is not None and role.colour != rd.color:
+                        await role.edit(colour=rd.color, reason="833s template overhaul")
                         changed = True
                     if role.mentionable != rd.mentionable:
                         await role.edit(mentionable=rd.mentionable, reason="833s template overhaul")
