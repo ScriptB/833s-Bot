@@ -33,6 +33,7 @@ from .services.role_config_store import RoleConfigStore
 from .services.profiles_store import ProfilesStore
 from .services.titles_store import TitlesStore
 from .services.root_store import RootStore
+from .services.bootstrap_state_store import BootstrapStateStore
 from .ui.persistent import register_all_views
 from .observability import observability
 from .migration import initialize_migration_system
@@ -133,6 +134,7 @@ class GuardianBot(commands.Bot):
         self.panel_store = PanelStore(settings.sqlite_path)
         log.info("PanelStore loaded: %s", PanelStore.__name__)
         self.role_config_store = RoleConfigStore(settings.sqlite_path)
+        self.bootstrap_state_store = BootstrapStateStore(settings.sqlite_path, cache_ttl)
         
         # Initialize panel registry
         self.panel_registry = PanelRegistry(self, self.panel_store)
