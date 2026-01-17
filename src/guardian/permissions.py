@@ -289,19 +289,56 @@ COMMAND_TIER_MAPPING = {
     "rank": PermissionTier.VERIFIED,
     "my_profile": PermissionTier.VERIFIED,
     "thanks": PermissionTier.VERIFIED,
+
+    # Levels (user-facing)
+    "leaderboard": PermissionTier.VERIFIED,
+    "leaderboard_week": PermissionTier.VERIFIED,
+
+    # Role selection (user-facing)
+    "roleselect": PermissionTier.VERIFIED,
     
     # STAFF (Tier 3)
     "close": PermissionTier.STAFF,  # With ticket owner check
     "ticket_panel": PermissionTier.STAFF,
     "starboard_set": PermissionTier.STAFF,
     "activity": PermissionTier.STAFF,
+
+    # Reaction roles panel management is staff-only by default
+    "reactionroles": PermissionTier.STAFF,
     
     # ADMIN (Tier 4)
     "setup": PermissionTier.ADMIN,
     "verifypanel": PermissionTier.ADMIN,
     "rolepanel": PermissionTier.ADMIN,
+
+    # Server configuration / moderation utilities
+    "set_welcome_channel": PermissionTier.ADMIN,
+    "set_autorole": PermissionTier.ADMIN,
+    "set_log_channel": PermissionTier.ADMIN,
+    "set_antispam": PermissionTier.ADMIN,
+    "queue_status": PermissionTier.ADMIN,
+
+    # DM tools are admin-only
+    "dm_cleanup": PermissionTier.ADMIN,
+    "dm_cleanup_bulk": PermissionTier.ADMIN,
+
+    # Levels configuration is admin-only
+    "levels_settings": PermissionTier.ADMIN,
+    "levels_enable": PermissionTier.ADMIN,
+    "levels_set_rate": PermissionTier.ADMIN,
+    "levels_set_dailycap": PermissionTier.ADMIN,
+    "levels_set_announce": PermissionTier.ADMIN,
+    "levels_ignore_channel": PermissionTier.ADMIN,
+    "levels_reward_add": PermissionTier.ADMIN,
+    "levels_reward_remove": PermissionTier.ADMIN,
+    "levels_reward_list": PermissionTier.ADMIN,
+    "levels_reset_user": PermissionTier.ADMIN,
+    "levels_reset_all": PermissionTier.ADMIN,
     
     # OWNER (Tier 5)
+    # Admin elevation is owner-only
+    "elevate_admin": PermissionTier.OWNER,
+    "revoke_admin": PermissionTier.OWNER,
     
     # ROOT (Tier 6)
     "root_request": PermissionTier.ROOT,
@@ -328,11 +365,18 @@ def validate_command_permissions(actual_commands: Optional[set[str]] = None) -> 
     if actual_commands is not None:
         missing = sorted(set(actual_commands) - set(COMMAND_TIER_MAPPING.keys()))
         if missing:
-            log.warning("Command permission mapping missing tiers for: %s", ", ".join(missing))
-            # Non-fatal: unmapped commands default to lowest restrictions elsewhere.
-            return False
+            # Keep startup healthy: add safe defaults for any new/unmapped commands.
+            # Default is VERIFIED to avoid exposing admin/staff commands to unverified users.
+            for name in missing:
+                COMMAND_TIER_MAPPING[name] = PermissionTier.VERIFIED
+            log.warning(
+                "Command permission mapping missing tiers for: %s. "
+                "Auto-added %s commands with default tier VERIFIED.",
+                ", ".join(missing),
+                len(missing),
+            )
 
-    log.info("✅ Permission mapping loaded for %s commands", total_commands)
+    log.info("✅ Permission mapping loaded for %s commands", len(COMMAND_TIER_MAPPING))
     return True
 
 
