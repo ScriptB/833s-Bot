@@ -1,0 +1,32 @@
+{
+  "setup-worktree": [
+    "python -m venv .venv",
+    ". .venv/bin/activate || .\\.venv\\Scripts\\activate",
+    "python -m pip install --upgrade pip",
+    "pip install -e .",
+    "pip install -r requirements-dev.txt || true",
+    "pip install psutil",
+    "python -m compileall src",
+    "python -m guardian.bot --self-check || true"
+  ],
+
+  "lint-and-quality": [
+    "ruff check src",
+    "ruff format src",
+    "mypy src || true"
+  ],
+
+  "static-analysis": [
+    "python -m pip install bandit",
+    "bandit -r src -ll || true"
+  ],
+
+  "tests": [
+    "pytest -q || true"
+  ],
+
+  "maintenance": [
+    "python -m guardian.migration run || true",
+    "python -m guardian.services.panel_registry repair || true"
+  ]
+}

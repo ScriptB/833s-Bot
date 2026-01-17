@@ -1,0 +1,111 @@
+from __future__ import annotations
+
+import json
+import discord
+
+from ..lookup import find_role
+
+
+class InterestSelect(discord.ui.Select):
+    def __init__(self) -> None:
+        options = [
+            discord.SelectOption(label="🎮 Roblox", value="Roblox"),
+            discord.SelectOption(label="🧱 Minecraft", value="Minecraft"),
+            discord.SelectOption(label="🦖 ARK", value="ARK"),
+            discord.SelectOption(label="🔫 FPS", value="FPS"),
+            discord.SelectOption(label="💻 Coding", value="Coding"),
+            discord.SelectOption(label="🐍 Snakes", value="Snakes"),
+        ]
+        super().__init__(
+            placeholder="Select your interests (optional)", 
+            min_values=0, 
+            max_values=6, 
+            options=options,
+            custom_id="onboarding_interests"
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        view: OnboardingView = self.view  # type: ignore
+        view.interests = list(self.values)
+        await interaction.response.send_message("Interests saved.", ephemeral=True)
+
+
+class OnboardingView(discord.ui.View):
+    """Persistent onboarding view that survives bot restarts."""
+    
+    def __init__(self, bot, guild_id: int, user_id: int) -> None:
+        super().__init__(timeout=None)  # Persistent view
+        self.bot = bot
+        self.guild_id = guild_id
+        self.user_id = user_id
+        self.interests: list[str] = []
+        self.add_item(InterestSelect())
+
+    @discord.ui.button(label="Accept Rules", style=discord.ButtonStyle.success, custom_id="onboarding_accept_rules")
+    async def accept_rules(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("Not for you.", ephemeral=True)
+            return
+        st = await self.bot.onboarding_store.get(self.guild_id, self.user_id)
+        if st.step < 1:
+            await self.bot.onboarding_store.upsert(type(st)(self.guild_id, self.user_id, 1, None, st.interests_json, False))
+        await interaction.response.send_message("Rules accepted.", ephemeral=True)
+
+    @discord.ui.button(label="18+ Confirm", style=discord.ButtonStyle.primary, custom_id="onboarding_age_confirm")
+    async def age_confirm(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("Not for you.", ephemeral=True)
+            return
+        st = await self.bot.onboarding_store.get(self.guild_id, self.user_id)
+        if st.step < 2:
+            await self.bot.onboarding_store.upsert(type(st)(self.guild_id, self.user_id, 2, None, st.interests_json, False))
+        await interaction.response.send_message("Age confirmed.", ephemeral=True)
+
+    @discord.ui.button(label="Finish", style=discord.ButtonStyle.success, custom_id="onboarding_finish")
+    async def finish(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("Not for you.", ephemeral=True)
+            return
+
+        st = await self.bot.onboarding_store.get(self.guild_id, self.user_id)
+        if st.step < 2:
+            await interaction.response.send_message("Complete Rules + 18+ first.", ephemeral=True)
+            return
+
+        interests_json = json.dumps(self.interests, separators=(",", ":"), ensure_ascii=False)
+        await self.bot.onboarding_store.upsert(type(st)(self.guild_id, self.user_id, 3, None, interests_json, True))
+
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("Guild missing.", ephemeral=True)
+            return
+        member = guild.get_member(self.user_id)
+        if not member:
+            await interaction.response.send_message("Member missing.", ephemeral=True)
+            return
+
+        quarantine = find_role(guild, "Quarantine")
+        # Your template uses Verified/Member (with optional emoji).
+        verified = find_role(guild, "Verified") or find_role(guild, "Verified Member")
+        member_role = find_role(guild, "Member")
+
+        try:
+            if verified:
+                await member.add_roles(verified, reason="Onboarding complete")
+            if member_role:
+                await member.add_roles(member_role, reason="Onboarding complete")
+            if quarantine:
+                await member.remove_roles(quarantine, reason="Onboarding complete")
+        except discord.HTTPException:
+            pass
+
+        for rn in self.interests:
+            r = find_role(guild, rn)
+            if r:
+                try:
+                    await member.add_roles(r, reason="Onboarding interests")
+                except discord.HTTPException:
+                    pass
+
+        await interaction.response.send_message("Onboarding complete. Access granted.", ephemeral=True)
+        self.stop()

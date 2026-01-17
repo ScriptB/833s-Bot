@@ -524,14 +524,11 @@ class ServerTemplateOverhaulCog(commands.Cog):
             for ch in channels:
                 try:
                     await ch.delete(reason="833s template overhaul (nuke)")
-                    # Reduce rate-limit pressure during large wipes.
-                    await asyncio.sleep(0.2)
                 except discord.Forbidden:
                     warnings.append(f"Forbidden deleting channel: {getattr(ch, 'name', ch.id)}")
                 except discord.HTTPException as e:
                     failed_http.append(ch)
                     warnings.append(f"Failed deleting channel {getattr(ch, 'name', ch.id)}: HTTPException")
-                    await asyncio.sleep(1.0)
                 except Exception as e:
                     warnings.append(f"Failed deleting channel {getattr(ch, 'name', ch.id)}: {type(e).__name__}")
 
@@ -551,7 +548,6 @@ class ServerTemplateOverhaulCog(commands.Cog):
                     continue
                 try:
                     await ch.delete(reason="833s template overhaul (nuke retry)")
-                    await asyncio.sleep(0.2)
                 except Exception:
                     pass
 
@@ -567,7 +563,6 @@ class ServerTemplateOverhaulCog(commands.Cog):
                     try:
                         await ch.delete(reason="833s template overhaul (nuke retry)")
                         failed_http.remove(ch)
-                        await asyncio.sleep(0.2)
                     except Exception:
                         continue
             # Then delete categories
@@ -575,7 +570,6 @@ class ServerTemplateOverhaulCog(commands.Cog):
             for cat in cats:
                 try:
                     await cat.delete(reason="833s template overhaul (nuke)")
-                    await asyncio.sleep(0.2)
                 except discord.Forbidden:
                     warnings.append(f"Forbidden deleting category: {cat.name}")
                 except Exception as e:
@@ -600,7 +594,6 @@ class ServerTemplateOverhaulCog(commands.Cog):
                     continue
                 try:
                     await role.delete(reason="833s template overhaul (nuke)")
-                    await asyncio.sleep(0.2)
                 except discord.Forbidden:
                     warnings.append(f"Forbidden deleting role: {role.name}")
                 except Exception as e:
@@ -832,16 +825,7 @@ class ServerTemplateOverhaulCog(commands.Cog):
         )
 
         # Community Mode cannot be enabled via bot API.
-        # Some community-enabled guilds may not surface 'COMMUNITY' in features depending on
-        # how the library populates cached guild features. As a more reliable heuristic,
-        # treat the guild as community-enabled if any system channels are configured.
-        features = set(getattr(guild, 'features', []) or [])
-        is_community = (
-            'COMMUNITY' in features
-            or getattr(guild, 'rules_channel', None) is not None
-            or getattr(guild, 'public_updates_channel', None) is not None
-        )
-        if not is_community:
+        if 'COMMUNITY' not in getattr(guild, 'features', []):
             warnings.append('Community Mode must be enabled manually in Server Settings (API does not toggle it).')
 
         # Build output
