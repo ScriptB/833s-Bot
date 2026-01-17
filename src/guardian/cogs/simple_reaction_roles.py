@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 
 import discord
+
+from ..utils import find_text_channel_fuzzy
 from discord import app_commands, ui
 from discord.ext import commands
 
@@ -530,7 +532,7 @@ class SimpleReactionRolesCog(commands.Cog):
                     return
 
             # Find or create reaction-roles channel
-            channel = discord.utils.get(guild.text_channels, name=REACTION_ROLES_CHANNEL)
+            channel = find_text_channel_fuzzy(guild, REACTION_ROLES_CHANNEL)
             if not channel:
                 try:
                     overwrites = {

@@ -8,6 +8,8 @@ from typing import Any
 
 import discord
 
+from ..utils import find_text_channel_fuzzy
+
 from ..interfaces import has_required_guild_perms, validate_panel_store
 from .api_wrapper import safe_edit_message, safe_send_message
 
@@ -55,7 +57,7 @@ class EnhancedPanelRegistry:
             ),
             "ticket_panel": PanelConfig(
                 panel_key="ticket_panel",
-                channel_name="support-start", 
+                channel_name="tickets", 
                 custom_id="guardian_ticket_panel_v1",
                 timeout=None,  # Persistent
                 required_permissions=["send_messages", "embed_links"]
@@ -116,7 +118,7 @@ class EnhancedPanelRegistry:
             
             # Find target channel
             if target_channel is None:
-                target_channel = discord.utils.get(guild.text_channels, name=config.channel_name)
+                target_channel = find_text_channel_fuzzy(guild, config.channel_name)
                 if target_channel is None:
                     log.warning(f"Channel '{config.channel_name}' not found for panel {panel_key} in guild {guild.id}")
                     return None
@@ -323,7 +325,7 @@ class EnhancedPanelRegistry:
             }
             
             # Check if channel exists
-            channel = discord.utils.get(guild.text_channels, name=config.channel_name)
+            channel = find_text_channel_fuzzy(guild, config.channel_name)
             if channel:
                 panel_status["channel_exists"] = True
                 panel_status["channel_id"] = channel.id

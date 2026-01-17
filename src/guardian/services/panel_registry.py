@@ -6,6 +6,8 @@ from typing import Any
 
 import discord
 
+from ..utils import find_text_channel_fuzzy
+
 from ..interfaces import has_required_guild_perms, sanitize_user_text, validate_panel_store
 
 log = logging.getLogger("guardian.panel_registry")
@@ -53,7 +55,7 @@ class PanelRegistry:
             # Get or find target channel
             if target_channel is None:
                 channel_name = self._fallback_channels.get(panel_key, f"{panel_key}")
-                target_channel = discord.utils.get(guild.text_channels, name=channel_name)
+                target_channel = find_text_channel_fuzzy(guild, channel_name)
                 
                 if not target_channel:
                     log.warning(f"Channel '{channel_name}' not found for panel {panel_key} in guild {guild.id}")

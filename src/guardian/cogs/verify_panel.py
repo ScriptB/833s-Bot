@@ -107,7 +107,7 @@ class VerifyPanelCog(commands.Cog):
         guild = interaction.guild
         
         # Check if verification role exists
-        verify_role = discord.utils.get(guild.roles, name="Verified")
+        verify_role = find_role_fuzzy(guild, getattr(self.bot.settings, "verified_role_name", "Verified"))
         if not verify_role:
             await interaction.followup.send(
                 "❌ 'Verified' role not found. Please create it first.",

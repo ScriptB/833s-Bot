@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 
 import discord
+
+from ..utils import find_text_channel_fuzzy
 from discord import app_commands
 from discord.ext import commands
 
@@ -33,7 +35,7 @@ class TicketsCog(commands.Cog):
             try:
                 # Find existing ticket panel messages
                 ch_name = getattr(self.bot.settings, "tickets_channel_name", "tickets")
-                tickets_channel = discord.utils.get(guild.text_channels, name=ch_name)
+                tickets_channel = find_text_channel_fuzzy(guild, ch_name)
                 if tickets_channel:
                     async for message in tickets_channel.history(limit=10):
                         if "Ticket Panel" in (message.embeds[0].title if message.embeds else ""):
@@ -50,7 +52,7 @@ class TicketsCog(commands.Cog):
         await interaction.response.defer(ephemeral=True)
 
         ch_name = getattr(self.bot.settings, "tickets_channel_name", "tickets")
-        ch = discord.utils.get(interaction.guild.text_channels, name=ch_name)
+        ch = find_text_channel_fuzzy(interaction.guild, ch_name)
         if not ch:
             await interaction.followup.send(f"❌ Channel #{ch_name} not found.", ephemeral=True)
             return

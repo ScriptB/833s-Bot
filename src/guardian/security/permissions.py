@@ -6,6 +6,8 @@ from functools import wraps
 
 import discord
 
+from ..utils import find_role_fuzzy
+
 log = logging.getLogger("guardian.permissions")
 
 
@@ -172,7 +174,7 @@ def require_bot_role_above(target_role_name: str = None):
             
             if target_role_name:
                 # Check against specific role
-                target_role = discord.utils.get(interaction.guild.roles, name=target_role_name)
+                target_role = find_role_fuzzy(interaction.guild, target_role_name)
                 if target_role and bot_role.position <= target_role.position:
                     embed = discord.Embed(
                         title="❌ Bot Role Position Issue",

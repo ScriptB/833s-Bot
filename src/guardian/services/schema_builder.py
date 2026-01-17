@@ -4,6 +4,8 @@ import asyncio
 
 import discord
 
+from ..utils import find_text_channel_fuzzy
+
 from .schema import ServerSchema
 
 
@@ -203,7 +205,7 @@ class SchemaBuilder:
                 if status:
                     await status.update(guild, ch_i, f"Ensuring channels in {cat_spec.name} ({ch_i}/{len(cat_spec.channels)})")
                 if ch_spec.kind == "text":
-                    ch = discord.utils.get(guild.text_channels, name=ch_spec.name)
+                    ch = find_text_channel_fuzzy(guild, ch_spec.name)
                     if not ch:
                         try:
                             ch = await guild.create_text_channel(
@@ -226,7 +228,7 @@ class SchemaBuilder:
                     overwrites = dict(ch.overwrites)
                     # Read-only channels
                     readonly = {
-                        "announcements","changelog","community-guide","faq","server-status","resources","partners",
+                        "announcements","changelog","server-info","faq","server-status","resources","partners",
                         "events","support-guidelines","ticket-transcripts","staff-handbook",
                         "audit-log","message-log","join-leave-log","moderation-log","anti-raid-log","ticket-log",
                         "server-config","permission-audit",
@@ -241,7 +243,7 @@ class SchemaBuilder:
                         for r in staff_manage:
                             overwrites[r] = _allow_chat()
                     # Support start: members can type; transcripts read-only to support/admin
-                    if ch.name == "support-start" and verified:
+                    if ch.name == "tickets" and verified:
                         overwrites[verified] = _allow_chat()
                         if support:
                             overwrites[support] = _allow_chat()

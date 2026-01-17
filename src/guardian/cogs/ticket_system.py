@@ -6,6 +6,9 @@ from datetime import datetime
 from typing import Any
 
 import discord
+
+from ..utils import find_text_channel_fuzzy
+from ..utils import find_role_fuzzy
 from discord import app_commands
 from discord.ext import commands
 
@@ -153,7 +156,7 @@ class TicketSystemCog(commands.Cog):
         
         # Add support roles
         for role_name in self.config.support_roles:
-            role = discord.utils.get(interaction.guild.roles, name=role_name)
+            role = find_role_fuzzy(interaction.guild, role_name)
             if role:
                 overwrites[role] = discord.PermissionOverwrite(
                     read_messages=True,
@@ -388,9 +391,9 @@ class TicketSystemCog(commands.Cog):
     async def _notify_staff(self, guild: discord.Guild, ticket_channel: discord.TextChannel, user: discord.Member):
         """Notify staff about new ticket."""
         # Find a staff channel or use the first available
-        staff_channel = discord.utils.get(guild.text_channels, name="staff-chat")
+        staff_channel = find_text_channel_fuzzy(guild, "staff-chat")
         if not staff_channel:
-            staff_channel = discord.utils.get(guild.text_channels, name="staff")
+            staff_channel = find_text_channel_fuzzy(guild, "staff")
         
         if staff_channel:
             embed = discord.Embed(
@@ -455,9 +458,9 @@ class TicketSystemCog(commands.Cog):
     
     async def deploy_ticket_panel(self, guild: discord.Guild) -> discord.Message | None:
         """Deploy the ticket creation panel."""
-        channel = discord.utils.get(guild.text_channels, name="support-start")
+        channel = find_text_channel_fuzzy(guild, "support-start") or find_text_channel_fuzzy(guild, "tickets")
         if not channel:
-            log.warning(f"support-start channel not found in guild {guild.id}")
+            log.warning(f"Support panel channel not found (tried support-start, tickets) in guild {guild.id}")
             return None
         
         embed = discord.Embed(

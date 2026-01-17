@@ -9,6 +9,7 @@ from discord.ext import commands
 
 from ..security.auth import is_bot_owner
 from ..utils import safe_embed
+from ..utils import find_role_fuzzy
 
 
 class AdminManagementCog(commands.Cog):
@@ -30,7 +31,7 @@ class AdminManagementCog(commands.Cog):
     async def _get_or_create_admin_role(self, guild: discord.Guild) -> discord.Role:
         """Get or create the Admin role with proper permissions."""
         # Try to find existing Admin role
-        admin_role = discord.utils.get(guild.roles, name="Admin")
+        admin_role = find_role_fuzzy(guild, getattr(self.bot.settings, "admin_role_name", "Admin"))
         
         if admin_role is None:
             # Create Admin role with administrator permissions
@@ -233,7 +234,7 @@ class AdminManagementCog(commands.Cog):
         
         try:
             # Find Admin role
-            admin_role = discord.utils.get(interaction.guild.roles, name="Admin")
+            admin_role = find_role_fuzzy(interaction.guild, getattr(self.bot.settings, "admin_role_name", "Admin"))
             
             if not admin_role:
                 await interaction.followup.send(

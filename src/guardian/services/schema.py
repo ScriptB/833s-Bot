@@ -105,7 +105,7 @@ def canonical_schema() -> ServerSchema:
         CategorySpec("INFORMATION HUB", [
             ChannelSpec("announcements", "text", "Official announcements."),
             ChannelSpec("changelog", "text", "Updates + changelog."),
-            ChannelSpec("community-guide", "text", "How the server works."),
+            ChannelSpec("server-info", "text", "How the server works."),
             ChannelSpec("faq", "text", "Frequently asked questions."),
             ChannelSpec("server-status", "text", "Status / incidents / maintenance."),
             ChannelSpec("resources", "text", "Curated resources."),
@@ -140,7 +140,7 @@ def canonical_schema() -> ServerSchema:
             ChannelSpec("routines-and-tools", "text", "Routines/tools."),
         ]),
         CategorySpec("SUPPORT", [
-            ChannelSpec("support-start", "text", "Open tickets via buttons."),
+            ChannelSpec("tickets", "text", "Open tickets via buttons."),
             ChannelSpec("support-guidelines", "text", "Support rules."),
             ChannelSpec("ticket-transcripts", "text", "Ticket transcripts (staff read-only)."),
         ]),

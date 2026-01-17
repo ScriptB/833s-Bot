@@ -4,6 +4,8 @@ import logging
 import re
 
 import discord
+
+from ..utils import find_text_channel_fuzzy
 from discord import app_commands, ui
 from discord.ext import commands
 
@@ -570,17 +572,46 @@ class ReactionRolesCog(commands.Cog):
         self.panel_store = None
 
     async def cog_load(self):
-        """Initialize stores and register persistent views."""
+        """Initialize stores and restore persistent views.
+
+        Persistent view rules (discord.py): the view must have timeout=None and must contain
+        components with stable custom_id values at the time it is registered.
+
+        This cog restores previously published member panels by reading their stored message_id
+        from PanelStore and rebuilding the select menus from the current configuration.
+        """
         settings = self.bot.settings
         self.store = ReactionRolesStore(settings.sqlite_path)
         self.panel_store = PanelStore(settings.sqlite_path)
-        
+
         await self.store.init()
-        
-        # Register persistent member view
-        self.bot.add_view(ReactionRolesMemberView(self, 0))
-        
-        log.info("ReactionRolesCog loaded with persistent views")
+        await self.panel_store.init()
+
+        # Restore published panels per guild (if any)
+        restored = 0
+        for guild in getattr(self.bot, "guilds", []):
+            try:
+                panel = await self.panel_store.get(guild.id, "reaction_roles_panel")
+                if not panel:
+                    continue
+
+                all_roles = await self.store.get_all_roles(guild.id)
+                if not all_roles:
+                    continue
+
+                view = ReactionRolesMemberView(self, guild.id)
+                ok = view.build_select_menus(guild, all_roles)
+                if not ok:
+                    # Do not register a broken view (groups > 25 roles)
+                    continue
+
+                self.bot.add_view(view, message_id=panel["message_id"])
+                restored += 1
+            except Exception:  # noqa: BLE001
+                # Never block startup for reaction-role restoration
+                log.exception("Failed to restore reaction roles panel for guild %s", getattr(guild, "id", None))
+
+        log.info("ReactionRolesCog loaded (restored panels=%d)", restored)
 
     @app_commands.command(
         name="reactionroles",
@@ -655,14 +686,22 @@ class ReactionRolesCog(commands.Cog):
             panel_status = "Missing"
             last_publish = "Never"
             try:
-                panel = await self.panel_store.get_by_key("reaction_roles_panel")
-                if panel and panel.message_id:
-                    channel = self.bot.get_channel(panel.channel_id)
+                panel = await self.panel_store.get(interaction.guild.id, "reaction_roles_panel")
+                if panel and panel.get("message_id"):
+                    channel = self.bot.get_channel(panel.get("channel_id"))
                     if channel:
                         try:
-                            await channel.fetch_message(panel.message_id)
+                            await channel.fetch_message(panel["message_id"])
                             panel_status = "Deployed"
-                            last_publish = f"<t:{int(panel.updated_at.timestamp())}>"
+                            # last_deployed_at is stored as ISO string
+                            if panel.get("last_deployed_at"):
+                                try:
+                                    from datetime import datetime
+
+                                    ts = int(datetime.fromisoformat(panel["last_deployed_at"]).timestamp())
+                                    last_publish = f"<t:{ts}>"
+                                except Exception:  # noqa: BLE001
+                                    last_publish = "Unknown"
                         except Exception:  # noqa: BLE001
                             panel_status = "Missing"
             except Exception:  # noqa: BLE001
@@ -731,7 +770,7 @@ class ReactionRolesCog(commands.Cog):
                     return
 
             # Find or create reaction-roles channel
-            channel = discord.utils.get(guild.text_channels, name=REACTION_ROLES_CHANNEL)
+            channel = find_text_channel_fuzzy(guild, REACTION_ROLES_CHANNEL)
             if not channel:
                 try:
                     overwrites = {
@@ -770,26 +809,31 @@ class ReactionRolesCog(commands.Cog):
             )
 
             # Check if panel already exists
-            panel = await self.panel_store.get_by_key("reaction_roles_panel")
-            if panel and panel.message_id:
+            panel = await self.panel_store.get(guild.id, "reaction_roles_panel")
+            if panel and panel.get("message_id"):
                 try:
                     # Try to edit existing message
-                    message = await channel.fetch_message(panel.message_id)
+                    message = await channel.fetch_message(panel["message_id"])
                     await message.edit(embed=embed, view=view)
+                    # Ensure view is registered for persistence
+                    try:
+                        self.bot.add_view(view, message_id=message.id)
+                    except Exception:  # noqa: BLE001
+                        pass
+                    await self.panel_store.upsert(guild.id, "reaction_roles_panel", channel.id, message.id)
                     await interaction.followup.send(
                         f"✅ Updated reaction roles panel in {channel.mention}",
                         ephemeral=True
                     )
-                    log.info(f"Panel updated: guild={guild.id}, message_id={panel.message_id}")
+                    log.info(f"Panel updated: guild={guild.id}, message_id={message.id}")
                 except discord.NotFound:
                     # Message not found, create new one
                     message = await channel.send(embed=embed, view=view)
-                    await self.panel_store.upsert(
-                        "reaction_roles_panel",
-                        guild.id,
-                        channel.id,
-                        message.id
-                    )
+                    try:
+                        self.bot.add_view(view, message_id=message.id)
+                    except Exception:  # noqa: BLE001
+                        pass
+                    await self.panel_store.upsert(guild.id, "reaction_roles_panel", channel.id, message.id)
                     await interaction.followup.send(
                         f"✅ Created new reaction roles panel in {channel.mention}",
                         ephemeral=True
@@ -798,12 +842,11 @@ class ReactionRolesCog(commands.Cog):
             else:
                 # Create new panel
                 message = await channel.send(embed=embed, view=view)
-                await self.panel_store.upsert(
-                    "reaction_roles_panel",
-                    guild.id,
-                    channel.id,
-                    message.id
-                )
+                try:
+                    self.bot.add_view(view, message_id=message.id)
+                except Exception:  # noqa: BLE001
+                    pass
+                await self.panel_store.upsert(guild.id, "reaction_roles_panel", channel.id, message.id)
                 await interaction.followup.send(
                     f"✅ Created reaction roles panel in {channel.mention}",
                     ephemeral=True

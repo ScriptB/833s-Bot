@@ -6,6 +6,7 @@ from enum import IntEnum
 from functools import wraps
 
 import discord
+from .utils import find_role_fuzzy
 from discord.ext import commands
 
 log = logging.getLogger("guardian.permissions")
@@ -36,7 +37,7 @@ async def is_verified(interaction: discord.Interaction | commands.Context) -> bo
         return False
     
     # Check for Verified role
-    verified_role = discord.utils.get(member.guild.roles, name="Verified")
+    verified_role = find_role_fuzzy(member.guild, getattr(getattr(member.guild, "_guardian_settings", None), "verified_role_name", "Verified")) if hasattr(member.guild, "_guardian_settings") else find_role_fuzzy(member.guild, "Verified")
     return verified_role in member.roles
 
 
@@ -67,7 +68,7 @@ async def is_admin(interaction: discord.Interaction | commands.Context) -> bool:
         return False
     
     # Check for Admin role or Administrator permission
-    admin_role = discord.utils.get(member.guild.roles, name="Admin")
+    admin_role = find_role_fuzzy(member.guild, getattr(getattr(member.guild, "_guardian_settings", None), "admin_role_name", "Admin")) if hasattr(member.guild, "_guardian_settings") else find_role_fuzzy(member.guild, "Admin")
     return admin_role in member.roles or member.guild_permissions.administrator
 
 
@@ -81,7 +82,7 @@ async def is_owner(interaction: discord.Interaction | commands.Context) -> bool:
         return False
     
     # Check for Owner role or guild ownership
-    owner_role = discord.utils.get(member.guild.roles, name="Owner")
+    owner_role = find_role_fuzzy(member.guild, getattr(getattr(member.guild, "_guardian_settings", None), "owner_role_name", "Owner")) if hasattr(member.guild, "_guardian_settings") else find_role_fuzzy(member.guild, "Owner")
     return owner_role in member.roles or member == member.guild.owner
 
 
@@ -102,7 +103,7 @@ async def is_root(interaction: discord.Interaction | commands.Context) -> bool:
     
     # TODO: Integrate with RootStore when available
     # For now, check for a dedicated Root role
-    root_role = discord.utils.get(member.guild.roles, name="Root")
+    root_role = find_role_fuzzy(member.guild, getattr(getattr(member.guild, "_guardian_settings", None), "root_role_name", "Root")) if hasattr(member.guild, "_guardian_settings") else find_role_fuzzy(member.guild, "Root")
     return root_role in member.roles
 
 

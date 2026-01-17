@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import discord
+
+from ..utils import find_text_channel_fuzzy
 from discord import app_commands
 from discord.ext import commands
 
@@ -231,7 +233,7 @@ class RolePanelCog(commands.Cog):
         
         # Find or create role panel channel
         channel_name = getattr(self.bot.settings, "role_panel_channel_name", "choose-your-games")
-        channel = discord.utils.get(guild.text_channels, name=channel_name)
+        channel = find_text_channel_fuzzy(guild, channel_name)
         if not channel:
             try:
                 channel = await guild.create_text_channel(

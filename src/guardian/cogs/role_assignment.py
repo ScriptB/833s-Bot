@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from typing import Any
 
 import discord
+
+from ..utils import find_text_channel_fuzzy
+from ..utils import find_role_fuzzy
 from discord import app_commands
 from discord.ext import commands
 
@@ -155,7 +158,7 @@ class RoleAssignmentCog(commands.Cog):
         
         # Add roles
         for role_name in roles_to_add:
-            role = discord.utils.get(interaction.guild.roles, name=role_name)
+            role = find_role_fuzzy(interaction.guild, role_name)
             if role:
                 result = await safe_add_role(member, role, reason="User selected via role menu")
                 if result.success:
@@ -167,7 +170,7 @@ class RoleAssignmentCog(commands.Cog):
         
         # Remove roles
         for role_name in roles_to_remove:
-            role = discord.utils.get(interaction.guild.roles, name=role_name)
+            role = find_role_fuzzy(interaction.guild, role_name)
             if role:
                 result = await safe_remove_role(member, role, reason="User deselected via role menu")
                 if result.success:
@@ -226,7 +229,7 @@ class RoleAssignmentCog(commands.Cog):
     async def deploy_role_panel(self, guild: discord.Guild) -> discord.Message | None:
         """Deploy the role assignment panel."""
         channel_name = getattr(self.bot.settings, "reaction_roles_channel_name", "choose-your-games")
-        channel = discord.utils.get(guild.text_channels, name=channel_name)
+        channel = find_text_channel_fuzzy(guild, channel_name)
         if not channel:
             log.warning(f"reaction-roles channel not found in guild {guild.id}")
             return None

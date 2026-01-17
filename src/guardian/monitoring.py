@@ -171,9 +171,25 @@ class CommandPerformance(commands.Cog):
     
     async def _before_invoke(self, ctx: commands.Context) -> None:
         """Called before command invocation."""
+
+        # Chain any existing before_invoke hook
+        try:
+            if callable(self._original_before_invoke) and self._original_before_invoke is not self._before_invoke:
+                await self._original_before_invoke(ctx)
+        except Exception:
+            pass
         ctx._start_time = time.time()
     
     async def _after_invoke(self, ctx: commands.Context) -> None:
+        """Called after command invocation."""
+
+        # Chain any existing after_invoke hook
+        try:
+            if callable(self._original_after_invoke) and self._original_after_invoke is not self._after_invoke:
+                await self._original_after_invoke(ctx)
+        except Exception:
+            pass
+
         """Called after command invocation."""
         if hasattr(ctx, '_start_time'):
             response_time = time.time() - ctx._start_time
@@ -181,9 +197,14 @@ class CommandPerformance(commands.Cog):
     
     async def _on_command_error(self, ctx: commands.Context, error: Exception) -> None:
         """Called on command error."""
+
+        # Chain any existing on_command_error handler
+        try:
+            if callable(self._original_on_command_error) and self._original_on_command_error is not self._on_command_error:
+                await self._original_on_command_error(ctx, error)
+        except Exception:
+            pass
         self.monitor.record_error()
-        if self._original_on_command_error:
-            await self._original_on_command_error(ctx, error)
     
     @commands.command(name="health")
     @commands.is_owner()

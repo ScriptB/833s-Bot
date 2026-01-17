@@ -4,6 +4,8 @@ import asyncio
 
 import discord
 
+from ..utils import find_text_channel_fuzzy
+
 
 class ChannelBootstrapper:
     def __init__(self, bot: discord.Client) -> None:
@@ -13,12 +15,12 @@ class ChannelBootstrapper:
         targets = {
             "rules": self._rules_text(),
             "introductions": self._introductions_text(),
-            "support-start": self._help_text(),
-            "help-verification": self._help_verification_text(),
-            "start-here": self._start_here_text(),
+            "tickets": self._help_text(),
+            "verify": self._help_verification_text(),
+            "welcome": self._start_here_text(),
         }
         for name, body in targets.items():
-            ch = discord.utils.get(guild.text_channels, name=name)
+            ch = find_text_channel_fuzzy(guild, name)
             if not isinstance(ch, discord.TextChannel):
                 continue
             try:
@@ -46,7 +48,7 @@ class ChannelBootstrapper:
             "2) No spam, scams, or malicious links.\n"
             "3) Keep content in the right channels.\n"
             "4) Follow staff instructions during moderation.\n"
-            "Use /ticket_panel in #support-start for private support."
+            "Use /ticket_panel in #tickets for private support."
         )
 
     def _introductions_text(self) -> str:
@@ -59,7 +61,7 @@ class ChannelBootstrapper:
     def _help_text(self) -> str:
         return (
             "**Help & Support**\n"
-            "Use the buttons in #support-start for private support.\n"
+            "Use the buttons in #tickets for private support.\n"
             "For quick help: describe the issue + screenshots + what you tried."
         )
 
@@ -67,7 +69,7 @@ class ChannelBootstrapper:
         return (
             "**Verification Help**\n"
             "Complete verification to unlock server features.\n"
-            "Follow the instructions in #verify channel.\n"
+            "Follow the instructions in #verify.\n"
             "Contact staff if you encounter any issues."
         )
 
@@ -75,5 +77,5 @@ class ChannelBootstrapper:
         return (
             "**Welcome to 833s**\n"
             "Complete onboarding in #verify to unlock the server.\n"
-            "After verification: check #community-guide and #announcements."
+            "After verification: check #announcements and #server-info."
         )

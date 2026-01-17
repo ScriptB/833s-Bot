@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import discord
 
+from ..utils import find_role_fuzzy
+
 
 class TicketCreateView(discord.ui.View):
     """Persistent ticket creation view that survives bot restarts."""
@@ -23,7 +25,7 @@ class TicketCreateView(discord.ui.View):
             await interaction.response.send_message(f"Ticket already open: {existing.mention}", ephemeral=True)
             return
 
-        staff_roles = [discord.utils.get(guild.roles, name=n) for n in ("Admin", "Moderator", "Helper")]
+        staff_roles = [find_role_fuzzy(guild, n) for n in ("Admin", "Moderator", "Helper", "Support")]
         staff_roles = [r for r in staff_roles if r]
 
         overwrites = {

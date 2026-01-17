@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import discord
+
+from ..utils import find_text_channel_fuzzy
 from discord.ext import commands
 
 from ..ui.onboarding import OnboardingView
@@ -17,7 +19,7 @@ class OnboardingCog(commands.Cog):
             try:
                 # Find existing onboarding messages
                 verify_name = getattr(self.bot.settings, "verify_channel_name", "verify")
-                verify_channel = discord.utils.get(guild.text_channels, name=verify_name)
+                verify_channel = find_text_channel_fuzzy(guild, verify_name)
                 if verify_channel:
                     async for message in verify_channel.history(limit=20):
                         if "Mandatory Onboarding" in (message.embeds[0].title if message.embeds else ""):
@@ -32,7 +34,9 @@ class OnboardingCog(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
         guild = member.guild
-        quarantine = discord.utils.get(guild.roles, name="Quarantine")
+        from ..utils import find_role_fuzzy
+        quarantine_name = getattr(self.bot.settings, "quarantine_role_name", "Quarantine")
+        quarantine = find_role_fuzzy(guild, quarantine_name)
         if quarantine:
             try:
                 await member.add_roles(quarantine, reason="Onboarding quarantine")
@@ -45,7 +49,7 @@ class OnboardingCog(commands.Cog):
             pass
 
         verify_name = getattr(self.bot.settings, "verify_channel_name", "verify")
-        ch = discord.utils.get(guild.text_channels, name=verify_name)
+        ch = find_text_channel_fuzzy(guild, verify_name)
         if not ch:
             return
         try:
@@ -70,7 +74,8 @@ class OnboardingCog(commands.Cog):
         if message.author.bot or not message.guild:
             return
         verify_name = getattr(self.bot.settings, "verify_channel_name", "verify")
-        if getattr(message.channel, "name", "") != verify_name:
+        verify_ch = find_text_channel_fuzzy(message.guild, verify_name)
+        if not verify_ch or message.channel.id != verify_ch.id:
             return
         if message.content.strip().lower() not in {"i agree", "i accept"}:
             return

@@ -106,7 +106,7 @@ class SetupWizardCog(commands.Cog):
     
     REQUIRED_CHANNELS = [
         "verify",
-        "support-start", 
+        "tickets", 
         "reaction-roles",
         "tickets"
     ]
@@ -346,7 +346,7 @@ class SetupWizardCog(commands.Cog):
                         send_messages=False,
                         add_reactions=False
                     )
-                elif channel_name == "support-start":
+                elif channel_name == "tickets":
                     # Support-start: visible to everyone
                     overwrites[guild.default_role] = discord.PermissionOverwrite(
                         read_messages=True,
