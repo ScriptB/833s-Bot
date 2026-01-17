@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import aiosqlite
 import logging
 from dataclasses import dataclass
-
-import aiosqlite
+from typing import Optional
 
 from .base import BaseService
 
@@ -13,9 +13,9 @@ log = logging.getLogger("guardian.guild_store")
 @dataclass
 class GuildConfig:
     guild_id: int
-    welcome_channel_id: int | None = None
-    autorole_id: int | None = None
-    log_channel_id: int | None = None
+    welcome_channel_id: Optional[int] = None
+    autorole_id: Optional[int] = None
+    log_channel_id: Optional[int] = None
 
     anti_spam_max_msgs: int = 6
     anti_spam_window_seconds: int = 5

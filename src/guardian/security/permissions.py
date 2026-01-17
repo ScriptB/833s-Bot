@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from typing import Callable, Optional, List, Union
 from functools import wraps
 
 import discord
-
-from ..utils import find_role_fuzzy
+from discord import app_commands
+from discord.ext import commands
 
 log = logging.getLogger("guardian.permissions")
 
@@ -14,7 +14,7 @@ log = logging.getLogger("guardian.permissions")
 class PermissionError(Exception):
     """Raised when permission requirements are not met."""
     
-    def __init__(self, message: str, missing_permissions: list[str], fix_instructions: str):
+    def __init__(self, message: str, missing_permissions: List[str], fix_instructions: str):
         super().__init__(message)
         self.missing_permissions = missing_permissions
         self.fix_instructions = fix_instructions
@@ -174,7 +174,7 @@ def require_bot_role_above(target_role_name: str = None):
             
             if target_role_name:
                 # Check against specific role
-                target_role = find_role_fuzzy(interaction.guild, target_role_name)
+                target_role = discord.utils.get(interaction.guild.roles, name=target_role_name)
                 if target_role and bot_role.position <= target_role.position:
                     embed = discord.Embed(
                         title="❌ Bot Role Position Issue",

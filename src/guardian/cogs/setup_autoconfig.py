@@ -1,6 +1,15 @@
 from __future__ import annotations
 
+import asyncio
+from typing import Iterable
+
+import discord
+from discord import app_commands
 from discord.ext import commands
+
+from ..utils import safe_embed, permission_overwrite, get_confirmation
+from ..constants import DEFAULT_TIMEOUT_SECONDS, COLORS
+from ..security.auth import root_only
 
 
 class SetupAutoConfigCog(commands.Cog):

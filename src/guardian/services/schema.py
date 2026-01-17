@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import List, Tuple
 
 
 @dataclass(frozen=True)
@@ -24,20 +25,20 @@ class ChannelSpec:
 @dataclass(frozen=True)
 class CategorySpec:
     name: str
-    channels: list[ChannelSpec]
+    channels: List[ChannelSpec]
 
 
 @dataclass(frozen=True)
 class ServerSchema:
     guild_name: str
-    roles: list[RoleSpec]
-    level_role_map: list[tuple[int, str]]
-    categories: list[CategorySpec]
+    roles: List[RoleSpec]
+    level_role_map: List[Tuple[int, str]]
+    categories: List[CategorySpec]
 
 
 def canonical_schema() -> ServerSchema:
     # NOTE: "Owner" and "Co-Owner" are NOT created by the bot. Those are manual and should remain above the bot role.
-    roles: list[RoleSpec] = [
+    roles: List[RoleSpec] = [
         RoleSpec("Bot", 0x5865F2, True, False, "bot"),
         RoleSpec("Head Admin", 0xED4245, True, False, "staff"),
         RoleSpec("Admin", 0xE67E22, True, False, "staff"),
@@ -79,7 +80,7 @@ def canonical_schema() -> ServerSchema:
         RoleSpec("APAC", 0x99AAB5, False, False, "timezone"),
     ]
 
-    level_role_map: list[tuple[int, str]] = [
+    level_role_map: List[Tuple[int, str]] = [
         (0, "Level 0 – New"),
         (5, "Level 5 – Regular"),
         (10, "Level 10 – Contributor"),
@@ -88,7 +89,7 @@ def canonical_schema() -> ServerSchema:
         (50, "Level 50 – Core"),
     ]
 
-    categories: list[CategorySpec] = [
+    categories: List[CategorySpec] = [
         CategorySpec("SYSTEM / CORE", [
             ChannelSpec("bot-ops", "text", "Bot heartbeat + rebuild progress + diagnostics."),
             ChannelSpec("server-config", "text", "Read-only config snapshot (bot-posted)."),
@@ -105,7 +106,7 @@ def canonical_schema() -> ServerSchema:
         CategorySpec("INFORMATION HUB", [
             ChannelSpec("announcements", "text", "Official announcements."),
             ChannelSpec("changelog", "text", "Updates + changelog."),
-            ChannelSpec("server-info", "text", "How the server works."),
+            ChannelSpec("community-guide", "text", "How the server works."),
             ChannelSpec("faq", "text", "Frequently asked questions."),
             ChannelSpec("server-status", "text", "Status / incidents / maintenance."),
             ChannelSpec("resources", "text", "Curated resources."),
@@ -140,7 +141,7 @@ def canonical_schema() -> ServerSchema:
             ChannelSpec("routines-and-tools", "text", "Routines/tools."),
         ]),
         CategorySpec("SUPPORT", [
-            ChannelSpec("tickets", "text", "Open tickets via buttons."),
+            ChannelSpec("support-start", "text", "Open tickets via buttons."),
             ChannelSpec("support-guidelines", "text", "Support rules."),
             ChannelSpec("ticket-transcripts", "text", "Ticket transcripts (staff read-only)."),
         ]),

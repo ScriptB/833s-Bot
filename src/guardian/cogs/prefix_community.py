@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import difflib
+import random
+from typing import Optional
+
 import discord
 from discord.ext import commands
 
@@ -107,7 +111,7 @@ class PrefixCommunityCog(commands.Cog):
 
     @commands.command(name="my_profile")
     @commands.cooldown(2, 10.0, commands.BucketType.user)
-    async def profile(self, ctx: commands.Context, member: discord.Member | None = None) -> None:
+    async def profile(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
         if not await self._gate(ctx, min_level=0, requires_verified=True):
             return
         if not ctx.guild:
@@ -134,7 +138,7 @@ class PrefixCommunityCog(commands.Cog):
 
     @commands.command(name="rank")
     @commands.cooldown(2, 10.0, commands.BucketType.user)
-    async def rank(self, ctx: commands.Context, member: discord.Member | None = None) -> None:
+    async def rank(self, ctx: commands.Context, member: Optional[discord.Member] = None) -> None:
         if not await self._gate(ctx, min_level=0, requires_verified=True):
             return
         if not ctx.guild:
@@ -148,7 +152,7 @@ class PrefixCommunityCog(commands.Cog):
 
     @commands.command(name="thanks")
     @commands.cooldown(1, 30.0, commands.BucketType.user)
-    async def thanks(self, ctx: commands.Context, member: discord.Member | None = None, *, reason: str = "") -> None:
+    async def thanks(self, ctx: commands.Context, member: Optional[discord.Member] = None, *, reason: str = "") -> None:
         if not await self._gate(ctx, min_level=1, requires_verified=True):
             return
         if not ctx.guild or not isinstance(ctx.author, discord.Member):

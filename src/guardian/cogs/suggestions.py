@@ -3,6 +3,7 @@ from __future__ import annotations
 import discord
 from discord import app_commands
 from discord.ext import commands
+from ..utils.lookup import find_text_channel
 
 from ..permissions import require_verified
 
@@ -16,12 +17,9 @@ class SuggestionsCog(commands.Cog):
     async def suggest(self, interaction: discord.Interaction, text: str) -> None:
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)
-        from ..utils import find_text_channel_fuzzy
-
-        ch_name = getattr(self.bot.settings, "suggestions_channel_name", "general-chat")
-        ch = find_text_channel_fuzzy(interaction.guild, ch_name)
+        ch = find_text_channel(interaction.guild, "suggestions") or find_text_channel(interaction.guild, "general-chat")
         if not isinstance(ch, discord.TextChannel):
-            await interaction.followup.send(f"❌ #{ch_name} not found.", ephemeral=True)
+            await interaction.followup.send("❌ #suggestions not found.", ephemeral=True)
             return
 
         sid = await self.bot.suggestions_store.add(interaction.guild.id, interaction.user.id, text)  # type: ignore[attr-defined]

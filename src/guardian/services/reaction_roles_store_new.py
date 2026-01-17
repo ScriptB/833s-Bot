@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import logging
-from typing import Any
-
 import aiosqlite
+import logging
+from typing import List, Dict, Any
 
 from .base import BaseService
 
@@ -38,7 +37,7 @@ class ReactionRolesStore(BaseService):
             await db.commit()
         log.info("ReactionRolesStore initialized")
 
-    async def add_roles(self, guild_id: int, role_ids: list[int], group_key: str) -> dict[str, Any]:
+    async def add_roles(self, guild_id: int, role_ids: List[int], group_key: str) -> Dict[str, Any]:
         """Add multiple roles to a group with detailed feedback."""
         results = {"added": [], "skipped": [], "errors": []}
         
@@ -57,7 +56,7 @@ class ReactionRolesStore(BaseService):
         
         return results
 
-    async def remove_roles(self, guild_id: int, role_ids: list[int]) -> dict[str, Any]:
+    async def remove_roles(self, guild_id: int, role_ids: List[int]) -> Dict[str, Any]:
         """Remove multiple roles with detailed feedback."""
         results = {"removed": [], "errors": []}
         
@@ -79,7 +78,7 @@ class ReactionRolesStore(BaseService):
         
         return results
 
-    async def get_roles_by_group(self, guild_id: int, group_key: str) -> list[int]:
+    async def get_roles_by_group(self, guild_id: int, group_key: str) -> List[int]:
         """Get all role IDs in a specific group."""
         async with aiosqlite.connect(self._path) as db:
             async with db.execute(
@@ -89,7 +88,7 @@ class ReactionRolesStore(BaseService):
                 rows = await cursor.fetchall()
                 return [row[0] for row in rows]
 
-    async def get_all_roles(self, guild_id: int) -> dict[str, list[int]]:
+    async def get_all_roles(self, guild_id: int) -> Dict[str, List[int]]:
         """Get all roles grouped by group."""
         async with aiosqlite.connect(self._path) as db:
             async with db.execute(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Optional
 
 import discord
 
@@ -12,7 +13,7 @@ class DriftVerifier:
     def __init__(self, bot: discord.Client, interval_seconds: int = 3600) -> None:
         self.bot = bot
         self.interval = interval_seconds
-        self._task: asyncio.Task | None = None
+        self._task: Optional[asyncio.Task] = None
         self._stop = asyncio.Event()
 
     def start(self) -> None:

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import aiosqlite
-
 from .base import BaseService
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

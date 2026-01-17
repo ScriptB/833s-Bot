@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-
 import discord
 
-from ..utils import find_text_channel_fuzzy
+from ..utils.lookup import find_text_channel
 
 
 class ChannelBootstrapper:
@@ -12,22 +11,32 @@ class ChannelBootstrapper:
         self.bot = bot
 
     async def ensure_first_posts(self, guild: discord.Guild) -> None:
+        # Match your current template.
         targets = {
             "rules": self._rules_text(),
+            "welcome": self._welcome_text(),
             "introductions": self._introductions_text(),
-            "tickets": self._help_text(),
-            "verify": self._help_verification_text(),
-            "welcome": self._start_here_text(),
+            "tickets": self._tickets_text(),
+            "server-info": self._server_info_text(),
         }
         for name, body in targets.items():
-            ch = find_text_channel_fuzzy(guild, name)
+            ch = find_text_channel(guild, name)
             if not isinstance(ch, discord.TextChannel):
                 continue
             try:
                 # Check for existing bootstrap posts (without marker)
                 already = False
                 async for m in ch.history(limit=15, oldest_first=True):
-                    if m.author == guild.me and m.content and any(text in m.content for text in ["Server Rules", "Introduce Yourself", "Help & Support", "Verification Help", "Welcome to 833s"]):
+                    if m.author == guild.me and m.content and any(
+                        text in m.content
+                        for text in [
+                            "Server Rules",
+                            "Welcome to 833s",
+                            "Introduce Yourself",
+                            "Tickets",
+                            "Server Info",
+                        ]
+                    ):
                         already = True
                         break
                 if already:
@@ -48,7 +57,7 @@ class ChannelBootstrapper:
             "2) No spam, scams, or malicious links.\n"
             "3) Keep content in the right channels.\n"
             "4) Follow staff instructions during moderation.\n"
-            "Use /ticket_panel in #tickets for private support."
+            "Use /ticket in #tickets for private support."
         )
 
     def _introductions_text(self) -> str:
@@ -58,24 +67,23 @@ class ChannelBootstrapper:
             "Optional: add a project link or screenshot."
         )
 
-    def _help_text(self) -> str:
+    def _welcome_text(self) -> str:
         return (
-            "**Help & Support**\n"
-            "Use the buttons in #tickets for private support.\n"
-            "For quick help: describe the issue + screenshots + what you tried."
+            "**Welcome to 833’s**\n"
+            "This server is structured. Use the right channels, keep things tidy, and the systems will scale.\n"
+            "Start in #verify, then read #rules and #server-info."
         )
 
-    def _help_verification_text(self) -> str:
+    def _tickets_text(self) -> str:
         return (
-            "**Verification Help**\n"
-            "Complete verification to unlock server features.\n"
-            "Follow the instructions in #verify.\n"
-            "Contact staff if you encounter any issues."
+            "**Tickets**\n"
+            "Use /ticket to open a private support thread.\n"
+            "Include what happened, what you expected, and screenshots if relevant."
         )
 
-    def _start_here_text(self) -> str:
+    def _server_info_text(self) -> str:
         return (
-            "**Welcome to 833s**\n"
-            "Complete onboarding in #verify to unlock the server.\n"
-            "After verification: check #announcements and #server-info."
+            "**Server Info**\n"
+            "This server is built around structured routing (games, dev, pets).\n"
+            "If you are unsure where something belongs, check the category names and pinned messages first."
         )

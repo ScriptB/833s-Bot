@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dotenv import load_dotenv
 
-from .bot import GuardianBot
 from .config import load_settings
 from .logging_setup import setup_logging
+from .bot import GuardianBot
 
 
 def main() -> None:

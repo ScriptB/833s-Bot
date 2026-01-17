@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-
 import aiosqlite
 
 from .base import BaseService

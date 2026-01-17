@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
+from ..services.api_wrapper import APIResult, safe_send_message, safe_create_channel
 from ..interfaces import has_required_guild_perms
-from ..services.api_wrapper import safe_create_channel
+from ..constants import COLORS
+from ..utils.lookup import find_text_channel
 
 log = logging.getLogger("guardian.setup_wizard")
 
@@ -19,7 +22,7 @@ class SetupCheck:
     name: str
     status: str  # "pass", "fail", "warning"
     message: str
-    fix_action: str | None = None
+    fix_action: Optional[str] = None
     can_auto_fix: bool = False
 
 
@@ -27,7 +30,7 @@ class SetupCheck:
 class SetupResult:
     """Complete setup validation result."""
     overall_status: str  # "pass", "fail", "warning"
-    checks: list[SetupCheck]
+    checks: List[SetupCheck]
     guild_id: int
     user_id: int
 
@@ -106,7 +109,7 @@ class SetupWizardCog(commands.Cog):
     
     REQUIRED_CHANNELS = [
         "verify",
-        "tickets", 
+        "support-start", 
         "reaction-roles",
         "tickets"
     ]
@@ -211,12 +214,7 @@ class SetupWizardCog(commands.Cog):
         issues = []
         
         # Check verify panel
-        from ..utils import find_text_channel_fuzzy
-
-        verify_channel = find_text_channel_fuzzy(
-            guild,
-            getattr(self.bot.settings, "verify_channel_name", "verify"),
-        )
+        verify_channel = find_text_channel(guild, "verify")
         if verify_channel:
             try:
                 async for message in verify_channel.history(limit=10):
@@ -230,10 +228,7 @@ class SetupWizardCog(commands.Cog):
             issues.append("verify channel missing")
         
         # Check reaction roles panel
-        rr_channel = find_text_channel_fuzzy(
-            guild,
-            getattr(self.bot.settings, "reaction_roles_channel_name", "choose-your-games"),
-        )
+        rr_channel = find_text_channel(guild, "choose-your-games") or find_text_channel(guild, "server-info")
         if rr_channel:
             try:
                 async for message in rr_channel.history(limit=10):
@@ -346,7 +341,7 @@ class SetupWizardCog(commands.Cog):
                         send_messages=False,
                         add_reactions=False
                     )
-                elif channel_name == "tickets":
+                elif channel_name == "support-start":
                     # Support-start: visible to everyone
                     overwrites[guild.default_role] = discord.PermissionOverwrite(
                         read_messages=True,

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import aiosqlite
+from dataclasses import dataclass
+from typing import Optional, List
 
 from .base import BaseService
 
@@ -13,8 +13,8 @@ class RoleConfig:
     guild_id: int
     role_id: int
     label: str
-    emoji: str | None
-    group: str | None
+    emoji: Optional[str]
+    group: Optional[str]
     enabled: bool = True
 
 
@@ -60,8 +60,8 @@ class RoleConfigStore(BaseService[RoleConfig]):
         guild_id: int, 
         role_id: int, 
         label: str, 
-        emoji: str | None = None,
-        group: str | None = None,
+        emoji: Optional[str] = None,
+        group: Optional[str] = None,
         enabled: bool = True
     ) -> None:
         """Insert or update a role configuration."""
@@ -73,7 +73,7 @@ class RoleConfigStore(BaseService[RoleConfig]):
             """, (guild_id, role_id, label, emoji, group, int(enabled)))
             await db.commit()
     
-    async def get_role(self, guild_id: int, role_id: int) -> RoleConfig | None:
+    async def get_role(self, guild_id: int, role_id: int) -> Optional[RoleConfig]:
         """Get a specific role configuration."""
         async with aiosqlite.connect(self._path) as db:
             db.row_factory = aiosqlite.Row
@@ -87,7 +87,7 @@ class RoleConfigStore(BaseService[RoleConfig]):
                 return self._from_row(row)
             return None
     
-    async def list_roles(self, guild_id: int, group: str | None = None) -> list[RoleConfig]:
+    async def list_roles(self, guild_id: int, group: Optional[str] = None) -> List[RoleConfig]:
         """List all configured roles for a guild, optionally filtered by group."""
         async with aiosqlite.connect(self._path) as db:
             db.row_factory = aiosqlite.Row
@@ -117,7 +117,7 @@ class RoleConfigStore(BaseService[RoleConfig]):
             """, (guild_id, role_id))
             await db.commit()
     
-    async def get_groups(self, guild_id: int) -> list[str]:
+    async def get_groups(self, guild_id: int) -> List[str]:
         """Get all role groups for a guild."""
         async with aiosqlite.connect(self._path) as db:
             cursor = await db.execute("""

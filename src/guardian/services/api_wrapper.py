@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
-from collections.abc import Callable
-from dataclasses import dataclass
+import logging
+from typing import Any, Callable, Optional, Dict, Union, TypeVar, cast
 from functools import wraps
-from typing import Any, TypeVar
+from dataclasses import dataclass
 
 import discord
-from discord import Forbidden, NotFound
+from discord import HTTPException, Forbidden, NotFound
 
 log = logging.getLogger("guardian.api_wrapper")
 
@@ -20,11 +19,11 @@ T = TypeVar('T')
 class APIResult:
     """Result of an API operation with retry information."""
     success: bool
-    data: Any | None = None
-    error: Exception | None = None
+    data: Optional[Any] = None
+    error: Optional[Exception] = None
     attempts: int = 0
     total_time: float = 0.0
-    retry_after: float | None = None
+    retry_after: Optional[float] = None
 
 
 class APIWrapper:
@@ -34,9 +33,9 @@ class APIWrapper:
         self.max_retries = max_retries
         self.base_delay = base_delay
         self.max_delay = max_delay
-        self._error_counts: dict[str, int] = {}
+        self._error_counts: Dict[str, int] = {}
     
-    def _get_backoff_delay(self, attempt: int, retry_after: float | None = None) -> float:
+    def _get_backoff_delay(self, attempt: int, retry_after: Optional[float] = None) -> float:
         """Calculate exponential backoff delay with respect to Discord's retry_after."""
         if retry_after is not None:
             # Discord told us exactly how long to wait
@@ -70,7 +69,7 @@ class APIWrapper:
         # Don't retry on other HTTP errors (4xx client errors)
         return False
     
-    def _log_error(self, operation: str, error: Exception, attempt: int, guild_id: int | None = None):
+    def _log_error(self, operation: str, error: Exception, attempt: int, guild_id: Optional[int] = None):
         """Log errors with appropriate level based on type."""
         error_key = f"{operation}:{type(error).__name__}"
         self._error_counts[error_key] = self._error_counts.get(error_key, 0) + 1
@@ -110,8 +109,8 @@ class APIWrapper:
         operation: str,
         func: Callable[..., T],
         *args,
-        guild_id: int | None = None,
-        user_id: int | None = None,
+        guild_id: Optional[int] = None,
+        user_id: Optional[int] = None,
         **kwargs
     ) -> APIResult:
         """Execute an API operation with retry logic and rate limit handling."""
@@ -175,7 +174,7 @@ class APIWrapper:
             retry_after=retry_after
         )
     
-    def get_error_summary(self) -> dict[str, int]:
+    def get_error_summary(self) -> Dict[str, int]:
         """Get a summary of error counts for observability."""
         return dict(self._error_counts)
     
@@ -210,7 +209,7 @@ def safe_api_operation(operation: str):
                 elif isinstance(arg, discord.User):
                     user_id = arg.id
             
-            for _key, value in kwargs.items():
+            for key, value in kwargs.items():
                 if isinstance(value, discord.Guild):
                     guild_id = value.id
                 elif isinstance(value, discord.Interaction):
@@ -222,7 +221,14 @@ def safe_api_operation(operation: str):
                 elif isinstance(value, discord.User):
                     user_id = value.id
             
-            return await api_wrapper.execute(operation, func, *args, guild_id=guild_id, user_id=user_id, **kwargs)
+            return await api_wrapper.execute(
+                operation=operation,
+                func=func,
+                *args,
+                guild_id=guild_id,
+                user_id=user_id,
+                **kwargs
+            )
         
         return wrapper
     return decorator
@@ -231,10 +237,10 @@ def safe_api_operation(operation: str):
 # Common API operation wrappers
 async def safe_send_message(
     channel: discord.abc.Messageable,
-    content: str | None = None,
-    embed: discord.Embed | None = None,
-    view: discord.ui.View | None = None,
-    delete_after: float | None = None,
+    content: Optional[str] = None,
+    embed: Optional[discord.Embed] = None,
+    view: Optional[discord.ui.View] = None,
+    delete_after: Optional[float] = None,
     **kwargs
 ) -> APIResult:
     """Safely send a message with retry logic."""
@@ -265,11 +271,11 @@ async def safe_create_channel(
     guild: discord.Guild,
     name: str,
     channel_type: discord.ChannelType = discord.ChannelType.text,
-    category: discord.CategoryChannel | None = None,
-    overwrites: dict[discord.abc.Snowflake, discord.PermissionOverwrite] | None = None,
-    topic: str | None = None,
+    category: Optional[discord.CategoryChannel] = None,
+    overwrites: Optional[Dict[discord.abc.Snowflake, discord.PermissionOverwrite]] = None,
+    topic: Optional[str] = None,
     nsfw: bool = False,
-    slowmode_delay: int | None = None,
+    slowmode_delay: Optional[int] = None,
     **kwargs
 ) -> APIResult:
     """Safely create a channel with retry logic."""
@@ -294,8 +300,8 @@ async def safe_create_channel(
 async def safe_create_category(
     guild: discord.Guild,
     name: str,
-    position: int | None = None,
-    overwrites: dict[discord.abc.Snowflake, discord.PermissionOverwrite] | None = None,
+    position: Optional[int] = None,
+    overwrites: Optional[Dict[discord.abc.Snowflake, discord.PermissionOverwrite]] = None,
     **kwargs
 ) -> APIResult:
     """Safely create a category with retry logic."""
@@ -324,7 +330,7 @@ async def safe_create_role(
 async def safe_add_role(
     member: discord.Member,
     role: discord.Role,
-    reason: str | None = None,
+    reason: Optional[str] = None,
     **kwargs
 ) -> APIResult:
     """Safely add a role to a member with retry logic."""
@@ -340,7 +346,7 @@ async def safe_add_role(
 async def safe_remove_role(
     member: discord.Member,
     role: discord.Role,
-    reason: str | None = None,
+    reason: Optional[str] = None,
     **kwargs
 ) -> APIResult:
     """Safely remove a role from a member with retry logic."""

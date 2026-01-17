@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import datetime
-
 import discord
-import discord.ui
 from discord import app_commands
 from discord.ext import commands
+import discord.ui
+import datetime
 
 from ..security.auth import is_bot_owner
 from ..utils import safe_embed
-from ..utils import find_role_fuzzy
+from ..utils.lookup import find_role, find_text_channel
 
 
 class AdminManagementCog(commands.Cog):
@@ -31,7 +30,7 @@ class AdminManagementCog(commands.Cog):
     async def _get_or_create_admin_role(self, guild: discord.Guild) -> discord.Role:
         """Get or create the Admin role with proper permissions."""
         # Try to find existing Admin role
-        admin_role = find_role_fuzzy(guild, getattr(self.bot.settings, "admin_role_name", "Admin"))
+        admin_role = find_role(guild, "Admin")
         
         if admin_role is None:
             # Create Admin role with administrator permissions
@@ -70,12 +69,7 @@ class AdminManagementCog(commands.Cog):
         )
         
         # Try to log to mod-logs channel
-        from ..utils import find_text_channel_fuzzy
-
-        mod_logs_channel = find_text_channel_fuzzy(
-            guild,
-            getattr(self.bot.settings, "mod_logs_channel_name", "mod-logs"),
-        )
+        mod_logs_channel = find_text_channel(guild, "mod-logs")
         if mod_logs_channel:
             embed = safe_embed(
                 title=f"🔐 Admin {action.title()}",
@@ -234,7 +228,7 @@ class AdminManagementCog(commands.Cog):
         
         try:
             # Find Admin role
-            admin_role = find_role_fuzzy(interaction.guild, getattr(self.bot.settings, "admin_role_name", "Admin"))
+            admin_role = discord.utils.get(interaction.guild.roles, name="Admin")
             
             if not admin_role:
                 await interaction.followup.send(

@@ -1,17 +1,14 @@
 from __future__ import annotations
 
+import discord
+from typing import Dict, Any, Optional, Callable, List
 import logging
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
 
-import discord
-
-from ..utils import find_text_channel_fuzzy
-
-from ..interfaces import has_required_guild_perms, validate_panel_store
-from .api_wrapper import safe_edit_message, safe_send_message
+from .api_wrapper import safe_send_message, safe_edit_message, APIResult
+from ..interfaces import validate_panel_store, has_required_guild_perms, sanitize_user_text
+from ..utils.lookup import find_text_channel
 
 log = logging.getLogger("guardian.enhanced_panel_registry")
 
@@ -22,8 +19,8 @@ class PanelConfig:
     panel_key: str
     channel_name: str
     custom_id: str
-    timeout: float | None = None  # None for persistent
-    required_permissions: list[str] = None
+    timeout: Optional[float] = None  # None for persistent
+    required_permissions: List[str] = None
     
     def __post_init__(self):
         if self.required_permissions is None:
@@ -36,8 +33,8 @@ class EnhancedPanelRegistry:
     def __init__(self, bot: discord.Client, panel_store):
         self.bot = bot
         self.panel_store = panel_store
-        self._renderers: dict[str, Callable] = {}
-        self._panel_configs: dict[str, PanelConfig] = {}
+        self._renderers: Dict[str, Callable] = {}
+        self._panel_configs: Dict[str, PanelConfig] = {}
         
         # Validate interface compliance
         validate_panel_store(panel_store)
@@ -57,7 +54,7 @@ class EnhancedPanelRegistry:
             ),
             "ticket_panel": PanelConfig(
                 panel_key="ticket_panel",
-                channel_name="tickets", 
+                channel_name="support-start", 
                 custom_id="guardian_ticket_panel_v1",
                 timeout=None,  # Persistent
                 required_permissions=["send_messages", "embed_links"]
@@ -101,7 +98,7 @@ class EnhancedPanelRegistry:
         return embed, view
     
     async def deploy_panel(self, panel_key: str, guild: discord.Guild, 
-                          target_channel: discord.TextChannel | None = None) -> discord.Message | None:
+                          target_channel: Optional[discord.TextChannel] = None) -> Optional[discord.Message]:
         """Deploy a panel to a channel and store the record."""
         if panel_key not in self._panel_configs:
             log.error(f"Unknown panel key: {panel_key}")
@@ -118,7 +115,7 @@ class EnhancedPanelRegistry:
             
             # Find target channel
             if target_channel is None:
-                target_channel = find_text_channel_fuzzy(guild, config.channel_name)
+                target_channel = find_text_channel(guild, config.channel_name)
                 if target_channel is None:
                     log.warning(f"Channel '{config.channel_name}' not found for panel {panel_key} in guild {guild.id}")
                     return None
@@ -182,7 +179,7 @@ class EnhancedPanelRegistry:
             log.exception(f"Error deploying panel {panel_key} in guild {guild.id}: {e}")
             return None
     
-    async def _fetch_message_safely(self, guild: discord.Guild, channel_id: int, message_id: int) -> discord.Message | None:
+    async def _fetch_message_safely(self, guild: discord.Guild, channel_id: int, message_id: int) -> Optional[discord.Message]:
         """Safely fetch a message with proper error handling."""
         try:
             channel = guild.get_channel(channel_id)
@@ -240,7 +237,7 @@ class EnhancedPanelRegistry:
             log.exception(f"Error repairing panel {panel_key} in guild {guild.id}: {e}")
             return False
     
-    async def repair_all_guild_panels(self, guild: discord.Guild) -> dict[str, bool]:
+    async def repair_all_guild_panels(self, guild: discord.Guild) -> Dict[str, bool]:
         """Repair all panels for a guild."""
         results = {}
         
@@ -253,7 +250,7 @@ class EnhancedPanelRegistry:
         log.info(f"Panel repair completed for guild {guild.id}: {success_count}/{total_count} successful")
         return results
     
-    async def repair_all_guilds_on_startup(self) -> dict[int, dict[str, bool]]:
+    async def repair_all_guilds_on_startup(self) -> Dict[int, Dict[str, bool]]:
         """Repair all panels across all guilds on startup."""
         all_results = {}
         
@@ -267,7 +264,7 @@ class EnhancedPanelRegistry:
         
         return all_results
     
-    def get_persistent_views(self) -> list[discord.ui.View]:
+    def get_persistent_views(self) -> List[discord.ui.View]:
         """Get all persistent views that should be registered on startup."""
         views = []
         
@@ -276,8 +273,13 @@ class EnhancedPanelRegistry:
                 if panel_key in self._renderers:
                     # Create a dummy guild to get the view structure
                     # We'll register the view class, not an instance
-                    # For now, persistent view registration is handled by the owning cog.
-                    log.debug("Panel %s should have persistent view registered", panel_key)
+                    try:
+                        renderer = self._renderers[panel_key]
+                        # This should return a view we can register
+                        # For now, we'll let the cogs handle view registration
+                        log.debug(f"Panel {panel_key} should have persistent view registered")
+                    except Exception as e:
+                        log.warning(f"Error getting persistent view for {panel_key}: {e}")
         
         return views
     
@@ -310,7 +312,7 @@ class EnhancedPanelRegistry:
             log.exception(f"Error removing panel {panel_key} in guild {guild.id}: {e}")
             return False
     
-    def get_panel_status(self, guild: discord.Guild) -> dict[str, dict[str, Any]]:
+    def get_panel_status(self, guild: discord.Guild) -> Dict[str, Dict[str, Any]]:
         """Get status of all panels for a guild."""
         status = {}
         
@@ -325,7 +327,7 @@ class EnhancedPanelRegistry:
             }
             
             # Check if channel exists
-            channel = find_text_channel_fuzzy(guild, config.channel_name)
+            channel = find_text_channel(guild, config.channel_name)
             if channel:
                 panel_status["channel_exists"] = True
                 panel_status["channel_id"] = channel.id

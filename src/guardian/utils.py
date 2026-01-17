@@ -2,18 +2,20 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from typing import Optional, Any, Union
 
 import discord
 from discord import ui
 from discord.ext import commands
 
 from .constants import (
-    COLORS,
+    MAX_MESSAGE_LENGTH,
     MAX_EMBED_DESCRIPTION,
     MAX_EMBED_TITLE,
-    MAX_MESSAGE_LENGTH,
+    COLORS,
     PERMISSION_PRESETS,
+    ERROR_MESSAGES,
+    SUCCESS_MESSAGES,
 )
 
 log = logging.getLogger("guardian.utils")
@@ -48,11 +50,11 @@ def permission_overwrite(preset: str) -> discord.PermissionOverwrite:
 
 async def safe_followup(
     interaction: discord.Interaction,
-    content: str | None = None,
-    embed: discord.Embed | None = None,
+    content: Optional[str] = None,
+    embed: Optional[discord.Embed] = None,
     ephemeral: bool = False,
     **kwargs: Any,
-) -> discord.Message | None:
+) -> Optional[discord.Message]:
     """Safely follow up an interaction with error handling."""
     try:
         return await interaction.followup.send(
@@ -64,9 +66,9 @@ async def safe_followup(
 
 
 async def safe_response(
-    target: discord.Interaction | commands.Context,
-    content: str | None = None,
-    embed: discord.Embed | None = None,
+    target: Union[discord.Interaction, commands.Context],
+    content: Optional[str] = None,
+    embed: Optional[discord.Embed] = None,
     ephemeral: bool = False,
     **kwargs: Any,
 ) -> bool:
@@ -109,7 +111,7 @@ class ConfirmationView(ui.View):
     
     def __init__(self, timeout: float = 60.0) -> None:
         super().__init__(timeout=timeout)  # Keep timeout for temporary confirmations
-        self.value: bool | None = None
+        self.value: Optional[bool] = None
     
     @ui.button(label="Confirm", style=discord.ButtonStyle.success, custom_id="confirmation_confirm")
     async def confirm(self, interaction: discord.Interaction, button: ui.Button) -> None:
@@ -128,7 +130,7 @@ async def get_confirmation(
     interaction: discord.Interaction,
     message: str,
     timeout: float = 60.0,
-) -> bool | None:
+) -> Optional[bool]:
     """Get user confirmation with a view."""
     view = ConfirmationView(timeout)
     embed = info_embed(message)
@@ -146,7 +148,7 @@ def truncate_text(text: str, max_length: int = MAX_MESSAGE_LENGTH) -> str:
     return text[:max_length - 3] + "…"
 
 
-def format_user(user: discord.User | discord.Member) -> str:
+def format_user(user: Union[discord.User, discord.Member]) -> str:
     """Format user mention with name."""
     return f"{user.mention} ({user.name}#{user.discriminator})"
 
@@ -154,51 +156,6 @@ def format_user(user: discord.User | discord.Member) -> str:
 def format_channel(channel: discord.abc.GuildChannel) -> str:
     """Format channel mention with name."""
     return f"{channel.mention} ({channel.name})"
-
-
-def normalize_display_name(name: str) -> str:
-    """Normalize Discord display names for fuzzy matching.
-
-    - strips surrounding whitespace
-    - removes leading emoji-like prefixes commonly used in role names
-    - casefolds for case-insensitive comparison
-    """
-
-    # Remove common leading emoji/prefix tokens, e.g. "🐍 Snakes" -> "Snakes"
-    n = name.strip()
-    # Split on first space and drop the first token if it contains non-alnum characters
-    parts = n.split(maxsplit=1)
-    if len(parts) == 2:
-        head, tail = parts
-        if not head.isalnum():
-            n = tail
-    return n.strip().casefold()
-
-
-def find_role_fuzzy(guild: discord.Guild, expected_name: str) -> discord.Role | None:
-    """Find a role by exact name or emoji-prefixed variant."""
-
-    role = discord.utils.get(guild.roles, name=expected_name)
-    if role:
-        return role
-    target = normalize_display_name(expected_name)
-    for r in guild.roles:
-        if normalize_display_name(r.name) == target:
-            return r
-    return None
-
-
-def find_text_channel_fuzzy(guild: discord.Guild, expected_name: str) -> discord.TextChannel | None:
-    """Find a text channel by exact name or emoji-prefixed variant."""
-
-    ch = discord.utils.get(guild.text_channels, name=expected_name)
-    if ch:
-        return ch
-    target = normalize_display_name(expected_name)
-    for c in guild.text_channels:
-        if normalize_display_name(c.name) == target:
-            return c
-    return None
 
 
 def format_role(role: discord.Role) -> str:

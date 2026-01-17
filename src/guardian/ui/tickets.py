@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import discord
 
-from ..utils import find_role_fuzzy
+from ..utils.lookup import find_text_channel, find_role, find_category
 
 
 class TicketCreateView(discord.ui.View):
@@ -25,7 +25,7 @@ class TicketCreateView(discord.ui.View):
             await interaction.response.send_message(f"Ticket already open: {existing.mention}", ephemeral=True)
             return
 
-        staff_roles = [find_role_fuzzy(guild, n) for n in ("Admin", "Moderator", "Helper", "Support")]
+        staff_roles = [find_role(guild, n) for n in ("Admin", "Moderator", "Support")]
         staff_roles = [r for r in staff_roles if r]
 
         overwrites = {
@@ -35,7 +35,7 @@ class TicketCreateView(discord.ui.View):
         for r in staff_roles:
             overwrites[r] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, manage_messages=True)
 
-        cat = discord.utils.get(guild.categories, name="SUPPORT")
+        cat = find_category(guild, "SUPPORT") or find_category(guild, "🆘 SUPPORT")
         if not cat:
             await interaction.response.send_message(
                 "❌ SUPPORT category not found. Please contact an administrator to set up the ticket system.",

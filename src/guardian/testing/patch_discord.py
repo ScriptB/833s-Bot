@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-import inspect
-from functools import wraps
-from typing import Any
-
 import discord
+import inspect
+from typing import Any, Dict, List, Optional
+from functools import wraps
 
 from .dryrun import is_dry_run
 
 # Store original methods
 _original_methods = {}
-_side_effects_log: list[dict[str, Any]] = []
+_side_effects_log: List[Dict[str, Any]] = []
 
 def _log_side_effect(method_name: str, args: tuple, kwargs: dict) -> None:
     """Log a side effect that was intercepted."""
@@ -41,7 +40,7 @@ def _validate_signature(original_func, args: tuple, kwargs: dict) -> None:
         sig = inspect.signature(original_func)
         sig.bind_partial(*args, **kwargs)  # Use bind_partial to allow partial binding
     except TypeError as e:
-        raise TypeError(f"Invalid arguments for {original_func.__name__}: {e}") from e
+        raise TypeError(f"Invalid arguments for {original_func.__name__}: {e}")
 
 def _create_noop_method(original_func: Any, method_name: str) -> Any:
     """Create a no-op version of a method that validates arguments and logs side effects."""
@@ -93,7 +92,7 @@ def _create_dummy_object(method_name: str) -> Any:
     else:
         return None
 
-def get_side_effects_log() -> list[dict[str, Any]]:
+def get_side_effects_log() -> List[Dict[str, Any]]:
     """Get the current side effects log."""
     return _side_effects_log.copy()
 

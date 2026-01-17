@@ -4,7 +4,8 @@ services:
     runtime: python
     plan: free
     autoDeployTrigger: commit
-    buildCommand: pip install -U pip && pip install -r requirements.txt && pip install -e .
+    # Faster deploys on Render: a single editable install pulls dependencies from pyproject.toml.
+    buildCommand: pip install -U pip && pip install -e .
     startCommand: python -m guardian.render_entry
     envVars:
       - key: PYTHON_VERSION

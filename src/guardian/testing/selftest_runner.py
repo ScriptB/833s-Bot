@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
-import time
+import io
 import traceback
+import time
 from datetime import datetime
-from typing import Any, Union
-
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 try:
     from typing import Union
 except ImportError:
@@ -15,24 +16,9 @@ except ImportError:
 import discord
 from discord.ext import commands
 
-from .dryrun import dry_run_mode
-from .fakes import (
-    FakeCategory,
-    FakeContext,
-    FakeGuild,
-    FakeInteraction,
-    FakeMember,
-    FakeRole,
-    FakeTextChannel,
-    FakeUser,
-    FakeVoiceChannel,
-)
-from .patch_discord import (
-    clear_side_effects_log,
-    get_side_effects_log,
-    patch_discord_methods,
-    restore_discord_methods,
-)
+from .dryrun import dry_run_mode, is_dry_run
+from .patch_discord import patch_discord_methods, restore_discord_methods, get_side_effects_log, clear_side_effects_log
+from .fakes import FakeContext, FakeInteraction, FakeGuild, FakeTextChannel, FakeVoiceChannel, FakeCategory, FakeRole, FakeMember, FakeUser
 
 # Command test modes
 TEST_READONLY = "readonly"
@@ -119,13 +105,13 @@ class CommandTestResult:
     def __init__(self, command_name: str):
         self.command_name = command_name
         self.status = "SKIP"  # PASS, FAIL, SKIP
-        self.error: Exception | None = None
-        self.traceback: str | None = None
-        self.side_effects: list[dict[str, Any]] = []
-        self.skip_reason: str | None = None
+        self.error: Optional[Exception] = None
+        self.traceback: Optional[str] = None
+        self.side_effects: List[Dict[str, Any]] = []
+        self.skip_reason: Optional[str] = None
         self.duration: float = 0.0
     
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert result to dictionary for reporting."""
         return {
             'command': self.command_name,
@@ -142,9 +128,9 @@ class SelfTestRunner:
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.results: list[CommandTestResult] = []
-        self.start_time: float | None = None
-        self.end_time: float | None = None
+        self.results: List[CommandTestResult] = []
+        self.start_time: Optional[float] = None
+        self.end_time: Optional[float] = None
     
     async def run_dry_test(self) -> str:
         """Run dry test on all commands."""
@@ -355,7 +341,7 @@ class SelfTestRunner:
         
         return ctx
     
-    def _generate_command_args(self, command: commands.Command) -> tuple[tuple, dict] | None:
+    def _generate_command_args(self, command: commands.Command) -> Optional[Tuple[tuple, dict]]:
         """Generate arguments for a prefix command."""
         args = []
         kwargs = {}
@@ -385,7 +371,7 @@ class SelfTestRunner:
         
         return tuple(args), kwargs
     
-    def _generate_app_command_args(self, command: discord.app_commands.Command) -> dict | None:
+    def _generate_app_command_args(self, command: discord.app_commands.Command) -> Optional[dict]:
         """Generate arguments for an app command."""
         kwargs = {}
         
@@ -411,7 +397,7 @@ class SelfTestRunner:
         
         return kwargs
     
-    def _generate_value_for_type(self, annotation: type, param_name: str) -> Any:
+    def _generate_value_for_type(self, annotation: Type, param_name: str) -> Any:
         """Generate a test value for a given type annotation."""
         # Handle Union types (Python 3.10+) or Optional types
         if hasattr(annotation, '__origin__'):
@@ -441,17 +427,17 @@ class SelfTestRunner:
             return FakeGuild()
         
         # Handle basic types
-        elif annotation is int:
+        elif annotation == int:
             return 1
-        elif annotation is float:
+        elif annotation == float:
             return 1.0
-        elif annotation is str:
+        elif annotation == str:
             return "test"
-        elif annotation is bool:
+        elif annotation == bool:
             return True
-        elif annotation is list:
+        elif annotation == list:
             return []
-        elif annotation is dict:
+        elif annotation == dict:
             return {}
         
         # Handle enums

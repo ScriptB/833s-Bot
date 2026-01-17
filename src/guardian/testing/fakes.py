@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
-
 import discord
-
+from typing import Any, Dict, List, Optional, Union
 
 class FakeMember:
     """Fake Discord Member for testing."""
@@ -149,14 +147,14 @@ class FakeGuild:
     def __repr__(self):
         return f"<FakeGuild id={self.id} name={self.name}>"
     
-    def get_channel(self, channel_id: int) -> FakeTextChannel | FakeVoiceChannel | FakeCategory | None:
+    def get_channel(self, channel_id: int) -> Optional[Union[FakeTextChannel, FakeVoiceChannel, FakeCategory]]:
         """Get a channel by ID."""
         for channel in self.text_channels + self.voice_channels + self.categories:
             if channel.id == channel_id:
                 return channel
         return None
     
-    def get_member(self, member_id: int) -> FakeMember | None:
+    def get_member(self, member_id: int) -> Optional[FakeMember]:
         """Get a member by ID."""
         for member in self.members:
             if member.id == member_id:
@@ -166,7 +164,7 @@ class FakeGuild:
 class FakeMessage:
     """Fake Discord Message for testing."""
     
-    def __init__(self, content: str = "Test message", author: FakeMember | None = None, channel: FakeTextChannel | None = None):
+    def __init__(self, content: str = "Test message", author: Optional[FakeMember] = None, channel: Optional[FakeTextChannel] = None):
         self.content = content
         self.author = author or FakeMember()
         self.channel = channel or FakeTextChannel()
@@ -186,7 +184,7 @@ class FakeMessage:
 class FakeContext:
     """Fake Discord Context for testing prefix commands."""
     
-    def __init__(self, bot: discord.Client, guild: FakeGuild | None = None, channel: FakeTextChannel | None = None, author: FakeMember | None = None):
+    def __init__(self, bot: discord.Client, guild: Optional[FakeGuild] = None, channel: Optional[FakeTextChannel] = None, author: Optional[FakeMember] = None):
         self.bot = bot
         self.guild = guild or FakeGuild()
         self.channel = channel or FakeTextChannel()
@@ -220,14 +218,14 @@ class FakeContext:
         """Fake fetch_message method."""
         return FakeMessage()
     
-    def get_sent_messages(self) -> list[dict[str, Any]]:
+    def get_sent_messages(self) -> List[Dict[str, Any]]:
         """Get all messages sent through this context."""
         return self._sent_messages.copy()
 
 class FakeInteraction:
     """Fake Discord Interaction for testing app commands."""
     
-    def __init__(self, bot: discord.Client, guild: FakeGuild | None = None, channel: FakeTextChannel | None = None, user: FakeUser | None = None):
+    def __init__(self, bot: discord.Client, guild: Optional[FakeGuild] = None, channel: Optional[FakeTextChannel] = None, user: Optional[FakeUser] = None):
         self.bot = bot
         self.guild = guild or FakeGuild()
         self.channel = channel or FakeTextChannel()
@@ -247,7 +245,7 @@ class FakeInteraction:
         """Fake original_response method."""
         return FakeMessage(author=self.bot.user, channel=self.channel)
     
-    def get_sent_messages(self) -> list[dict[str, Any]]:
+    def get_sent_messages(self) -> List[Dict[str, Any]]:
         """Get all messages sent through this interaction."""
         return self._sent_messages.copy()
 
@@ -274,6 +272,6 @@ class FakeInteractionResponse:
         """Check if response has been sent."""
         return self._responded
     
-    def get_messages(self) -> list[dict[str, Any]]:
+    def get_messages(self) -> List[Dict[str, Any]]:
         """Get all messages sent."""
         return self._messages.copy()

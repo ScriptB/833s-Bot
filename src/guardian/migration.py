@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from typing import Dict, Any, Optional, List, Callable
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
-from typing import Any
 
 import aiosqlite
 
@@ -25,11 +25,11 @@ class Migration:
     version: str
     description: str
     migration_type: MigrationType
-    up_sql: str | None = None
-    down_sql: str | None = None
-    up_function: Callable | None = None
-    down_function: Callable | None = None
-    depends_on: list[str] | None = None
+    up_sql: Optional[str] = None
+    down_sql: Optional[str] = None
+    up_function: Optional[Callable] = None
+    down_function: Optional[Callable] = None
+    depends_on: Optional[List[str]] = None
     breaking: bool = False
 
 
@@ -38,7 +38,7 @@ class MigrationManager:
     
     def __init__(self, db_path: str):
         self.db_path = db_path
-        self.migrations: dict[str, Migration] = {}
+        self.migrations: Dict[str, Migration] = {}
         self._register_standard_migrations()
     
     def _register_standard_migrations(self):
@@ -165,7 +165,7 @@ class MigrationManager:
             """)
             await db.commit()
     
-    async def get_applied_migrations(self) -> list[str]:
+    async def get_applied_migrations(self) -> List[str]:
         """Get list of applied migration versions."""
         await self.ensure_migration_table()
         
@@ -267,7 +267,7 @@ class MigrationManager:
                 log.error(f"Failed to rollback migration {migration.version}: {e}")
                 return False
     
-    async def migrate_to_latest(self) -> dict[str, Any]:
+    async def migrate_to_latest(self) -> Dict[str, Any]:
         """Apply all pending migrations."""
         applied = await self.get_applied_migrations()
         pending = [v for v in sorted(self.migrations.keys()) if v not in applied]
@@ -309,7 +309,7 @@ class MigrationManager:
         log.info(f"Migration complete: applied={len(results['applied'])}, failed={len(results['failed'])}, skipped={len(results['skipped'])}")
         return results
     
-    async def get_migration_status(self) -> dict[str, Any]:
+    async def get_migration_status(self) -> Dict[str, Any]:
         """Get current migration status."""
         applied = await self.get_applied_migrations()
         all_versions = sorted(self.migrations.keys())
@@ -350,7 +350,7 @@ class ConfigManager:
             """)
             await db.commit()
     
-    async def get_config(self, guild_id: int) -> dict[str, Any]:
+    async def get_config(self, guild_id: int) -> Dict[str, Any]:
         """Get configuration for a guild with migration support."""
         await self.ensure_config_table()
         
@@ -376,7 +376,7 @@ class ConfigManager:
                 # Return default config
                 return self._get_default_config()
     
-    async def save_config(self, guild_id: int, config: dict[str, Any]):
+    async def save_config(self, guild_id: int, config: Dict[str, Any]):
         """Save configuration for a guild."""
         await self.ensure_config_table()
         
@@ -389,7 +389,7 @@ class ConfigManager:
             """, (guild_id, self.config_version, config_json))
             await db.commit()
     
-    def _get_default_config(self) -> dict[str, Any]:
+    def _get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
         return {
             "version": self.config_version,
@@ -418,17 +418,17 @@ class ConfigManager:
             ]
         }
     
-    def _parse_config(self, config_json: str) -> dict[str, Any]:
+    def _parse_config(self, config_json: str) -> Dict[str, Any]:
         """Parse configuration JSON."""
         import json
         return json.loads(config_json)
     
-    def _serialize_config(self, config: dict[str, Any]) -> str:
+    def _serialize_config(self, config: Dict[str, Any]) -> str:
         """Serialize configuration to JSON."""
         import json
         return json.dumps(config, separators=(',', ':'))
     
-    async def _migrate_config(self, config: dict[str, Any], from_version: str) -> dict[str, Any]:
+    async def _migrate_config(self, config: Dict[str, Any], from_version: str) -> Dict[str, Any]:
         """Migrate configuration from an older version."""
         # Add migration logic here as needed
         # For now, just ensure the config has the latest structure
@@ -453,7 +453,7 @@ def initialize_migration_system(db_path: str):
     config_manager = ConfigManager(db_path)
 
 
-async def run_migrations(db_path: str) -> dict[str, Any]:
+async def run_migrations(db_path: str) -> Dict[str, Any]:
     """Run all pending migrations."""
     if not migration_manager:
         initialize_migration_system(db_path)
@@ -461,7 +461,7 @@ async def run_migrations(db_path: str) -> dict[str, Any]:
     return await migration_manager.migrate_to_latest()
 
 
-async def get_migration_status(db_path: str) -> dict[str, Any]:
+async def get_migration_status(db_path: str) -> Dict[str, Any]:
     """Get migration status."""
     if not migration_manager:
         initialize_migration_system(db_path)
@@ -469,7 +469,7 @@ async def get_migration_status(db_path: str) -> dict[str, Any]:
     return await migration_manager.get_migration_status()
 
 
-async def get_guild_config(guild_id: int, db_path: str) -> dict[str, Any]:
+async def get_guild_config(guild_id: int, db_path: str) -> Dict[str, Any]:
     """Get guild configuration with migration support."""
     if not config_manager:
         initialize_migration_system(db_path)
@@ -477,7 +477,7 @@ async def get_guild_config(guild_id: int, db_path: str) -> dict[str, Any]:
     return await config_manager.get_config(guild_id)
 
 
-async def save_guild_config(guild_id: int, config: dict[str, Any], db_path: str):
+async def save_guild_config(guild_id: int, config: Dict[str, Any], db_path: str):
     """Save guild configuration."""
     if not config_manager:
         initialize_migration_system(db_path)

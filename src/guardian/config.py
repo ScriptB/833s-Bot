@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
+import os
 
 
 def _get_int(name: str, default: int) -> int:
@@ -53,31 +53,15 @@ class Settings:
     prompts_enabled: bool
     events_enabled: bool
     community_memory_enabled: bool
+    # Optional systems
+    reaction_roles_enabled: bool
+    reaction_roles_channel_name: str
+    reaction_roles_panel_key: str
+    legacy_tickets_enabled: bool
     # discord.py logs a warning (and prefix commands won't work reliably) when
     # message content intent is disabled. This project primarily uses slash
     # commands, but we default this on to avoid confusion.
     message_content_intent: bool = True
-
-    # Channel name configuration (keeps the bot portable across server templates)
-    verify_channel_name: str = "verify"
-    tickets_channel_name: str = "tickets"
-    mod_logs_channel_name: str = "mod-logs"
-    role_panel_channel_name: str = "choose-your-games"
-    reaction_roles_channel_name: str = "choose-your-games"
-    bot_ops_channel_name: str = "admin-console"
-    suggestions_channel_name: str = "general-chat"
-
-    # Role name configuration
-    verified_role_name: str = "Verified"
-    member_role_name: str = "Member"
-    quarantine_role_name: str = "Quarantine"
-
-    # Bump reminder
-    bump_reminder_enabled: bool = False
-    bump_reminder_channel_name: str = "general-chat"
-    bump_reminder_min_minutes: int = 20
-    bump_reminder_max_minutes: int = 120
-    bump_reminder_message: str = "Hey! Don't forget to use '!d Bump' to help the server grow!"
 
 
 
@@ -92,8 +76,7 @@ def load_settings() -> Settings:
         token=token,
         dev_guild_id=_get_int("DEV_GUILD_ID", 0),
         sync_guild_id=_get_int("SYNC_GUILD_ID", 0),
-        # Default to 0 to avoid accidentally granting owner powers to a random ID
-        owner_id=_get_int("OWNER_ID", 0),
+        owner_id=_get_int("OWNER_ID", 1008255853859721216),
         queue_max_batch=_get_int("QUEUE_MAX_BATCH", 4),
         queue_every_ms=_get_int("QUEUE_EVERY_MS", 100),
         queue_max_size=_get_int("QUEUE_MAX_SIZE", 10_000),
@@ -118,22 +101,8 @@ def load_settings() -> Settings:
         prompts_enabled=_get_bool("PROMPTS_ENABLED", True),
         events_enabled=_get_bool("EVENTS_ENABLED", True),
         community_memory_enabled=_get_bool("COMMUNITY_MEMORY_ENABLED", True),
-
-        verify_channel_name=(os.getenv("VERIFY_CHANNEL_NAME", "verify").strip() or "verify"),
-        tickets_channel_name=(os.getenv("TICKETS_CHANNEL_NAME", "tickets").strip() or "tickets"),
-        mod_logs_channel_name=(os.getenv("MOD_LOGS_CHANNEL_NAME", "mod-logs").strip() or "mod-logs"),
-        role_panel_channel_name=(os.getenv("ROLE_PANEL_CHANNEL_NAME", "choose-your-games").strip() or "choose-your-games"),
+        reaction_roles_enabled=_get_bool("REACTION_ROLES_ENABLED", True),
         reaction_roles_channel_name=(os.getenv("REACTION_ROLES_CHANNEL_NAME", "choose-your-games").strip() or "choose-your-games"),
-        bot_ops_channel_name=(os.getenv("BOT_OPS_CHANNEL_NAME", "admin-console").strip() or "admin-console"),
-        suggestions_channel_name=(os.getenv("SUGGESTIONS_CHANNEL_NAME", "general-chat").strip() or "general-chat"),
-
-        verified_role_name=(os.getenv("VERIFIED_ROLE_NAME", "Verified").strip() or "Verified"),
-        member_role_name=(os.getenv("MEMBER_ROLE_NAME", "Member").strip() or "Member"),
-        quarantine_role_name=(os.getenv("QUARANTINE_ROLE_NAME", "Quarantine").strip() or "Quarantine"),
-
-        bump_reminder_enabled=_get_bool("BUMP_REMINDER_ENABLED", False),
-        bump_reminder_channel_name=(os.getenv("BUMP_REMINDER_CHANNEL_NAME", "general-chat").strip() or "general-chat"),
-        bump_reminder_min_minutes=_get_int("BUMP_REMINDER_MIN_MINUTES", 20),
-        bump_reminder_max_minutes=_get_int("BUMP_REMINDER_MAX_MINUTES", 120),
-        bump_reminder_message=(os.getenv("BUMP_REMINDER_MESSAGE", "Hey! Don't forget to use '!d Bump' to help the server grow!").strip() or "Hey! Don't forget to use '!d Bump' to help the server grow!"),
+        reaction_roles_panel_key=(os.getenv("REACTION_ROLES_PANEL_KEY", "reaction_roles_panel").strip() or "reaction_roles_panel"),
+        legacy_tickets_enabled=_get_bool("LEGACY_TICKETS_ENABLED", False),
     )

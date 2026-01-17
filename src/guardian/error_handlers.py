@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 import discord
 from discord.ext import commands
 
-from .constants import ERROR_MESSAGES
 from .utils import error_embed, safe_response
+from .constants import ERROR_MESSAGES
 
 log = logging.getLogger("guardian.error_handlers")
 

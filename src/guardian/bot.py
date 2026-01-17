@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import asyncio
 import logging
-from datetime import datetime
 
 import discord
 from discord.ext import commands
@@ -11,41 +9,45 @@ from .config import Settings
 from .constants import CACHE_TTL_SECONDS
 from .database import initialize_database
 from .error_handlers import setup_error_handlers
-from .migration import initialize_migration_system, run_migrations
-from .observability import observability
-from .permissions import validate_command_permissions
-from .services.cases_store import CasesStore
-from .services.channel_bootstrapper import ChannelBootstrapper
-from .services.drift_verifier import DriftVerifier
-from .services.guild_logger import GuildLogger
+from .services.task_queue import QueuePolicy, TaskQueue
 from .services.guild_store import GuildStore
-from .services.level_rewards_store import LevelRewardsStore
+from .services.stats import RuntimeStats
+from .services.warnings_store import WarningsStore
+from .services.levels_store import LevelsStore
 from .services.levels_config_store import LevelsConfigStore
 from .services.levels_ledger_store import LevelsLedgerStore
-from .services.levels_store import LevelsStore
-from .services.onboarding_store import OnboardingStore
-from .services.panel_registry import PanelRegistry
-from .services.panel_store import PanelStore
-from .services.profiles_store import ProfilesStore
-from .services.reputation_store import ReputationStore
-from .services.role_config_store import RoleConfigStore
-from .services.root_store import RootStore
-from .services.server_config_store import ServerConfigStore
+from .services.level_rewards_store import LevelRewardsStore
 from .services.starboard_store import StarboardStore
-from .services.stats import RuntimeStats
-from .services.status_reporter import StatusReporter
+from .services.server_config_store import ServerConfigStore
+from .services.onboarding_store import OnboardingStore
+from .services.drift_verifier import DriftVerifier
+from .services.cases_store import CasesStore
+from .services.reputation_store import ReputationStore
 from .services.suggestions_store import SuggestionsStore
-from .services.task_queue import QueuePolicy, TaskQueue
-from .services.titles_store import TitlesStore
-from .services.warnings_store import WarningsStore
+from .services.channel_bootstrapper import ChannelBootstrapper
+from .services.status_reporter import StatusReporter
+from .services.guild_logger import GuildLogger
+from .services.panel_registry import PanelRegistry
 from .startup_diagnostics import StartupDiagnostics
+from .services.panel_store import PanelStore
+from .permissions import validate_command_permissions
+from .services.role_config_store import RoleConfigStore
+from .services.profiles_store import ProfilesStore
+from .services.titles_store import TitlesStore
+from .services.root_store import RootStore
 from .ui.persistent import register_all_views
+from .observability import observability
+from .migration import initialize_migration_system
 
 log = logging.getLogger("guardian.bot")
 
 
+import asyncio
+from datetime import datetime
+
+
 class _CommandSyncManager:
-    def __init__(self, bot: GuardianBot) -> None:
+    def __init__(self, bot: "GuardianBot") -> None:
         self.bot = bot
         self._lock = asyncio.Lock()
 
@@ -178,10 +180,6 @@ class GuardianBot(commands.Bot):
         
         # Initialize production systems
         initialize_migration_system(self.settings.sqlite_path)
-        try:
-            await run_migrations(self.settings.sqlite_path)
-        except Exception as exc:  # noqa: BLE001
-            log.warning("Migration run failed: %s", exc)
         observability.log_startup_event("migration_system", "OK")
         
         # Initialize panel registry renderers (will be done by cogs)
@@ -234,7 +232,11 @@ class GuardianBot(commands.Bot):
         # Community + onboarding
         await _load_cog("guardian.cogs.welcome", "WelcomeCog")
         await _load_cog("guardian.cogs.onboarding", "OnboardingCog")
-        await _load_cog("guardian.cogs.tickets", "TicketsCog")
+        # Legacy ticket panel implementation (kept optional to avoid overlapping systems).
+        if getattr(self.settings, "legacy_tickets_enabled", False):
+            await _load_cog("guardian.cogs.tickets", "TicketsCog")
+        else:
+            log.info("Legacy TicketsCog disabled; using TicketSystemCog only")
         await _load_cog("guardian.cogs.suggestions", "SuggestionsCog")
 
 
@@ -259,16 +261,14 @@ class GuardianBot(commands.Bot):
         
         # Production-ready systems
         await _load_cog("guardian.cogs.setup_wizard", "SetupWizardCog")
-        # NOTE: ticket_system is deprecated in this codebase in favor of guardian.cogs.tickets.
-        # It relied on hardcoded channels (e.g. support-start) that don't exist in the current
-        # server template and duplicated functionality.
+        await _load_cog("guardian.cogs.ticket_system", "TicketSystemCog")
         await _load_cog("guardian.cogs.role_assignment", "RoleAssignmentCog")
         await _load_cog("guardian.cogs.activity_manager", "ActivityCog")
         await _load_cog("guardian.cogs.health_check", "HealthCheckCog")
-        await _load_cog("guardian.cogs.reaction_roles_new", "ReactionRolesCog")
-
-        if getattr(self.settings, "bump_reminder_enabled", False):
-            await _load_cog("guardian.cogs.bump_reminder", "BumpReminderCog")
+        if getattr(self.settings, "reaction_roles_enabled", True):
+            await _load_cog("guardian.cogs.reaction_roles_new", "ReactionRolesCog")
+        else:
+            log.info("Reaction roles disabled by settings; skipping ReactionRolesCog")
         
         # Persistent panels
         await _load_cog("guardian.cogs.verify_panel", "VerifyPanelCog")
@@ -313,14 +313,17 @@ class GuardianBot(commands.Bot):
             log.info("🔍 Running startup self-check...")
             
             # Check critical cogs
+            rr_enabled = bool(getattr(self.settings, "reaction_roles_enabled", True))
+
             critical_cogs = {
                 'VerifyPanelCog': self.get_cog('VerifyPanelCog') is not None,
                 'RolePanelCog': self.get_cog('RolePanelCog') is not None,
                 'ActivityCog': self.get_cog('ActivityCog') is not None,
-                'TicketsCog': self.get_cog('TicketsCog') is not None,
+                'TicketSystemCog': self.get_cog('TicketSystemCog') is not None,
                 'RoleAssignmentCog': self.get_cog('RoleAssignmentCog') is not None,
                 'HealthCheckCog': self.get_cog('HealthCheckCog') is not None,
-                'ReactionRolesCog': self.get_cog('ReactionRolesCog') is not None,
+                # Reaction roles are optional. When disabled, they should not cause a startup failure.
+                'ReactionRolesCog': (not rr_enabled) or (self.get_cog('ReactionRolesCog') is not None),
             }
             
             failed_cogs = [name for name, loaded in critical_cogs.items() if not loaded]
@@ -336,11 +339,12 @@ class GuardianBot(commands.Bot):
                 'rolepanel': any(cmd.name == 'rolepanel' for cmd in commands),
                 'roleselect': any(cmd.name == 'roleselect' for cmd in commands),
                 'activity': any(cmd.name == 'activity' for cmd in commands),
-                'ticket_panel': any(cmd.name == 'ticket_panel' for cmd in commands),
+                'ticket': any(cmd.name == 'ticket' for cmd in commands),
+                'close': any(cmd.name == 'close' for cmd in commands),
                 'roles': any(cmd.name == 'roles' for cmd in commands),
                 'myroles': any(cmd.name == 'myroles' for cmd in commands),
                 'health': any(cmd.name == 'health' for cmd in commands),
-                'reactionroles': any(cmd.name == 'reactionroles' for cmd in commands),
+                'reactionroles': (not rr_enabled) or any(cmd.name == 'reactionroles' for cmd in commands),
             }
             
             failed_commands = [name for name, available in critical_commands.items() if not available]
@@ -368,13 +372,14 @@ class GuardianBot(commands.Bot):
                 log.error("❌ Self-check failed - Activity manager not available")
             
             # Validate command permissions
-            if validate_command_permissions():
+            actual = {cmd.name for cmd in commands}
+            if validate_command_permissions(actual):
                 log.info("✅ Command permissions validation passed")
             else:
                 log.error("❌ Self-check failed - Command permissions validation failed")
             
             # Overall result
-            if not failed_cogs and not failed_commands and validate_command_permissions():
+            if not failed_cogs and not failed_commands and validate_command_permissions(actual):
                 log.info("🎉 Startup self-check passed - All systems operational")
             else:
                 log.warning("⚠️ Startup self-check completed with issues - Some systems may be degraded")

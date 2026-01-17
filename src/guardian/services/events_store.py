@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
-from dataclasses import dataclass
-
 import aiosqlite
+from dataclasses import dataclass
+from typing import Sequence
 
 from .base import BaseService
 

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import discord
-
-from ..utils import find_text_channel_fuzzy
 from discord import app_commands
 from discord.ext import commands
+from typing import Optional
 
-from ..permissions import require_admin
 from ..services.panel_store import PanelStore
+from ..utils.lookup import find_text_channel
 from ..services.role_config_store import RoleConfigStore
+from ..permissions import require_admin
 
 
 class ReactionRoleButton(discord.ui.Button):
@@ -170,8 +170,8 @@ class RolePanelCog(commands.Cog):
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.panel_store: PanelStore | None = None
-        self.role_config_store: RoleConfigStore | None = None
+        self.panel_store: Optional[PanelStore] = None
+        self.role_config_store: Optional[RoleConfigStore] = None
     
     async def cog_load(self) -> None:
         """Initialize stores and register persistent views."""
@@ -232,12 +232,11 @@ class RolePanelCog(commands.Cog):
             return
         
         # Find or create role panel channel
-        channel_name = getattr(self.bot.settings, "role_panel_channel_name", "choose-your-games")
-        channel = find_text_channel_fuzzy(guild, channel_name)
+        channel = find_text_channel(guild, "choose-your-games") or find_text_channel(guild, "server-info")
         if not channel:
             try:
                 channel = await guild.create_text_channel(
-                    channel_name,
+                    "roles", 
                     reason="Role selection panel channel"
                 )
             except discord.Forbidden:
@@ -275,7 +274,7 @@ class RolePanelCog(commands.Cog):
         message = await channel.send(embed=embed, view=view)
         
         # Store panel reference
-        panel_key = "role_panel_main"
+        panel_key = f"role_panel_main"
         await self.panel_store.upsert_panel(
             panel_key, guild.id, channel.id, message.id
         )
@@ -323,7 +322,7 @@ class RolePanelCog(commands.Cog):
         message = await channel.send(embed=embed, view=view)
         
         # Store panel reference
-        panel_key = "reaction_roles_main"
+        panel_key = f"reaction_roles_main"
         await self.panel_store.upsert_panel(
             panel_key, guild.id, channel.id, message.id
         )
@@ -334,7 +333,7 @@ class RoleSelectCog(commands.Cog):
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.role_config_store: RoleConfigStore | None = None
+        self.role_config_store: Optional[RoleConfigStore] = None
     
     async def cog_load(self) -> None:
         """Initialize role config store."""
@@ -356,8 +355,8 @@ class RoleSelectCog(commands.Cog):
         interaction: discord.Interaction,
         role: discord.Role,
         label: str,
-        emoji: str | None = None,
-        group: str | None = None
+        emoji: Optional[str] = None,
+        group: Optional[str] = None
     ) -> None:
         """Add a role to the selection panel."""
         

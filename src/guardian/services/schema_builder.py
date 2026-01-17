@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-
 import discord
-
-from ..utils import find_text_channel_fuzzy
+from typing import Dict, Iterable
 
 from .schema import ServerSchema
+from ..utils.lookup import find_text_channel, find_voice_channel, find_category
 
 
 def _ow(**kwargs) -> discord.PermissionOverwrite:
@@ -62,7 +61,7 @@ class SchemaBuilder:
         bot_top = me.top_role
 
         roles = sorted(list(guild.roles), key=lambda r: r.position, reverse=True)
-        for _idx, r in enumerate(roles, 1):
+        for idx, r in enumerate(roles, 1):
             if r.is_default() or r.managed:
                 continue
             # Can't delete roles >= bot top
@@ -74,10 +73,10 @@ class SchemaBuilder:
                 await asyncio.sleep(0.2)
             await asyncio.sleep(0.2)
 
-    async def ensure_roles(self, guild: discord.Guild, schema: ServerSchema, *, status=None) -> dict[str, discord.Role]:
+    async def ensure_roles(self, guild: discord.Guild, schema: ServerSchema, *, status=None) -> Dict[str, discord.Role]:
         # Create roles bottom-up to preserve hierarchy
         existing = {r.name: r for r in guild.roles}
-        created: dict[str, discord.Role] = {}
+        created: Dict[str, discord.Role] = {}
 
         # Resolve desired order: as provided in schema.roles (top->bottom). We'll create reversed.
         for i, spec in enumerate(reversed(schema.roles), 1):
@@ -124,11 +123,11 @@ class SchemaBuilder:
         # Return map
         return {name: role for name, role in existing.items() if name in {s.name for s in schema.roles}}
 
-    def _role(self, roles: dict[str, discord.Role], name: str) -> discord.Role | None:
+    def _role(self, roles: Dict[str, discord.Role], name: str) -> discord.Role | None:
         r = roles.get(name)
         return r if isinstance(r, discord.Role) else None
 
-    async def ensure_categories_channels(self, guild: discord.Guild, schema: ServerSchema, roles: dict[str, discord.Role], *, status=None) -> None:
+    async def ensure_categories_channels(self, guild: discord.Guild, schema: ServerSchema, roles: Dict[str, discord.Role], *, status=None) -> None:
         everyone = guild.default_role
         verified = self._role(roles, "Verified Member")
         quarantine = self._role(roles, "Quarantine")
@@ -149,8 +148,8 @@ class SchemaBuilder:
         staff_roles = [r for r in [head_admin, admin, moderator, support, community] if r]
         staff_manage = [r for r in [head_admin, admin] if r]
 
-        def cat_overwrites(cat_name: str) -> dict[discord.abc.Snowflake, discord.PermissionOverwrite]:
-            ow: dict[discord.abc.Snowflake, discord.PermissionOverwrite] = {everyone: _deny_view()}
+        def cat_overwrites(cat_name: str) -> Dict[discord.abc.Snowflake, discord.PermissionOverwrite]:
+            ow: Dict[discord.abc.Snowflake, discord.PermissionOverwrite] = {everyone: _deny_view()}
             if bot_role:
                 ow[bot_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
             if cat_name in {"ONBOARDING"}:
@@ -205,7 +204,7 @@ class SchemaBuilder:
                 if status:
                     await status.update(guild, ch_i, f"Ensuring channels in {cat_spec.name} ({ch_i}/{len(cat_spec.channels)})")
                 if ch_spec.kind == "text":
-                    ch = find_text_channel_fuzzy(guild, ch_spec.name)
+                    ch = find_text_channel(guild, ch_spec.name)
                     if not ch:
                         try:
                             ch = await guild.create_text_channel(
@@ -228,7 +227,7 @@ class SchemaBuilder:
                     overwrites = dict(ch.overwrites)
                     # Read-only channels
                     readonly = {
-                        "announcements","changelog","server-info","faq","server-status","resources","partners",
+                        "announcements","changelog","community-guide","faq","server-status","resources","partners",
                         "events","support-guidelines","ticket-transcripts","staff-handbook",
                         "audit-log","message-log","join-leave-log","moderation-log","anti-raid-log","ticket-log",
                         "server-config","permission-audit",
@@ -243,7 +242,7 @@ class SchemaBuilder:
                         for r in staff_manage:
                             overwrites[r] = _allow_chat()
                     # Support start: members can type; transcripts read-only to support/admin
-                    if ch.name == "tickets" and verified:
+                    if ch.name == "support-start" and verified:
                         overwrites[verified] = _allow_chat()
                         if support:
                             overwrites[support] = _allow_chat()
@@ -270,24 +269,18 @@ class SchemaBuilder:
                     if ch.name == "contributors-lounge" and lvl10:
                         overwrites[verified] = _deny_view() if verified else overwrites.get(everyone, _deny_view())
                         overwrites[lvl10] = _allow_chat()
-                        if lvl20:
-                            overwrites[lvl20] = _allow_chat()
-                        if lvl35:
-                            overwrites[lvl35] = _allow_chat()
-                        if lvl50:
-                            overwrites[lvl50] = _allow_chat()
+                        if lvl20: overwrites[lvl20] = _allow_chat()
+                        if lvl35: overwrites[lvl35] = _allow_chat()
+                        if lvl50: overwrites[lvl50] = _allow_chat()
                     if ch.name == "veterans-lounge" and lvl20:
                         overwrites[verified] = _deny_view() if verified else overwrites.get(everyone, _deny_view())
                         overwrites[lvl20] = _allow_chat()
-                        if lvl35:
-                            overwrites[lvl35] = _allow_chat()
-                        if lvl50:
-                            overwrites[lvl50] = _allow_chat()
+                        if lvl35: overwrites[lvl35] = _allow_chat()
+                        if lvl50: overwrites[lvl50] = _allow_chat()
                     if ch.name == "elite-lounge" and lvl35:
                         overwrites[verified] = _deny_view() if verified else overwrites.get(everyone, _deny_view())
                         overwrites[lvl35] = _allow_chat()
-                        if lvl50:
-                            overwrites[lvl50] = _allow_chat()
+                        if lvl50: overwrites[lvl50] = _allow_chat()
                     if ch.name == "core-feedback" and lvl50:
                         overwrites[verified] = _deny_view() if verified else overwrites.get(everyone, _deny_view())
                         overwrites[lvl50] = _allow_chat()
@@ -299,7 +292,7 @@ class SchemaBuilder:
 
                 else:
                     # voice
-                    vc = discord.utils.get(guild.voice_channels, name=ch_spec.name)
+                    vc = find_voice_channel(guild, ch_spec.name)
                     if not vc:
                         try:
                             vc = await guild.create_voice_channel(name=ch_spec.name, category=cat, reason="833s Guardian schema apply")
@@ -318,7 +311,7 @@ class SchemaBuilder:
         try:
             # Move categories in the exact order they appear
             for pos, cat_spec in enumerate(schema.categories):
-                cat = discord.utils.get(guild.categories, name=cat_spec.name)
+                cat = find_category(guild, cat_spec.name)
                 if cat:
                     await cat.edit(position=pos, reason="833s Guardian schema apply")
                     await asyncio.sleep(0.15)

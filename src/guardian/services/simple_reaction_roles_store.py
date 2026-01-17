@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import logging
-
 import aiosqlite
+import logging
+from typing import List, Dict, Any
 
 from .base import BaseService
 
@@ -37,7 +37,7 @@ class SimpleReactionRolesStore(BaseService):
             await db.commit()
         log.info("SimpleReactionRolesStore initialized")
 
-    async def add_many(self, guild_id: int, role_ids: list[int], group_key: str) -> list[str]:
+    async def add_many(self, guild_id: int, role_ids: List[int], group_key: str) -> List[str]:
         """Add multiple roles to a group."""
         errors = []
         
@@ -55,7 +55,7 @@ class SimpleReactionRolesStore(BaseService):
         
         return errors
 
-    async def remove_many(self, guild_id: int, role_ids: list[int]) -> list[str]:
+    async def remove_many(self, guild_id: int, role_ids: List[int]) -> List[str]:
         """Remove multiple roles."""
         errors = []
         
@@ -73,7 +73,7 @@ class SimpleReactionRolesStore(BaseService):
         
         return errors
 
-    async def list_group(self, guild_id: int, group_key: str) -> list[int]:
+    async def list_group(self, guild_id: int, group_key: str) -> List[int]:
         """List all role IDs in a group."""
         async with aiosqlite.connect(self._path) as db:
             async with db.execute(
@@ -83,7 +83,7 @@ class SimpleReactionRolesStore(BaseService):
                 rows = await cursor.fetchall()
                 return [row[0] for row in rows]
 
-    async def list_all(self, guild_id: int) -> dict[str, list[int]]:
+    async def list_all(self, guild_id: int) -> Dict[str, List[int]]:
         """List all roles grouped by group."""
         async with aiosqlite.connect(self._path) as db:
             async with db.execute(

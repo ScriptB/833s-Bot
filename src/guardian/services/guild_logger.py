@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-
 import discord
 
 log = logging.getLogger("guardian.guild_logger")

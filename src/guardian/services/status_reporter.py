@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 import discord
 
+from ..utils.lookup import find_text_channel
+
 
 @dataclass
 class StatusState:
@@ -74,12 +76,7 @@ class StatusReporter:
             pass
 
     async def _ensure_message(self, guild: discord.Guild) -> None:
-        from ..utils import find_text_channel_fuzzy
-
-        ch = find_text_channel_fuzzy(
-            guild,
-            getattr(self.bot.settings, "bot_ops_channel_name", "admin-console"),
-        )
+        ch = find_text_channel(guild, "bot-ops") or find_text_channel(guild, "admin-console") or find_text_channel(guild, "mod-logs")
         if not isinstance(ch, discord.TextChannel):
             return
         mid = self._message_id_by_guild.get(guild.id)
@@ -96,12 +93,7 @@ class StatusReporter:
             return
 
     async def _get_message(self, guild: discord.Guild) -> discord.Message | None:
-        from ..utils import find_text_channel_fuzzy
-
-        ch = find_text_channel_fuzzy(
-            guild,
-            getattr(self.bot.settings, "bot_ops_channel_name", "admin-console"),
-        )
+        ch = find_text_channel(guild, "bot-ops") or find_text_channel(guild, "admin-console") or find_text_channel(guild, "mod-logs")
         if not isinstance(ch, discord.TextChannel):
             return None
         mid = self._message_id_by_guild.get(guild.id)

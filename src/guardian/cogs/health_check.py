@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import logging
-import time
-
 import discord
 from discord import app_commands
 from discord.ext import commands
+import logging
+import time
+from typing import Optional
 
-from ..permissions import list_commands_by_tier, require_verified, validate_command_permissions
+from ..permissions import require_verified, validate_command_permissions, list_commands_by_tier
 
 log = logging.getLogger("guardian.health_check")
 
