@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import datetime
+
 import discord
+import discord.ui
 from discord import app_commands
 from discord.ext import commands
-import discord.ui
-import datetime
 
 from ..security.auth import is_bot_owner
 from ..utils import safe_embed
@@ -68,7 +69,12 @@ class AdminManagementCog(commands.Cog):
         )
         
         # Try to log to mod-logs channel
-        mod_logs_channel = discord.utils.get(guild.text_channels, name="mod-logs")
+        from ..utils import find_text_channel_fuzzy
+
+        mod_logs_channel = find_text_channel_fuzzy(
+            guild,
+            getattr(self.bot.settings, "mod_logs_channel_name", "mod-logs"),
+        )
         if mod_logs_channel:
             embed = safe_embed(
                 title=f"🔐 Admin {action.title()}",

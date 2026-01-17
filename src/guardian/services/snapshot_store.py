@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 import aiosqlite
 
@@ -48,7 +48,7 @@ class SnapshotStore(BaseService):
     def _get_query(self) -> str:
         return "SELECT * FROM snapshots WHERE guild_id = ? AND kind = ? ORDER BY created_at DESC LIMIT 1"
 
-    async def put(self, guild_id: int, kind: str, payload: Dict[str, Any]) -> int:
+    async def put(self, guild_id: int, kind: str, payload: dict[str, Any]) -> int:
         created_at = int(time.time())
         payload_json = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
         async with aiosqlite.connect(self._path) as db:
@@ -59,7 +59,7 @@ class SnapshotStore(BaseService):
             await db.commit()
         return created_at
 
-    async def latest(self, guild_id: int, kind: str) -> Optional[Snapshot]:
+    async def latest(self, guild_id: int, kind: str) -> Snapshot | None:
         async with aiosqlite.connect(self._path) as db:
             async with db.execute(
                 "SELECT created_at, payload_json FROM snapshots WHERE guild_id=? AND kind=? ORDER BY created_at DESC LIMIT 1",

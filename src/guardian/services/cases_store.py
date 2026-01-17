@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import aiosqlite
 from dataclasses import dataclass
+
+import aiosqlite
 
 from .base import BaseService
 

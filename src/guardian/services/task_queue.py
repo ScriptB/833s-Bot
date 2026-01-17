@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Awaitable, Callable, Optional
 
 from .stats import RuntimeStats
 
@@ -28,7 +28,7 @@ class TaskQueue:
         self._stats = stats
         self._q: asyncio.Queue[TaskFn] = asyncio.Queue(maxsize=policy.max_queue_size)
         self._stop = asyncio.Event()
-        self._runner: Optional[asyncio.Task[None]] = None
+        self._runner: asyncio.Task[None] | None = None
 
     def start(self) -> None:
         if self._runner and not self._runner.done():

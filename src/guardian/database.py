@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import List
 
 import aiosqlite
 
@@ -10,7 +9,7 @@ from .services.base import BaseService
 log = logging.getLogger("guardian.database")
 
 
-async def initialize_database(sqlite_path: str, stores: List[BaseService]) -> None:
+async def initialize_database(sqlite_path: str, stores: list[BaseService]) -> None:
     """Initialize the database with all stores."""
     try:
         # Apply SQLite optimizations

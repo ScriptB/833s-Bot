@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
 
 
 @dataclass(frozen=True)
@@ -25,20 +24,20 @@ class ChannelSpec:
 @dataclass(frozen=True)
 class CategorySpec:
     name: str
-    channels: List[ChannelSpec]
+    channels: list[ChannelSpec]
 
 
 @dataclass(frozen=True)
 class ServerSchema:
     guild_name: str
-    roles: List[RoleSpec]
-    level_role_map: List[Tuple[int, str]]
-    categories: List[CategorySpec]
+    roles: list[RoleSpec]
+    level_role_map: list[tuple[int, str]]
+    categories: list[CategorySpec]
 
 
 def canonical_schema() -> ServerSchema:
     # NOTE: "Owner" and "Co-Owner" are NOT created by the bot. Those are manual and should remain above the bot role.
-    roles: List[RoleSpec] = [
+    roles: list[RoleSpec] = [
         RoleSpec("Bot", 0x5865F2, True, False, "bot"),
         RoleSpec("Head Admin", 0xED4245, True, False, "staff"),
         RoleSpec("Admin", 0xE67E22, True, False, "staff"),
@@ -80,7 +79,7 @@ def canonical_schema() -> ServerSchema:
         RoleSpec("APAC", 0x99AAB5, False, False, "timezone"),
     ]
 
-    level_role_map: List[Tuple[int, str]] = [
+    level_role_map: list[tuple[int, str]] = [
         (0, "Level 0 – New"),
         (5, "Level 5 – Regular"),
         (10, "Level 10 – Contributor"),
@@ -89,7 +88,7 @@ def canonical_schema() -> ServerSchema:
         (50, "Level 50 – Core"),
     ]
 
-    categories: List[CategorySpec] = [
+    categories: list[CategorySpec] = [
         CategorySpec("SYSTEM / CORE", [
             ChannelSpec("bot-ops", "text", "Bot heartbeat + rebuild progress + diagnostics."),
             ChannelSpec("server-config", "text", "Read-only config snapshot (bot-posted)."),

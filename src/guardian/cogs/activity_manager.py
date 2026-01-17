@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import random
 import time
-import logging
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 import discord
 from discord import app_commands
 from discord.ext import commands
+
 from ..permissions import require_staff
 
 log = logging.getLogger("guardian.activity_manager")
@@ -30,8 +31,8 @@ class ActivityConfig:
     """Configuration for a bot activity."""
     name: str
     activity_type: ActivityType
-    state: Optional[str] = None  # For custom activities
-    url: Optional[str] = None  # For streaming activities
+    state: str | None = None  # For custom activities
+    url: str | None = None  # For streaming activities
     weight: int = 1  # Weight for random selection (higher = more frequent)
     duration_minutes: int = 5  # How long to display this activity
 
@@ -42,8 +43,8 @@ class ActivityManager:
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self._current_activity_index = 0
-        self._task: Optional[asyncio.Task] = None
-        self._activities: List[ActivityConfig] = []
+        self._task: asyncio.Task | None = None
+        self._activities: list[ActivityConfig] = []
         self._is_running = False
         
         # Initialize default activities
@@ -330,7 +331,7 @@ class ActivityManager:
         """Get the number of configured activities."""
         return len(self._activities)
     
-    def get_all_activities(self) -> List[Dict[str, Any]]:
+    def get_all_activities(self) -> list[dict[str, Any]]:
         """Get all configured activities as dictionaries."""
         return [
             {
@@ -396,11 +397,11 @@ class ActivityCog(commands.Cog):
         self,
         interaction: discord.Interaction,
         action: str,
-        name: Optional[str] = None,
-        activity_type: Optional[str] = None,
-        state: Optional[str] = None,
-        weight: Optional[int] = None,
-        duration: Optional[int] = None
+        name: str | None = None,
+        activity_type: str | None = None,
+        state: str | None = None,
+        weight: int | None = None,
+        duration: int | None = None
     ):
         """Manage bot activities."""
         await interaction.response.defer(ephemeral=True)
@@ -456,11 +457,11 @@ class ActivityCog(commands.Cog):
     async def _add_activity(
         self,
         interaction: discord.Interaction,
-        name: Optional[str],
-        activity_type_str: Optional[str],
-        state: Optional[str],
-        weight: Optional[int],
-        duration: Optional[int]
+        name: str | None,
+        activity_type_str: str | None,
+        state: str | None,
+        weight: int | None,
+        duration: int | None
     ):
         """Add a new activity."""
         if not name or not activity_type_str:
@@ -493,7 +494,7 @@ class ActivityCog(commands.Cog):
         except Exception as e:
             await interaction.followup.send(f"❌ Error adding activity: {str(e)}", ephemeral=True)
     
-    async def _remove_activity(self, interaction: discord.Interaction, name: Optional[str]):
+    async def _remove_activity(self, interaction: discord.Interaction, name: str | None):
         """Remove an activity."""
         if not name:
             await interaction.followup.send("❌ Name is required for removing activities.", ephemeral=True)
@@ -512,9 +513,9 @@ class ActivityCog(commands.Cog):
     async def _set_activity(
         self,
         interaction: discord.Interaction,
-        name: Optional[str],
-        activity_type_str: Optional[str],
-        state: Optional[str]
+        name: str | None,
+        activity_type_str: str | None,
+        state: str | None
     ):
         """Immediately set a specific activity."""
         if not name or not activity_type_str:

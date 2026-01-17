@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import aiosqlite
 import datetime
-from typing import List, Optional, Tuple, Any
 from dataclasses import dataclass
+from typing import Any
+
+import aiosqlite
 
 from .base import BaseService
 
@@ -21,8 +22,8 @@ class RootRequest:
     target_id: int
     requester_id: int
     requested_at: datetime.datetime
-    approved_by: Optional[int]
-    approved_at: Optional[datetime.datetime]
+    approved_by: int | None
+    approved_at: datetime.datetime | None
     status: str  # "pending", "approved", "rejected"
 
 
@@ -81,13 +82,13 @@ class RootStore(BaseService):
             await db.execute(query, params)
             await db.commit()
     
-    async def _fetchone(self, query: str, params: tuple = ()) -> Optional[tuple]:
+    async def _fetchone(self, query: str, params: tuple = ()) -> tuple | None:
         """Execute a query and fetch one row."""
         async with aiosqlite.connect(self._path) as db:
             cursor = await db.execute(query, params)
             return await cursor.fetchone()
     
-    async def _fetchall(self, query: str, params: tuple = ()) -> List[tuple]:
+    async def _fetchall(self, query: str, params: tuple = ()) -> list[tuple]:
         """Execute a query and fetch all rows."""
         async with aiosqlite.connect(self._path) as db:
             cursor = await db.execute(query, params)
@@ -206,7 +207,7 @@ class RootStore(BaseService):
         
         return True
     
-    async def list_roots(self) -> List[RootUser]:
+    async def list_roots(self) -> list[RootUser]:
         """List all root operators."""
         rows = await self._fetchall(
             "SELECT user_id, added_by, added_at FROM root_users ORDER BY added_at"
@@ -221,7 +222,7 @@ class RootStore(BaseService):
             for row in rows
         ]
     
-    async def list_pending_requests(self) -> List[RootRequest]:
+    async def list_pending_requests(self) -> list[RootRequest]:
         """List all pending root requests."""
         rows = await self._fetchall(
             """SELECT request_id, target_id, requester_id, requested_at, 
@@ -244,7 +245,7 @@ class RootStore(BaseService):
             for row in rows
         ]
     
-    async def get_request(self, request_id: int) -> Optional[RootRequest]:
+    async def get_request(self, request_id: int) -> RootRequest | None:
         """Get a specific root request."""
         row = await self._fetchone(
             """SELECT request_id, target_id, requester_id, requested_at, 

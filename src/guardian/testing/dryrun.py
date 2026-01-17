@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextvars
-from typing import Any
 
 # Context variable for tracking dry run mode
 dry_run_var = contextvars.ContextVar('dry_run', default=False)

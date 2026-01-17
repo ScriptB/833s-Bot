@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Any
+from typing import Any
 
 import discord
 from discord.ext import commands
 
-from .utils import safe_embed, safe_response, safe_followup
-from .constants import DEFAULT_TIMEOUT_SECONDS, COLORS
+from .constants import COLORS
+from .utils import safe_embed, safe_followup, safe_response
 
 log = logging.getLogger("guardian.base_cog")
 
@@ -46,8 +46,8 @@ class BaseCog(commands.Cog):
     async def safe_response(
         self, 
         interaction: discord.Interaction,
-        content: Optional[str] = None,
-        embed: Optional[discord.Embed] = None,
+        content: str | None = None,
+        embed: discord.Embed | None = None,
         ephemeral: bool = False,
         **kwargs: Any,
     ) -> bool:
@@ -57,11 +57,11 @@ class BaseCog(commands.Cog):
     async def safe_followup(
         self,
         interaction: discord.Interaction,
-        content: Optional[str] = None,
-        embed: Optional[discord.Embed] = None,
+        content: str | None = None,
+        embed: discord.Embed | None = None,
         ephemeral: bool = False,
         **kwargs: Any,
-    ) -> Optional[discord.Message]:
+    ) -> discord.Message | None:
         """Safely follow up an interaction."""
         return await safe_followup(interaction, content, embed, ephemeral, **kwargs)
     

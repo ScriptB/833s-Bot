@@ -3,13 +3,14 @@ from __future__ import annotations
 import json
 import random
 import time
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 
+from ..permissions import require_verified
 from ..services.levels_config_store import LevelsConfig
 from ..services.levels_store import LevelsStore
-from ..permissions import require_verified
 
 
 class LevelsCog(commands.Cog):

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import logging
 import json
+import logging
 import time
-from typing import Dict, Any, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 import discord
 
@@ -41,15 +41,15 @@ class StructuredLogEntry:
     timestamp: datetime
     level: LogLevel
     action: ActionType
-    guild_id: Optional[int]
-    user_id: Optional[int]
+    guild_id: int | None
+    user_id: int | None
     message: str
-    details: Dict[str, Any]
-    duration_ms: Optional[float] = None
-    success: Optional[bool] = None
-    error_type: Optional[str] = None
+    details: dict[str, Any]
+    duration_ms: float | None = None
+    success: bool | None = None
+    error_type: str | None = None
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         data = asdict(self)
         data["timestamp"] = self.timestamp.isoformat()
@@ -63,9 +63,9 @@ class ObservabilityManager:
     
     def __init__(self):
         self._startup_time = datetime.utcnow()
-        self._command_counts: Dict[str, int] = {}
-        self._error_counts: Dict[str, int] = {}
-        self._api_call_counts: Dict[str, int] = {}
+        self._command_counts: dict[str, int] = {}
+        self._error_counts: dict[str, int] = {}
+        self._api_call_counts: dict[str, int] = {}
         self._health_status = {
             "database": False,
             "views_registered": False,
@@ -78,12 +78,12 @@ class ObservabilityManager:
         level: LogLevel,
         action: ActionType,
         message: str,
-        guild_id: Optional[int] = None,
-        user_id: Optional[int] = None,
-        details: Optional[Dict[str, Any]] = None,
-        duration_ms: Optional[float] = None,
-        success: Optional[bool] = None,
-        error_type: Optional[str] = None
+        guild_id: int | None = None,
+        user_id: int | None = None,
+        details: dict[str, Any] | None = None,
+        duration_ms: float | None = None,
+        success: bool | None = None,
+        error_type: str | None = None
     ):
         """Log a structured event."""
         entry = StructuredLogEntry(
@@ -128,10 +128,10 @@ class ObservabilityManager:
         self,
         command_name: str,
         user: discord.User,
-        guild: Optional[discord.Guild] = None,
+        guild: discord.Guild | None = None,
         success: bool = True,
-        duration_ms: Optional[float] = None,
-        error: Optional[Exception] = None
+        duration_ms: float | None = None,
+        error: Exception | None = None
     ):
         """Log a command execution."""
         self.log_structured(
@@ -155,9 +155,9 @@ class ObservabilityManager:
         success: bool,
         duration_ms: float,
         attempts: int,
-        guild_id: Optional[int] = None,
-        user_id: Optional[int] = None,
-        error: Optional[Exception] = None
+        guild_id: int | None = None,
+        user_id: int | None = None,
+        error: Exception | None = None
     ):
         """Log an API call."""
         self.log_structured(
@@ -181,8 +181,8 @@ class ObservabilityManager:
         panel_key: str,
         guild_id: int,
         success: bool,
-        duration_ms: Optional[float] = None,
-        error: Optional[Exception] = None
+        duration_ms: float | None = None,
+        error: Exception | None = None
     ):
         """Log a panel operation."""
         self.log_structured(
@@ -206,8 +206,8 @@ class ObservabilityManager:
         guild_id: int,
         user_id: int,
         success: bool,
-        duration_ms: Optional[float] = None,
-        error: Optional[Exception] = None
+        duration_ms: float | None = None,
+        error: Exception | None = None
     ):
         """Log a ticket operation."""
         self.log_structured(
@@ -229,7 +229,7 @@ class ObservabilityManager:
         self,
         component: str,
         status: str,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         """Log a startup event."""
         self.log_structured(
@@ -261,7 +261,7 @@ class ObservabilityManager:
             success=all_healthy
         )
     
-    def get_health_summary(self) -> Dict[str, Any]:
+    def get_health_summary(self) -> dict[str, Any]:
         """Get health summary for monitoring."""
         uptime_ms = (datetime.utcnow() - self._startup_time).total_seconds() * 1000
         
@@ -275,7 +275,7 @@ class ObservabilityManager:
             "api_call_counts": dict(self._api_call_counts)
         }
     
-    def get_error_summary(self) -> Dict[str, Any]:
+    def get_error_summary(self) -> dict[str, Any]:
         """Get error summary for debugging."""
         return {
             "total_errors": sum(self._error_counts.values()),
@@ -384,7 +384,7 @@ def log_api_operation(operation: str):
 
 
 # Utility functions for common logging patterns
-def log_error_with_context(error: Exception, context: Dict[str, Any]):
+def log_error_with_context(error: Exception, context: dict[str, Any]):
     """Log an error with full context."""
     observability.log_structured(
         level=LogLevel.ERROR,
@@ -397,7 +397,7 @@ def log_error_with_context(error: Exception, context: Dict[str, Any]):
     )
 
 
-def log_health_check(component: str, is_healthy: bool, details: Optional[Dict[str, Any]] = None):
+def log_health_check(component: str, is_healthy: bool, details: dict[str, Any] | None = None):
     """Log a health check result."""
     status = "OK" if is_healthy else "FAILED"
     observability.log_startup_event(component, status, details)

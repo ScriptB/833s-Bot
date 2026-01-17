@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Union, Callable, Awaitable
-from enum import Enum, IntEnum
+from collections.abc import Callable
+from enum import IntEnum
 from functools import wraps
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 log = logging.getLogger("guardian.permissions")
@@ -27,7 +26,7 @@ class PermissionError(Exception):
     pass
 
 
-async def is_verified(interaction: Union[discord.Interaction, commands.Context]) -> bool:
+async def is_verified(interaction: discord.Interaction | commands.Context) -> bool:
     """Check if user has Verified role."""
     if not interaction.guild:
         return False
@@ -41,7 +40,7 @@ async def is_verified(interaction: Union[discord.Interaction, commands.Context])
     return verified_role in member.roles
 
 
-async def is_staff(interaction: Union[discord.Interaction, commands.Context]) -> bool:
+async def is_staff(interaction: discord.Interaction | commands.Context) -> bool:
     """Check if user is Staff/Moderator."""
     if not interaction.guild:
         return False
@@ -58,7 +57,7 @@ async def is_staff(interaction: Union[discord.Interaction, commands.Context]) ->
     return has_staff_role or has_staff_perms
 
 
-async def is_admin(interaction: Union[discord.Interaction, commands.Context]) -> bool:
+async def is_admin(interaction: discord.Interaction | commands.Context) -> bool:
     """Check if user is Admin."""
     if not interaction.guild:
         return False
@@ -72,7 +71,7 @@ async def is_admin(interaction: Union[discord.Interaction, commands.Context]) ->
     return admin_role in member.roles or member.guild_permissions.administrator
 
 
-async def is_owner(interaction: Union[discord.Interaction, commands.Context]) -> bool:
+async def is_owner(interaction: discord.Interaction | commands.Context) -> bool:
     """Check if user is Owner."""
     if not interaction.guild:
         return False
@@ -86,7 +85,7 @@ async def is_owner(interaction: Union[discord.Interaction, commands.Context]) ->
     return owner_role in member.roles or member == member.guild.owner
 
 
-async def is_root(interaction: Union[discord.Interaction, commands.Context]) -> bool:
+async def is_root(interaction: discord.Interaction | commands.Context) -> bool:
     """Check if user is Root Operator."""
     # This would integrate with the existing RootStore
     # For now, we'll implement a basic check
@@ -107,7 +106,7 @@ async def is_root(interaction: Union[discord.Interaction, commands.Context]) -> 
     return root_role in member.roles
 
 
-async def get_user_tier(interaction: Union[discord.Interaction, commands.Context]) -> PermissionTier:
+async def get_user_tier(interaction: discord.Interaction | commands.Context) -> PermissionTier:
     """Get the permission tier of a user."""
     if await is_root(interaction):
         return PermissionTier.ROOT
@@ -164,7 +163,7 @@ def require_tier(min_tier: PermissionTier):
     return decorator
 
 
-async def _send_permission_error(interaction_or_ctx: Union[discord.Interaction, commands.Context], message: str):
+async def _send_permission_error(interaction_or_ctx: discord.Interaction | commands.Context, message: str):
     """Send permission error message."""
     if isinstance(interaction_or_ctx, discord.Interaction):
         try:
@@ -313,17 +312,17 @@ COMMAND_TIER_MAPPING = {
 def validate_command_permissions():
     """Validate that all commands have permission tiers assigned."""
     total_commands = len(COMMAND_TIER_MAPPING)
-    expected_commands = 33  # Updated after removing rr command
-    
-    if total_commands != expected_commands:
-        log.warning(f"Command permission mapping incomplete: {total_commands}/{expected_commands} commands mapped")
+    # Do not hardcode an expected command count. Command sets change as features
+    # are enabled/disabled.
+    if total_commands == 0:
+        log.warning("Command permission mapping is empty")
         return False
-    
-    log.info(f"✅ All {total_commands} commands have permission tiers assigned")
+
+    log.info("✅ Permission mapping loaded for %d commands", total_commands)
     return True
 
 
-def get_command_tier(command_name: str) -> Optional[PermissionTier]:
+def get_command_tier(command_name: str) -> PermissionTier | None:
     """Get the required tier for a command."""
     return COMMAND_TIER_MAPPING.get(command_name)
 

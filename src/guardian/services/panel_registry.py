@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-import discord
-from typing import Dict, Any, Tuple, Optional, Callable
 import logging
+from collections.abc import Callable
+from typing import Any
 
-from ..interfaces import validate_panel_store, has_required_guild_perms, sanitize_user_text
+import discord
+
+from ..interfaces import has_required_guild_perms, sanitize_user_text, validate_panel_store
 
 log = logging.getLogger("guardian.panel_registry")
 
@@ -15,11 +17,11 @@ class PanelRegistry:
     def __init__(self, bot: discord.Client, panel_store):
         self.bot = bot
         self.panel_store = panel_store
-        self._renderers: Dict[str, Callable] = {}
+        self._renderers: dict[str, Callable] = {}
         
         # Validate interface compliance
         validate_panel_store(panel_store)
-        self._fallback_channels: Dict[str, str] = {
+        self._fallback_channels: dict[str, str] = {
             "verify_panel": "verify",
             "role_panel": "roles", 
             "ticket_panel": "tickets"
@@ -30,7 +32,7 @@ class PanelRegistry:
         self._renderers[panel_key] = renderer
         log.info(f"Registered renderer for panel: {panel_key}")
     
-    async def render_panel(self, panel_key: str, guild: discord.Guild) -> Tuple[discord.Embed, discord.ui.View]:
+    async def render_panel(self, panel_key: str, guild: discord.Guild) -> tuple[discord.Embed, discord.ui.View]:
         """Render a panel using its registered renderer."""
         if panel_key not in self._renderers:
             raise ValueError(f"No renderer registered for panel: {panel_key}")
@@ -39,7 +41,7 @@ class PanelRegistry:
         return await renderer(guild)
     
     async def deploy_panel(self, panel_key: str, guild: discord.Guild, 
-                          target_channel: Optional[discord.TextChannel] = None) -> Optional[discord.Message]:
+                          target_channel: discord.TextChannel | None = None) -> discord.Message | None:
         """Deploy a panel to a channel and store the record."""
         try:
             # Check permissions
@@ -143,7 +145,7 @@ class PanelRegistry:
             log.exception(f"Failed to redeploy panel {panel_key} in guild {guild_id}: {e}")
             return False
     
-    async def repair_all_guilds_on_startup(self) -> Dict[str, Any]:
+    async def repair_all_guilds_on_startup(self) -> dict[str, Any]:
         """Repair all panels across all guilds during startup."""
         results = {
             "total_panels": 0,
@@ -196,7 +198,7 @@ class PanelRegistry:
         
         return results
     
-    async def force_redeploy_panel(self, guild_id: int, panel_key: str) -> Dict[str, Any]:
+    async def force_redeploy_panel(self, guild_id: int, panel_key: str) -> dict[str, Any]:
         """Force redeploy a panel (admin command)."""
         result = {
             "success": False,

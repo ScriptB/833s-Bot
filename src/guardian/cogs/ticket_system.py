@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Any
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ..services.api_wrapper import safe_send_message, safe_edit_message, safe_create_channel
-from ..security.permissions import staff_command, requires_manage_channels
 from ..constants import COLORS
-from ..permissions import require_verified, require_ticket_owner_or_staff
+from ..permissions import require_ticket_owner_or_staff, require_verified
+from ..services.api_wrapper import safe_create_channel, safe_send_message
 
 log = logging.getLogger("guardian.ticket_system")
 
@@ -21,7 +20,7 @@ log = logging.getLogger("guardian.ticket_system")
 class TicketConfig:
     """Configuration for ticket system."""
     category_name: str = "🎫 TICKETS"
-    support_roles: List[str] = None
+    support_roles: list[str] = None
     transcript_enabled: bool = True
     auto_close_days: int = 7
     
@@ -94,7 +93,7 @@ class TicketSystemCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.config = TicketConfig()
-        self._active_tickets: Dict[int, Dict[str, Any]] = {}  # channel_id -> ticket_info
+        self._active_tickets: dict[int, dict[str, Any]] = {}  # channel_id -> ticket_info
     
     async def cog_load(self):
         """Register persistent views when cog loads."""
@@ -329,7 +328,7 @@ class TicketSystemCog(commands.Cog):
                 ephemeral=True
             )
     
-    async def _get_ticket_category(self, guild: discord.Guild) -> Optional[discord.CategoryChannel]:
+    async def _get_ticket_category(self, guild: discord.Guild) -> discord.CategoryChannel | None:
         """Get or create the ticket category."""
         category = discord.utils.get(guild.categories, name=self.config.category_name)
         
@@ -379,7 +378,7 @@ class TicketSystemCog(commands.Cog):
         
         return max(numbers, default=0) + 1
     
-    def _find_user_ticket(self, user_id: int, guild_id: int) -> Optional[Dict[str, Any]]:
+    def _find_user_ticket(self, user_id: int, guild_id: int) -> dict[str, Any] | None:
         """Find an active ticket for a user."""
         for ticket_info in self._active_tickets.values():
             if ticket_info["user_id"] == user_id and ticket_info["guild_id"] == guild_id:
@@ -410,7 +409,7 @@ class TicketSystemCog(commands.Cog):
             
             await safe_send_message(staff_channel, embed=embed)
     
-    async def _create_transcript(self, channel: discord.TextChannel, ticket_info: Dict[str, Any]) -> str:
+    async def _create_transcript(self, channel: discord.TextChannel, ticket_info: dict[str, Any]) -> str:
         """Create a transcript of the ticket conversation."""
         try:
             messages = []
@@ -427,8 +426,6 @@ class TicketSystemCog(commands.Cog):
                     content = message.content
                 
                 messages.append(f"[{timestamp}] {author}: {content}")
-            
-            transcript = "\n".join(messages)
             
             # For now, just return a summary
             # In a full implementation, this could save to a file or database
@@ -456,7 +453,7 @@ class TicketSystemCog(commands.Cog):
         """Slash command to close a ticket."""
         await self.close_ticket(interaction)
     
-    async def deploy_ticket_panel(self, guild: discord.Guild) -> Optional[discord.Message]:
+    async def deploy_ticket_panel(self, guild: discord.Guild) -> discord.Message | None:
         """Deploy the ticket creation panel."""
         channel = discord.utils.get(guild.text_channels, name="support-start")
         if not channel:

@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ..services.api_wrapper import APIResult, safe_send_message, safe_create_channel
 from ..interfaces import has_required_guild_perms
-from ..constants import COLORS
+from ..services.api_wrapper import safe_create_channel
 
 log = logging.getLogger("guardian.setup_wizard")
 
@@ -21,7 +19,7 @@ class SetupCheck:
     name: str
     status: str  # "pass", "fail", "warning"
     message: str
-    fix_action: Optional[str] = None
+    fix_action: str | None = None
     can_auto_fix: bool = False
 
 
@@ -29,7 +27,7 @@ class SetupCheck:
 class SetupResult:
     """Complete setup validation result."""
     overall_status: str  # "pass", "fail", "warning"
-    checks: List[SetupCheck]
+    checks: list[SetupCheck]
     guild_id: int
     user_id: int
 
@@ -213,7 +211,12 @@ class SetupWizardCog(commands.Cog):
         issues = []
         
         # Check verify panel
-        verify_channel = discord.utils.get(guild.text_channels, name="verify")
+        from ..utils import find_text_channel_fuzzy
+
+        verify_channel = find_text_channel_fuzzy(
+            guild,
+            getattr(self.bot.settings, "verify_channel_name", "verify"),
+        )
         if verify_channel:
             try:
                 async for message in verify_channel.history(limit=10):
@@ -227,7 +230,10 @@ class SetupWizardCog(commands.Cog):
             issues.append("verify channel missing")
         
         # Check reaction roles panel
-        rr_channel = discord.utils.get(guild.text_channels, name="reaction-roles")
+        rr_channel = find_text_channel_fuzzy(
+            guild,
+            getattr(self.bot.settings, "reaction_roles_channel_name", "choose-your-games"),
+        )
         if rr_channel:
             try:
                 async for message in rr_channel.history(limit=10):

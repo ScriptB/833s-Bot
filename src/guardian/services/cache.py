@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import time
-from typing import Generic, Optional, TypeVar
+from dataclasses import dataclass
+from typing import Generic, TypeVar
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -21,7 +21,7 @@ class TTLCache(Generic[K, V]):
         self._default_ttl = max(1, int(default_ttl_seconds))
         self._store: dict[K, _Entry[V]] = {}
 
-    def get(self, key: K) -> Optional[V]:
+    def get(self, key: K) -> V | None:
         entry = self._store.get(key)
         if entry is None:
             return None
@@ -30,7 +30,7 @@ class TTLCache(Generic[K, V]):
             return None
         return entry.value
 
-    def set(self, key: K, value: V, ttl_seconds: Optional[int] = None) -> None:
+    def set(self, key: K, value: V, ttl_seconds: int | None = None) -> None:
         ttl = self._default_ttl if ttl_seconds is None else max(1, int(ttl_seconds))
         self._store[key] = _Entry(value=value, expires_at=time.time() + ttl)
 

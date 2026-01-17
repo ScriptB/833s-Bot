@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
+from typing import Any
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ..services.api_wrapper import safe_add_role, safe_remove_role
-from ..security.permissions import user_command
 from ..constants import COLORS
+from ..security.permissions import user_command
+from ..services.api_wrapper import safe_add_role, safe_remove_role
 
 log = logging.getLogger("guardian.role_assignment")
 
@@ -22,13 +22,13 @@ class RoleCategory:
     display_name: str
     description: str
     emoji: str
-    roles: List[Dict[str, Any]]  # Each dict has: name, emoji, description
+    roles: list[dict[str, Any]]  # Each dict has: name, emoji, description
 
 
 class RoleSelectMenu(discord.ui.Select):
     """Select menu for a role category."""
     
-    def __init__(self, category_name: str, display_name: str, roles: List[Dict[str, Any]]):
+    def __init__(self, category_name: str, display_name: str, roles: list[dict[str, Any]]):
         # Create options
         options = []
         for role_info in roles:
@@ -89,7 +89,7 @@ class RoleAssignmentCog(commands.Cog):
         self.bot = bot
         self.role_categories = self._define_role_categories()
     
-    def _define_role_categories(self) -> List[RoleCategory]:
+    def _define_role_categories(self) -> list[RoleCategory]:
         """Define the available role categories."""
         return [
             RoleCategory(
@@ -122,7 +122,7 @@ class RoleAssignmentCog(commands.Cog):
         # The view will be created dynamically when needed
         log.info("Role assignment cog loaded")
     
-    async def handle_role_selection(self, interaction: discord.Interaction, category: RoleCategory, selected_values: List[str]):
+    async def handle_role_selection(self, interaction: discord.Interaction, category: RoleCategory, selected_values: list[str]):
         """Handle role selection changes."""
         await interaction.response.defer(ephemeral=True)
         
@@ -223,9 +223,10 @@ class RoleAssignmentCog(commands.Cog):
         """Check if a role belongs to a category."""
         return any(role_info["name"] == role_name for role_info in category.roles)
     
-    async def deploy_role_panel(self, guild: discord.Guild) -> Optional[discord.Message]:
+    async def deploy_role_panel(self, guild: discord.Guild) -> discord.Message | None:
         """Deploy the role assignment panel."""
-        channel = discord.utils.get(guild.text_channels, name="reaction-roles")
+        channel_name = getattr(self.bot.settings, "reaction_roles_channel_name", "choose-your-games")
+        channel = discord.utils.get(guild.text_channels, name=channel_name)
         if not channel:
             log.warning(f"reaction-roles channel not found in guild {guild.id}")
             return None

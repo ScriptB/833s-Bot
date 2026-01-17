@@ -16,7 +16,8 @@ class OnboardingCog(commands.Cog):
         for guild in self.bot.guilds:
             try:
                 # Find existing onboarding messages
-                verify_channel = discord.utils.get(guild.text_channels, name="verify")
+                verify_name = getattr(self.bot.settings, "verify_channel_name", "verify")
+                verify_channel = discord.utils.get(guild.text_channels, name=verify_name)
                 if verify_channel:
                     async for message in verify_channel.history(limit=20):
                         if "Mandatory Onboarding" in (message.embeds[0].title if message.embeds else ""):
@@ -43,7 +44,8 @@ class OnboardingCog(commands.Cog):
         except Exception:
             pass
 
-        ch = discord.utils.get(guild.text_channels, name="verify")
+        verify_name = getattr(self.bot.settings, "verify_channel_name", "verify")
+        ch = discord.utils.get(guild.text_channels, name=verify_name)
         if not ch:
             return
         try:
@@ -67,7 +69,8 @@ class OnboardingCog(commands.Cog):
     async def on_message(self, message: discord.Message) -> None:
         if message.author.bot or not message.guild:
             return
-        if getattr(message.channel, "name", "") != "verify":
+        verify_name = getattr(self.bot.settings, "verify_channel_name", "verify")
+        if getattr(message.channel, "name", "") != verify_name:
             return
         if message.content.strip().lower() not in {"i agree", "i accept"}:
             return

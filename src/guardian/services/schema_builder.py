@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+
 import discord
-from typing import Dict, Iterable
 
 from .schema import ServerSchema
 
@@ -60,7 +60,7 @@ class SchemaBuilder:
         bot_top = me.top_role
 
         roles = sorted(list(guild.roles), key=lambda r: r.position, reverse=True)
-        for idx, r in enumerate(roles, 1):
+        for _idx, r in enumerate(roles, 1):
             if r.is_default() or r.managed:
                 continue
             # Can't delete roles >= bot top
@@ -72,10 +72,10 @@ class SchemaBuilder:
                 await asyncio.sleep(0.2)
             await asyncio.sleep(0.2)
 
-    async def ensure_roles(self, guild: discord.Guild, schema: ServerSchema, *, status=None) -> Dict[str, discord.Role]:
+    async def ensure_roles(self, guild: discord.Guild, schema: ServerSchema, *, status=None) -> dict[str, discord.Role]:
         # Create roles bottom-up to preserve hierarchy
         existing = {r.name: r for r in guild.roles}
-        created: Dict[str, discord.Role] = {}
+        created: dict[str, discord.Role] = {}
 
         # Resolve desired order: as provided in schema.roles (top->bottom). We'll create reversed.
         for i, spec in enumerate(reversed(schema.roles), 1):
@@ -122,11 +122,11 @@ class SchemaBuilder:
         # Return map
         return {name: role for name, role in existing.items() if name in {s.name for s in schema.roles}}
 
-    def _role(self, roles: Dict[str, discord.Role], name: str) -> discord.Role | None:
+    def _role(self, roles: dict[str, discord.Role], name: str) -> discord.Role | None:
         r = roles.get(name)
         return r if isinstance(r, discord.Role) else None
 
-    async def ensure_categories_channels(self, guild: discord.Guild, schema: ServerSchema, roles: Dict[str, discord.Role], *, status=None) -> None:
+    async def ensure_categories_channels(self, guild: discord.Guild, schema: ServerSchema, roles: dict[str, discord.Role], *, status=None) -> None:
         everyone = guild.default_role
         verified = self._role(roles, "Verified Member")
         quarantine = self._role(roles, "Quarantine")
@@ -147,8 +147,8 @@ class SchemaBuilder:
         staff_roles = [r for r in [head_admin, admin, moderator, support, community] if r]
         staff_manage = [r for r in [head_admin, admin] if r]
 
-        def cat_overwrites(cat_name: str) -> Dict[discord.abc.Snowflake, discord.PermissionOverwrite]:
-            ow: Dict[discord.abc.Snowflake, discord.PermissionOverwrite] = {everyone: _deny_view()}
+        def cat_overwrites(cat_name: str) -> dict[discord.abc.Snowflake, discord.PermissionOverwrite]:
+            ow: dict[discord.abc.Snowflake, discord.PermissionOverwrite] = {everyone: _deny_view()}
             if bot_role:
                 ow[bot_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
             if cat_name in {"ONBOARDING"}:
@@ -268,18 +268,24 @@ class SchemaBuilder:
                     if ch.name == "contributors-lounge" and lvl10:
                         overwrites[verified] = _deny_view() if verified else overwrites.get(everyone, _deny_view())
                         overwrites[lvl10] = _allow_chat()
-                        if lvl20: overwrites[lvl20] = _allow_chat()
-                        if lvl35: overwrites[lvl35] = _allow_chat()
-                        if lvl50: overwrites[lvl50] = _allow_chat()
+                        if lvl20:
+                            overwrites[lvl20] = _allow_chat()
+                        if lvl35:
+                            overwrites[lvl35] = _allow_chat()
+                        if lvl50:
+                            overwrites[lvl50] = _allow_chat()
                     if ch.name == "veterans-lounge" and lvl20:
                         overwrites[verified] = _deny_view() if verified else overwrites.get(everyone, _deny_view())
                         overwrites[lvl20] = _allow_chat()
-                        if lvl35: overwrites[lvl35] = _allow_chat()
-                        if lvl50: overwrites[lvl50] = _allow_chat()
+                        if lvl35:
+                            overwrites[lvl35] = _allow_chat()
+                        if lvl50:
+                            overwrites[lvl50] = _allow_chat()
                     if ch.name == "elite-lounge" and lvl35:
                         overwrites[verified] = _deny_view() if verified else overwrites.get(everyone, _deny_view())
                         overwrites[lvl35] = _allow_chat()
-                        if lvl50: overwrites[lvl50] = _allow_chat()
+                        if lvl50:
+                            overwrites[lvl50] = _allow_chat()
                     if ch.name == "core-feedback" and lvl50:
                         overwrites[verified] = _deny_view() if verified else overwrites.get(everyone, _deny_view())
                         overwrites[lvl50] = _allow_chat()

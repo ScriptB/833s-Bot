@@ -1,15 +1,15 @@
 from __future__ import annotations
 
+import logging
+
 import discord
 from discord import app_commands, ui
 from discord.ext import commands
-import logging
-import time
 
-from ..services.simple_reaction_roles_store import SimpleReactionRolesStore
-from ..services.panel_store import PanelStore
 from ..security.permissions import admin_command
-from ..utils import info_embed, error_embed, success_embed
+from ..services.panel_store import PanelStore
+from ..services.simple_reaction_roles_store import SimpleReactionRolesStore
+from ..utils import info_embed, success_embed
 
 log = logging.getLogger("guardian.reaction_roles")
 
@@ -20,7 +20,7 @@ REACTION_ROLES_CHANNEL = "reaction-roles"
 class ManagerView(ui.View):
     """Simple admin manager UI with proper error handling."""
     
-    def __init__(self, cog: 'SimpleReactionRolesCog'):
+    def __init__(self, cog: SimpleReactionRolesCog):
         super().__init__(timeout=300)  # 5 minutes
         self.cog = cog
         self.message = None
@@ -41,8 +41,8 @@ class ManagerView(ui.View):
                 await interaction.followup.send("❌ An error occurred. Please try again.", ephemeral=True)
             else:
                 await interaction.response.send_message("❌ An error occurred. Please try again.", ephemeral=True)
-        except:
-            pass  # If we can't even send an error message, just log it
+        except Exception:  # noqa: BLE001
+            pass  # If we can't even send an error message, ignore
 
     async def on_timeout(self) -> None:
         """Handle view timeout by disabling all components."""
@@ -58,7 +58,7 @@ class ManagerView(ui.View):
                     view=self,  # Show disabled buttons
                     embed=None
                 )
-            except:
+            except Exception:  # noqa: BLE001
                 pass
         self.stop()
 
@@ -281,7 +281,7 @@ class ManagerView(ui.View):
 class MemberView(ui.View):
     """Simple member panel for role selection with proper persistence."""
     
-    def __init__(self, cog: 'SimpleReactionRolesCog', guild_id: int):
+    def __init__(self, cog: SimpleReactionRolesCog, guild_id: int):
         super().__init__(timeout=None)  # Persistent view
         self.cog = cog
         self.guild_id = guild_id
@@ -300,7 +300,7 @@ class MemberView(ui.View):
                 await interaction.followup.send("❌ Failed to update roles. Please try again.", ephemeral=True)
             else:
                 await interaction.response.send_message("❌ Failed to update roles. Please try again.", ephemeral=True)
-        except:
+        except Exception:  # noqa: BLE001
             pass
 
     async def refresh_view(self):
@@ -340,7 +340,9 @@ class MemberView(ui.View):
                         emoji=""
                     )
             
-            async def select_callback(interaction: discord.Interaction):
+            role_ids_bound = list(role_ids)
+
+            async def select_callback(interaction: discord.Interaction, *, _role_ids=role_ids_bound):
                 """Handle role selection with proper error handling."""
                 try:
                     # Extract group key from custom_id
@@ -361,7 +363,7 @@ class MemberView(ui.View):
                     
                     # Get current roles in this group
                     current_role_ids = {role.id for role in member.roles}
-                    group_role_ids = set(role_ids)
+                    group_role_ids = set(_role_ids)
                     
                     # Determine roles to add and remove
                     roles_to_add = [rid for rid in selected_role_ids if rid not in current_role_ids]
@@ -478,10 +480,10 @@ class SimpleReactionRolesCog(commands.Cog):
                             await channel.fetch_message(panel.message_id)
                             panel_status = "Deployed"
                             last_publish = f"<t:{int(panel.updated_at.timestamp())}>"
-                        except:
+                        except Exception:  # noqa: BLE001
                             panel_status = "Missing"
-            except:
-                pass
+            except Exception:  # noqa: BLE001
+                panel_status = "Missing"
 
             # Create embed
             embed = info_embed("🔧 Reaction Roles Management")

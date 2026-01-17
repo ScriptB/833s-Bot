@@ -74,7 +74,12 @@ class StatusReporter:
             pass
 
     async def _ensure_message(self, guild: discord.Guild) -> None:
-        ch = discord.utils.get(guild.text_channels, name="bot-ops")
+        from ..utils import find_text_channel_fuzzy
+
+        ch = find_text_channel_fuzzy(
+            guild,
+            getattr(self.bot.settings, "bot_ops_channel_name", "admin-console"),
+        )
         if not isinstance(ch, discord.TextChannel):
             return
         mid = self._message_id_by_guild.get(guild.id)
@@ -91,7 +96,12 @@ class StatusReporter:
             return
 
     async def _get_message(self, guild: discord.Guild) -> discord.Message | None:
-        ch = discord.utils.get(guild.text_channels, name="bot-ops")
+        from ..utils import find_text_channel_fuzzy
+
+        ch = find_text_channel_fuzzy(
+            guild,
+            getattr(self.bot.settings, "bot_ops_channel_name", "admin-console"),
+        )
         if not isinstance(ch, discord.TextChannel):
             return None
         mid = self._message_id_by_guild.get(guild.id)

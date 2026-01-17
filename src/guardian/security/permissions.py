@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Optional, List, Union
+from collections.abc import Callable
 from functools import wraps
 
 import discord
-from discord import app_commands
-from discord.ext import commands
 
 log = logging.getLogger("guardian.permissions")
 
@@ -14,7 +12,7 @@ log = logging.getLogger("guardian.permissions")
 class PermissionError(Exception):
     """Raised when permission requirements are not met."""
     
-    def __init__(self, message: str, missing_permissions: List[str], fix_instructions: str):
+    def __init__(self, message: str, missing_permissions: list[str], fix_instructions: str):
         super().__init__(message)
         self.missing_permissions = missing_permissions
         self.fix_instructions = fix_instructions

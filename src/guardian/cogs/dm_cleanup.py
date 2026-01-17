@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-from typing import List
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ..utils import safe_embed, success_embed, error_embed, warning_embed
-from ..constants import COLORS
+from ..utils import error_embed, info_embed, success_embed, warning_embed
 
 
 class DMCleanupCog(commands.Cog):
@@ -165,7 +163,7 @@ class DMCleanupCog(commands.Cog):
                         
                         await interaction.followup.send(embed=progress_embed, ephemeral=True)
                         
-                except Exception as e:
+                except Exception:
                     failed_channels += 1
                     continue
             

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import aiosqlite
-from datetime import datetime
-from typing import Optional, List, Dict, Any
 import logging
+from datetime import datetime
+from typing import Any
 
+import aiosqlite
+
+from ..interfaces import DatabaseSafety, validate_panel_store
 from .base import BaseService
-from ..interfaces import PanelStore as PanelStoreProtocol, validate_panel_store, DatabaseSafety
 
 log = logging.getLogger("guardian.panel_store")
 
@@ -15,7 +16,7 @@ class PanelRecord:
     """Represents a stored panel record."""
     
     def __init__(self, guild_id: int, panel_key: str, channel_id: int, message_id: int, 
-                 schema_version: int = 1, last_deployed_at: Optional[datetime] = None):
+                 schema_version: int = 1, last_deployed_at: datetime | None = None):
         self.guild_id = guild_id
         self.panel_key = panel_key
         self.channel_id = channel_id
@@ -35,7 +36,7 @@ class PanelRecord:
             last_deployed_at=datetime.fromisoformat(row["last_deployed_at"]) if row["last_deployed_at"] else None
         )
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for database operations."""
         return {
             "guild_id": self.guild_id,
@@ -81,13 +82,13 @@ class PanelStore(BaseService[PanelRecord]):
         
         await DatabaseSafety.safe_execute_with_retry(_db_op)
     
-    async def _fetchone(self, sql: str, params: tuple = ()) -> Optional[tuple]:
+    async def _fetchone(self, sql: str, params: tuple = ()) -> tuple | None:
         """Execute SQL and fetch one row."""
         async with aiosqlite.connect(self._path) as db:
             cursor = await db.execute(sql, params)
             return await cursor.fetchone()
     
-    async def _fetchall(self, sql: str, params: tuple = ()) -> List[tuple]:
+    async def _fetchall(self, sql: str, params: tuple = ()) -> list[tuple]:
         """Execute SQL and fetch all rows."""
         async with aiosqlite.connect(self._path) as db:
             cursor = await db.execute(sql, params)
@@ -128,7 +129,7 @@ class PanelStore(BaseService[PanelRecord]):
         cache_key = f"{guild_id}:{panel_key}"
         self._cache.delete(cache_key)
     
-    async def get(self, guild_id: int, panel_key: str) -> Optional[dict]:
+    async def get(self, guild_id: int, panel_key: str) -> dict | None:
         """Get panel record (interface compliance)."""
         cache_key = f"{guild_id}:{panel_key}"
         cached = self._cache.get(cache_key)
@@ -148,12 +149,12 @@ class PanelStore(BaseService[PanelRecord]):
             self._cache.set(cache_key, record)
             return record.to_dict()
     
-    async def list_guild(self, guild_id: int) -> List[dict]:
+    async def list_guild(self, guild_id: int) -> list[dict]:
         """List all panels for guild (interface compliance)."""
         panels = await self.list_guild_panels(guild_id)
         return [panel.to_dict() for panel in panels]
     
-    async def list_guild_panels(self, guild_id: int) -> List[PanelRecord]:
+    async def list_guild_panels(self, guild_id: int) -> list[PanelRecord]:
         """List all panels for a guild."""
         async with aiosqlite.connect(self._path) as db:
             db.row_factory = aiosqlite.Row
@@ -162,7 +163,7 @@ class PanelStore(BaseService[PanelRecord]):
             await cur.close()
             return [self._from_row(row) for row in rows]
     
-    async def list_all_panels(self) -> List[PanelRecord]:
+    async def list_all_panels(self) -> list[PanelRecord]:
         """List all panels across all guilds."""
         async with aiosqlite.connect(self._path) as db:
             db.row_factory = aiosqlite.Row

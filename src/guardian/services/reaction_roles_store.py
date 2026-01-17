@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import aiosqlite
 import logging
-from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
+from typing import Any
+
+import aiosqlite
 
 from .base import BaseService
 
@@ -16,8 +17,8 @@ class ReactionRoleConfig:
     group_key: str
     enabled: bool = True
     order_index: int = 0
-    label: Optional[str] = None
-    emoji: Optional[str] = None
+    label: str | None = None
+    emoji: str | None = None
 
 class ReactionRolesStore(BaseService[ReactionRoleConfig]):
     """Store for reaction roles configuration."""
@@ -61,7 +62,7 @@ class ReactionRolesStore(BaseService[ReactionRoleConfig]):
     def _get_query(self) -> str:
         return "SELECT * FROM reaction_roles_config WHERE guild_id = ? AND role_id = ?"
 
-    async def add_roles(self, guild_id: int, role_configs: List[Dict[str, Any]]) -> List[str]:
+    async def add_roles(self, guild_id: int, role_configs: list[dict[str, Any]]) -> list[str]:
         """Add multiple roles to configuration."""
         errors = []
         
@@ -98,7 +99,7 @@ class ReactionRolesStore(BaseService[ReactionRoleConfig]):
         
         return errors
 
-    async def remove_roles(self, guild_id: int, role_ids: List[int]) -> List[str]:
+    async def remove_roles(self, guild_id: int, role_ids: list[int]) -> list[str]:
         """Remove roles from configuration."""
         errors = []
         
@@ -144,7 +145,7 @@ class ReactionRolesStore(BaseService[ReactionRoleConfig]):
             log.error(f"Failed to set group for role {role_id}: {e}")
             return False
 
-    async def set_label(self, guild_id: int, role_id: int, label: Optional[str]) -> bool:
+    async def set_label(self, guild_id: int, role_id: int, label: str | None) -> bool:
         """Set role label."""
         try:
             async with aiosqlite.connect(self._path) as db:
@@ -158,7 +159,7 @@ class ReactionRolesStore(BaseService[ReactionRoleConfig]):
             log.error(f"Failed to set label for role {role_id}: {e}")
             return False
 
-    async def set_emoji(self, guild_id: int, role_id: int, emoji: Optional[str]) -> bool:
+    async def set_emoji(self, guild_id: int, role_id: int, emoji: str | None) -> bool:
         """Set role emoji."""
         try:
             async with aiosqlite.connect(self._path) as db:
@@ -218,7 +219,7 @@ class ReactionRolesStore(BaseService[ReactionRoleConfig]):
             log.error(f"Failed to move role {role_id}: {e}")
             return False
 
-    async def list_roles(self, guild_id: int) -> List[ReactionRoleConfig]:
+    async def list_roles(self, guild_id: int) -> list[ReactionRoleConfig]:
         """List all configured roles for a guild."""
         async with aiosqlite.connect(self._path) as db:
             async with db.execute(
@@ -232,7 +233,7 @@ class ReactionRolesStore(BaseService[ReactionRoleConfig]):
                 rows = await cursor.fetchall()
                 return [self._from_row(row) for row in rows]
 
-    async def list_group(self, guild_id: int, group_key: str) -> List[ReactionRoleConfig]:
+    async def list_group(self, guild_id: int, group_key: str) -> list[ReactionRoleConfig]:
         """List roles in a specific group."""
         async with aiosqlite.connect(self._path) as db:
             async with db.execute(
@@ -246,7 +247,7 @@ class ReactionRolesStore(BaseService[ReactionRoleConfig]):
                 rows = await cursor.fetchall()
                 return [self._from_row(row) for row in rows]
 
-    async def get_groups(self, guild_id: int) -> List[str]:
+    async def get_groups(self, guild_id: int) -> list[str]:
         """Get all group keys for a guild."""
         async with aiosqlite.connect(self._path) as db:
             async with db.execute(

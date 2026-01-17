@@ -7,9 +7,10 @@ to ensure all critical systems are properly initialized.
 
 from __future__ import annotations
 
-import discord
 import logging
-from typing import Dict, List, Any
+from typing import Any
+
+import discord
 
 log = logging.getLogger("guardian.startup_diagnostics")
 
@@ -19,7 +20,7 @@ class StartupDiagnostics:
     
     def __init__(self, bot: discord.Client):
         self.bot = bot
-        self.results: Dict[str, Any] = {
+        self.results: dict[str, Any] = {
             "loaded_cogs": [],
             "registered_commands": [],
             "progress_reporter_api": "unknown",
@@ -30,7 +31,7 @@ class StartupDiagnostics:
             "warnings": []
         }
     
-    async def run_diagnostics(self) -> Dict[str, Any]:
+    async def run_diagnostics(self) -> dict[str, Any]:
         """Run comprehensive startup diagnostics."""
         log.info("🔍 Running startup diagnostics...")
         

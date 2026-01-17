@@ -7,8 +7,9 @@ to prevent cascading failures and ensure consistency.
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import Protocol, runtime_checkable, Optional, List, Tuple
+from abc import abstractmethod
+from typing import Protocol, runtime_checkable
+
 import discord
 
 
@@ -53,7 +54,7 @@ class PanelStore(Protocol):
         ...
     
     @abstractmethod
-    async def get(self, guild_id: int, panel_key: str) -> Optional[dict]:
+    async def get(self, guild_id: int, panel_key: str) -> dict | None:
         """Get panel record."""
         ...
     
@@ -63,7 +64,7 @@ class PanelStore(Protocol):
         ...
     
     @abstractmethod
-    async def list_guild(self, guild_id: int) -> List[dict]:
+    async def list_guild(self, guild_id: int) -> list[dict]:
         """List all panels for guild."""
         ...
 
@@ -100,7 +101,7 @@ def validate_panel_store(store: object) -> PanelStore:
     return store
 
 
-def has_required_guild_perms(member: discord.Member) -> Tuple[bool, List[str]]:
+def has_required_guild_perms(member: discord.Member) -> tuple[bool, list[str]]:
     """Check if member has required guild permissions."""
     required_perms = [
         "manage_guild",
@@ -145,7 +146,7 @@ class OperationSnapshot:
                 self.roles_count > 0)
     
     def verify_deletion(self, deleted_channels: int, deleted_categories: int, 
-                      deleted_roles: int) -> Tuple[bool, str]:
+                      deleted_roles: int) -> tuple[bool, str]:
         """Verify deletion was successful."""
         if self.has_items() and deleted_channels == 0 and deleted_categories == 0 and deleted_roles == 0:
             return False, "Deletion failed - no items were deleted"
@@ -159,6 +160,7 @@ class DatabaseSafety:
     async def safe_execute_with_retry(db_func, max_retries: int = 3, backoff: float = 1.0):
         """Execute database function with retry on locked errors."""
         import asyncio
+
         import aiosqlite
         
         for attempt in range(max_retries):

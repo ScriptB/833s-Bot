@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import discord
-from discord.ext import commands
 from discord import app_commands
+from discord.ext import commands
 
 from ..permissions import require_verified
-
 
 TITLE_CATALOG: list[tuple[int, str]] = [
     (0, "New Face"),

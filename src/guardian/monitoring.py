@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from dataclasses import dataclass
 
 import discord
 from discord.ext import commands
 
 from .database import get_database_info
-from .services.stats import RuntimeStats
 
 log = logging.getLogger("guardian.monitoring")
 
@@ -45,7 +43,7 @@ class PerformanceMonitor:
         self.bot = bot
         self.metrics = PerformanceMetrics()
         self._start_time = time.time()
-        self._command_times: Dict[str, List[float]] = {}
+        self._command_times: dict[str, list[float]] = {}
     
     async def get_health_status(self) -> discord.Embed:
         """Get current health status."""
@@ -133,7 +131,7 @@ class PerformanceMonitor:
         """Record an error."""
         self.metrics.increment_errors()
     
-    def get_command_stats(self, command_name: str) -> Optional[Dict[str, float]]:
+    def get_command_stats(self, command_name: str) -> dict[str, float] | None:
         """Get statistics for a specific command."""
         if command_name not in self._command_times:
             return None
@@ -196,7 +194,7 @@ class CommandPerformance(commands.Cog):
     
     @commands.command(name="stats")
     @commands.is_owner()
-    async def command_stats(self, ctx: commands.Context, command_name: Optional[str] = None) -> None:
+    async def command_stats(self, ctx: commands.Context, command_name: str | None = None) -> None:
         """Get command performance statistics."""
         if command_name:
             stats = self.monitor.get_command_stats(command_name)

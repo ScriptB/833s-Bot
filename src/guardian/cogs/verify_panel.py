@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import logging
+
 import discord
 from discord import app_commands
 from discord.ext import commands
-from typing import Optional
-import logging
 
-from ..ui.persistent import GUARDIAN_V1
 from ..permissions import require_admin
+from ..ui.persistent import GUARDIAN_V1
 
 log = logging.getLogger("guardian.verify_panel")
 
@@ -32,7 +32,10 @@ class VerifyView(discord.ui.View):
         member = interaction.user
         
         # Get verification role
-        verify_role = discord.utils.get(guild.roles, name="Verified")
+        from ..utils import find_role_fuzzy
+
+        verify_role_name = getattr(getattr(interaction.client, "settings", None), "verified_role_name", "Verified")
+        verify_role = find_role_fuzzy(guild, verify_role_name)
         if not verify_role:
             await interaction.response.send_message(
                 "❌ Verification role not found. Contact server admin.",
@@ -117,7 +120,7 @@ class VerifyPanelCog(commands.Cog):
         
         if message:
             await interaction.followup.send(
-                f"✅ Verification panel deployed successfully.",
+                "✅ Verification panel deployed successfully.",
                 ephemeral=True
             )
         else:

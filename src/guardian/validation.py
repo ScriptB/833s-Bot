@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from .constants import ROLE_KINDS, CHANNEL_KINDS, COLORS
+from .constants import CHANNEL_KINDS, COLORS, ROLE_KINDS
 
 log = logging.getLogger("guardian.validation")
 
@@ -21,9 +21,9 @@ class ValidationResult:
     """Result of validation with errors and warnings."""
     
     def __init__(self) -> None:
-        self.errors: List[ValidationError] = []
-        self.warnings: List[ValidationError] = []
-        self.info: List[ValidationError] = []
+        self.errors: list[ValidationError] = []
+        self.warnings: list[ValidationError] = []
+        self.info: list[ValidationError] = []
     
     def add_error(self, field: str, message: str) -> None:
         """Add an error."""
@@ -65,7 +65,7 @@ class ValidationResult:
 class ConfigValidator:
     """Validate server configuration."""
     
-    def validate_server_config(self, config: Dict[str, Any]) -> ValidationResult:
+    def validate_server_config(self, config: dict[str, Any]) -> ValidationResult:
         """Validate server configuration."""
         result = ValidationResult()
         
@@ -96,7 +96,7 @@ class ConfigValidator:
         
         return result
     
-    def validate_roles_config(self, roles: List[Dict[str, Any]]) -> ValidationResult:
+    def validate_roles_config(self, roles: list[dict[str, Any]]) -> ValidationResult:
         """Validate roles configuration."""
         result = ValidationResult()
         
@@ -141,7 +141,7 @@ class ConfigValidator:
         
         return result
     
-    def validate_categories_config(self, categories: List[Dict[str, Any]]) -> ValidationResult:
+    def validate_categories_config(self, categories: list[dict[str, Any]]) -> ValidationResult:
         """Validate categories configuration."""
         result = ValidationResult()
         
@@ -198,7 +198,7 @@ class ConfigValidator:
         return result
     
         
-    def validate_full_config(self, config: Dict[str, Any]) -> ValidationResult:
+    def validate_full_config(self, config: dict[str, Any]) -> ValidationResult:
         """Validate the complete configuration."""
         result = ValidationResult()
         
@@ -225,8 +225,6 @@ class ConfigValidator:
                 
         # Cross-validation
         role_names = {role.get("name", "") for role in roles}
-        category_names = {cat.get("name", "") for cat in categories}
-        
         # Check for reserved names
         reserved_names = {"@everyone", "@here", "bot", "admin", "moderator"}
         for role_name in role_names:

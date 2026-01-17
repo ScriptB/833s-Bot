@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import discord
 from discord.ext import commands
-from typing import Union, Optional
 
 
 async def get_application_owner_ids(bot: commands.Bot) -> set[int]:
@@ -39,7 +38,7 @@ async def is_bot_owner(bot: commands.Bot, user_id: int) -> bool:
     return user_id in owner_ids
 
 
-async def is_root_actor(bot: commands.Bot, ctx: Union[commands.Context, discord.Interaction]) -> bool:
+async def is_root_actor(bot: commands.Bot, ctx: commands.Context | discord.Interaction) -> bool:
     """
     Universal root check for destructive bot commands.
     
@@ -91,7 +90,7 @@ def root_only():
     - Bot application owners/team members
     - Stored root operators
     """
-    async def predicate(ctx: Union[commands.Context, discord.Interaction]) -> bool:
+    async def predicate(ctx: commands.Context | discord.Interaction) -> bool:
         bot = ctx.bot if isinstance(ctx, commands.Context) else ctx.client
         
         is_root = await is_root_actor(bot, ctx)

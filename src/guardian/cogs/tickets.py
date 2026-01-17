@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import logging
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from ..ui.tickets import TicketCreateView
 from ..permissions import require_staff
+from ..ui.tickets import TicketCreateView
+
+log = logging.getLogger("guardian.tickets")
 
 
 class TicketsCog(commands.Cog):
@@ -19,8 +23,8 @@ class TicketsCog(commands.Cog):
             try:
                 # Register persistent view for all guilds
                 self.bot.add_view(TicketCreateView(self.bot, 0))
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                log.warning("Failed to register TicketCreateView persistently: %s", exc)
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -28,14 +32,15 @@ class TicketsCog(commands.Cog):
         for guild in self.bot.guilds:
             try:
                 # Find existing ticket panel messages
-                tickets_channel = discord.utils.get(guild.text_channels, name="tickets")
+                ch_name = getattr(self.bot.settings, "tickets_channel_name", "tickets")
+                tickets_channel = discord.utils.get(guild.text_channels, name=ch_name)
                 if tickets_channel:
                     async for message in tickets_channel.history(limit=10):
                         if "Ticket Panel" in (message.embeds[0].title if message.embeds else ""):
                             # Re-attach view to existing ticket panel
                             self.bot.add_view(TicketCreateView(self.bot, guild.id), message_id=message.id)
                             break
-            except Exception:
+            except Exception:  # noqa: BLE001
                 continue
 
     @app_commands.command(name="ticket_panel", description="Post a ticket panel in #tickets.")
@@ -44,9 +49,10 @@ class TicketsCog(commands.Cog):
         assert interaction.guild is not None
         await interaction.response.defer(ephemeral=True)
 
-        ch = discord.utils.get(interaction.guild.text_channels, name="tickets")
+        ch_name = getattr(self.bot.settings, "tickets_channel_name", "tickets")
+        ch = discord.utils.get(interaction.guild.text_channels, name=ch_name)
         if not ch:
-            await interaction.followup.send("❌ Channel #tickets not found.", ephemeral=True)
+            await interaction.followup.send(f"❌ Channel #{ch_name} not found.", ephemeral=True)
             return
 
         view = TicketCreateView(self.bot, interaction.guild.id)

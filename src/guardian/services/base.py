@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import aiosqlite
 import logging
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, Optional, Any
+from typing import Generic, TypeVar
+
+import aiosqlite
 
 from .cache import TTLCache
 
@@ -35,7 +36,7 @@ class BaseService(ABC, Generic[T]):
         """Convert a database row to the service's data type."""
         pass
     
-    async def get(self, key: int) -> Optional[T]:
+    async def get(self, key: int) -> T | None:
         """Get cached data or fetch from database."""
         cached = self._cache.get(key)
         if cached is not None:

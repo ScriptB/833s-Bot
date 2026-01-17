@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import aiosqlite
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
+
+import aiosqlite
 
 from .base import BaseService
 
