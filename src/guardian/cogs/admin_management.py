@@ -8,7 +8,7 @@ import datetime
 
 from ..security.auth import is_bot_owner
 from ..utils import safe_embed
-from ..utils.lookup import find_role, find_text_channel
+from ..lookup import find_role, find_text_channel
 
 
 class AdminManagementCog(commands.Cog):

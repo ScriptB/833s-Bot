@@ -13,7 +13,7 @@ from ..services.api_wrapper import safe_send_message, safe_edit_message, safe_cr
 from ..security.permissions import staff_command, requires_manage_channels
 from ..constants import COLORS
 from ..permissions import require_verified, require_ticket_owner_or_staff
-from ..utils.lookup import find_text_channel, find_role, find_category
+from ..lookup import find_text_channel, find_role, find_category
 
 log = logging.getLogger("guardian.ticket_system")
 

@@ -6,7 +6,7 @@ from discord.ext import commands
 from typing import Optional
 
 from ..services.panel_store import PanelStore
-from ..utils.lookup import find_text_channel
+from ..lookup import find_text_channel
 from ..services.role_config_store import RoleConfigStore
 from ..permissions import require_admin
 

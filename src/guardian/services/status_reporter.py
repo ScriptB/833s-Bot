@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import discord
 
-from ..utils.lookup import find_text_channel
+from ..lookup import find_text_channel
 
 
 @dataclass

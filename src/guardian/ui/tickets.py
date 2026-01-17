@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import discord
 
-from ..utils.lookup import find_text_channel, find_role, find_category
+from ..lookup import find_text_channel, find_role, find_category
 
 
 class TicketCreateView(discord.ui.View):

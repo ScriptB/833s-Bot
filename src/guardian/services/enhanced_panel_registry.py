@@ -8,7 +8,7 @@ from datetime import datetime
 
 from .api_wrapper import safe_send_message, safe_edit_message, APIResult
 from ..interfaces import validate_panel_store, has_required_guild_perms, sanitize_user_text
-from ..utils.lookup import find_text_channel
+from ..lookup import find_text_channel
 
 log = logging.getLogger("guardian.enhanced_panel_registry")
 

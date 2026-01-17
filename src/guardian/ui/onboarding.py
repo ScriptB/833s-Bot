@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import discord
 
-from ..utils.lookup import find_role
+from ..lookup import find_role
 
 
 class InterestSelect(discord.ui.Select):

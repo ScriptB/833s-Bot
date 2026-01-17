@@ -11,7 +11,7 @@ from discord.ext import commands
 from ..services.api_wrapper import APIResult, safe_send_message, safe_create_channel
 from ..interfaces import has_required_guild_perms
 from ..constants import COLORS
-from ..utils.lookup import find_text_channel
+from ..lookup import find_text_channel
 
 log = logging.getLogger("guardian.setup_wizard")
 

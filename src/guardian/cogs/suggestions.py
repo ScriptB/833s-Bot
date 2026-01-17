@@ -3,7 +3,7 @@ from __future__ import annotations
 import discord
 from discord import app_commands
 from discord.ext import commands
-from ..utils.lookup import find_text_channel
+from ..lookup import find_text_channel
 
 from ..permissions import require_verified
 

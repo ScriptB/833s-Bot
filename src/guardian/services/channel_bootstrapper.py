@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import discord
 
-from ..utils.lookup import find_text_channel
+from ..lookup import find_text_channel
 
 
 class ChannelBootstrapper:

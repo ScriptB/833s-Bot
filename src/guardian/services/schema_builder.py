@@ -5,7 +5,7 @@ import discord
 from typing import Dict, Iterable
 
 from .schema import ServerSchema
-from ..utils.lookup import find_text_channel, find_voice_channel, find_category
+from ..lookup import find_text_channel, find_voice_channel, find_category
 
 
 def _ow(**kwargs) -> discord.PermissionOverwrite:

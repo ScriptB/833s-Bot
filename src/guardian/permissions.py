@@ -7,7 +7,7 @@ from functools import wraps
 
 import discord
 
-from .utils.lookup import find_role
+from .lookup import find_role
 from discord import app_commands
 from discord.ext import commands
 

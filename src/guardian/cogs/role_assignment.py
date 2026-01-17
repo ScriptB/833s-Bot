@@ -11,7 +11,7 @@ from discord.ext import commands
 from ..services.api_wrapper import safe_add_role, safe_remove_role
 from ..security.permissions import user_command
 from ..constants import COLORS
-from ..utils.lookup import find_role, find_text_channel
+from ..lookup import find_role, find_text_channel
 
 log = logging.getLogger("guardian.role_assignment")
 

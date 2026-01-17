@@ -3,7 +3,7 @@ from __future__ import annotations
 import discord
 from discord.ext import commands
 
-from ..utils.lookup import find_text_channel, find_role
+from ..lookup import find_text_channel, find_role
 
 from ..ui.onboarding import OnboardingView
 
