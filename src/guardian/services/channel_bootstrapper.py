@@ -4,13 +4,23 @@ import asyncio
 import discord
 
 from ..lookup import find_text_channel
+from .bootstrap_state_store import BootstrapStateStore
 
 
 class ChannelBootstrapper:
-    def __init__(self, bot: discord.Client) -> None:
+    BOOTSTRAP_KEY = "channel_bootstrap_v1"
+
+    def __init__(self, bot: discord.Client, state_store: BootstrapStateStore) -> None:
         self.bot = bot
+        self.state_store = state_store
 
     async def ensure_first_posts(self, guild: discord.Guild) -> None:
+        # Ensure we only bootstrap once per guild (persistent across restarts).
+        # The content includes a hidden marker as a secondary safeguard.
+        done = await self.state_store.is_done(guild.id, self.BOOTSTRAP_KEY)
+        if done:
+            return
+
         # Match your current template.
         targets = {
             "rules": self._rules_text(),
@@ -24,10 +34,12 @@ class ChannelBootstrapper:
             if not isinstance(ch, discord.TextChannel):
                 continue
             try:
-                # Check for existing bootstrap posts (without marker)
+                # Check for existing bootstrap posts (marker + content heuristic)
                 already = False
                 async for m in ch.history(limit=15, oldest_first=True):
-                    if m.author == guild.me and m.content and any(
+                    if m.author == guild.me and m.content and (
+                        "[833s-guardian:bootstrap:v1]" in m.content
+                        or any(
                         text in m.content
                         for text in [
                             "Server Rules",
@@ -36,6 +48,7 @@ class ChannelBootstrapper:
                             "Tickets",
                             "Server Info",
                         ]
+                        )
                     ):
                         already = True
                         break
@@ -50,8 +63,12 @@ class ChannelBootstrapper:
             except discord.HTTPException:
                 continue
 
+        # Mark as done even if some channels were missing; this prevents repeated spam.
+        await self.state_store.mark_done(guild.id, self.BOOTSTRAP_KEY)
+
     def _rules_text(self) -> str:
         return (
+            "||[833s-guardian:bootstrap:v1]||\n"
             "**Server Rules (Summary)**\n"
             "1) Respect others.\n"
             "2) No spam, scams, or malicious links.\n"
@@ -62,6 +79,7 @@ class ChannelBootstrapper:
 
     def _introductions_text(self) -> str:
         return (
+            "||[833s-guardian:bootstrap:v1]||\n"
             "**Introduce Yourself**\n"
             "Name / nickname, interests, what you play/build, and what you want from 833s.\n"
             "Optional: add a project link or screenshot."
@@ -69,6 +87,7 @@ class ChannelBootstrapper:
 
     def _welcome_text(self) -> str:
         return (
+            "||[833s-guardian:bootstrap:v1]||\n"
             "**Welcome to 833’s**\n"
             "This server is structured. Use the right channels, keep things tidy, and the systems will scale.\n"
             "Start in #verify, then read #rules and #server-info."
@@ -76,6 +95,7 @@ class ChannelBootstrapper:
 
     def _tickets_text(self) -> str:
         return (
+            "||[833s-guardian:bootstrap:v1]||\n"
             "**Tickets**\n"
             "Use /ticket to open a private support thread.\n"
             "Include what happened, what you expected, and screenshots if relevant."
@@ -83,6 +103,7 @@ class ChannelBootstrapper:
 
     def _server_info_text(self) -> str:
         return (
+            "||[833s-guardian:bootstrap:v1]||\n"
             "**Server Info**\n"
             "This server is built around structured routing (games, dev, pets).\n"
             "If you are unsure where something belongs, check the category names and pinned messages first."

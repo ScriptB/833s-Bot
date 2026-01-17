@@ -25,6 +25,7 @@ from .services.cases_store import CasesStore
 from .services.reputation_store import ReputationStore
 from .services.suggestions_store import SuggestionsStore
 from .services.channel_bootstrapper import ChannelBootstrapper
+from .services.bootstrap_state_store import BootstrapStateStore
 from .services.status_reporter import StatusReporter
 from .services.guild_logger import GuildLogger
 from .services.panel_registry import PanelRegistry
@@ -135,6 +136,7 @@ class GuardianBot(commands.Bot):
         self.panel_store = PanelStore(settings.sqlite_path)
         log.info("PanelStore loaded: %s", PanelStore.__name__)
         self.role_config_store = RoleConfigStore(settings.sqlite_path)
+        self.bootstrap_state_store = BootstrapStateStore(settings.sqlite_path)
         
         # Initialize panel registry
         self.panel_registry = PanelRegistry(self, self.panel_store)
@@ -142,7 +144,7 @@ class GuardianBot(commands.Bot):
         # Initialize bot-specific services
         self.drift_verifier = DriftVerifier(self)
         self._sync_mgr = _CommandSyncManager(self)
-        self.channel_bootstrapper = ChannelBootstrapper(self)
+        self.channel_bootstrapper = ChannelBootstrapper(self, self.bootstrap_state_store)
         self.status_reporter = StatusReporter(self)
         self.guild_logger = GuildLogger(self)
 
@@ -168,6 +170,7 @@ class GuardianBot(commands.Bot):
             self.root_store,
             self.panel_store,
             self.role_config_store,
+            self.bootstrap_state_store,
         ]
         
         await initialize_database(self.settings.sqlite_path, stores)

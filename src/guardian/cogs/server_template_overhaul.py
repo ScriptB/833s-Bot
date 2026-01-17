@@ -373,7 +373,19 @@ class ServerTemplateOverhaulCog(commands.Cog):
     )
     @app_commands.checks.has_permissions(manage_guild=True)
     async def overhaul(self, interaction: discord.Interaction) -> None:
+        # Ephemeral response so progress updates remain editable even if we delete the channel
+        # the command was invoked from.
         await interaction.response.defer(ephemeral=True, thinking=True)
+
+        async def _progress(step: int, total: int, label: str) -> None:
+            # Simple text progress bar that can be edited in-place.
+            width = 20
+            filled = int((step / max(total, 1)) * width)
+            bar = "█" * filled + "░" * (width - filled)
+            await interaction.edit_original_response(content=f"[{bar}] {step}/{total}  {label}")
+
+        async def _final(summary: str) -> None:
+            await interaction.edit_original_response(content=summary)
 
         guild = interaction.guild
         if guild is None:
@@ -383,7 +395,72 @@ class ServerTemplateOverhaulCog(commands.Cog):
         results: List[str] = []
         warnings: List[str] = []
 
+        # ------------------------
+        # 0) NUKE CURRENT STRUCTURE
+        # ------------------------
+        # Requirement: delete ALL current channels, categories, and roles before creating template.
+        # Reality: Discord prevents deleting @everyone, managed roles, and roles above/equal to the bot's top role.
+        # We delete everything else and report anything we cannot delete.
+
+        total_steps = 7
+        step = 0
+
+        # 0.1) Delete channels (includes categories as separate objects, so delete children first)
+        step += 1
+        await _progress(step, total_steps, "Deleting existing channels...")
+        try:
+            # Delete non-category channels first
+            channels = sorted(
+                [c for c in guild.channels if not isinstance(c, discord.CategoryChannel)],
+                key=lambda c: (str(c.type), c.position),
+            )
+            for ch in channels:
+                try:
+                    await ch.delete(reason="833s template overhaul (nuke)")
+                except discord.Forbidden:
+                    warnings.append(f"Forbidden deleting channel: {getattr(ch, 'name', ch.id)}")
+                except Exception as e:
+                    warnings.append(f"Failed deleting channel {getattr(ch, 'name', ch.id)}: {type(e).__name__}")
+
+            # Then delete categories
+            cats = sorted(list(guild.categories), key=lambda c: c.position)
+            for cat in cats:
+                try:
+                    await cat.delete(reason="833s template overhaul (nuke)")
+                except discord.Forbidden:
+                    warnings.append(f"Forbidden deleting category: {cat.name}")
+                except Exception as e:
+                    warnings.append(f"Failed deleting category {cat.name}: {type(e).__name__}")
+        except Exception as e:
+            warnings.append(f"Channel/category deletion pass failed: {type(e).__name__}")
+
+        # 0.2) Delete roles
+        step += 1
+        await _progress(step, total_steps, "Deleting existing roles...")
+        try:
+            me = guild.me
+            top_pos = me.top_role.position if me else 0
+            roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
+            for role in roles:
+                if role == guild.default_role:
+                    continue
+                if role.managed:
+                    continue
+                if role.position >= top_pos:
+                    # Can't delete roles at/above bot.
+                    continue
+                try:
+                    await role.delete(reason="833s template overhaul (nuke)")
+                except discord.Forbidden:
+                    warnings.append(f"Forbidden deleting role: {role.name}")
+                except Exception as e:
+                    warnings.append(f"Failed deleting role {role.name}: {type(e).__name__}")
+        except Exception as e:
+            warnings.append(f"Role deletion pass failed: {type(e).__name__}")
+
         # 1) Apply guild settings that are supported by the API
+        step += 1
+        await _progress(step, total_steps, "Applying server settings...")
         try:
             await guild.edit(
                 verification_level=discord.VerificationLevel.medium,
@@ -398,6 +475,8 @@ class ServerTemplateOverhaulCog(commands.Cog):
             warnings.append(f"Failed to edit guild settings: {type(e).__name__}")
 
         # 2) Roles (create/update)
+        step += 1
+        await _progress(step, total_steps, "Creating roles...")
         role_defs = self._role_defs()
         created_roles = 0
         updated_roles = 0
@@ -433,7 +512,9 @@ class ServerTemplateOverhaulCog(commands.Cog):
                 except Exception as e:
                     warnings.append(f"Failed updating role {rd.name}: {type(e).__name__}")
 
-        # Attempt to reorder roles to match hierarchy (best-effort)
+        # 2.1) Reorder roles to match hierarchy (best-effort)
+        step += 1
+        await _progress(step, total_steps, "Applying role order...")
         try:
             name_to_role = {r.name: r for r in guild.roles}
             desired = [name_to_role.get(rd.name) for rd in role_defs]
@@ -466,6 +547,8 @@ class ServerTemplateOverhaulCog(commands.Cog):
             return
 
         # 3) Categories + channels
+        step += 1
+        await _progress(step, total_steps, "Creating categories and channels...")
         cat_defs = self._category_defs()
         created_cats = 0
         created_text = 0
@@ -584,6 +667,9 @@ class ServerTemplateOverhaulCog(commands.Cog):
                         except Exception:
                             warnings.append(f"Failed moving voice channel {vcd.name} into {cd.name}")
 
+        step += 1
+        await _progress(step, total_steps, "Finalizing...")
+
         results.append(
             f"Roles: +{created_roles} created, {updated_roles} updated"
         )
@@ -601,7 +687,7 @@ class ServerTemplateOverhaulCog(commands.Cog):
             out_lines.append("Warnings:")
             out_lines.extend([f"- {w}" for w in warnings])
 
-        await interaction.followup.send("\n".join(out_lines), ephemeral=True)
+        await _final("\n".join(out_lines))
 
 
 async def setup(bot: commands.Bot) -> None:
