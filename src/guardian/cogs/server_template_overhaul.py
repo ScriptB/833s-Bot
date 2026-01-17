@@ -376,16 +376,48 @@ class ServerTemplateOverhaulCog(commands.Cog):
         # Ephemeral response so progress updates remain editable even if we delete the channel
         # the command was invoked from.
         await interaction.response.defer(ephemeral=True, thinking=True)
+        progress_msg = None
+        try:
+            dm = await interaction.user.create_dm()
+            progress_msg = await dm.send('Starting 833s overhaul...')
+        except Exception:
+            progress_msg = None
 
         async def _progress(step: int, total: int, label: str) -> None:
-            # Simple text progress bar that can be edited in-place.
+            """Update the progress message.
+
+            We cannot rely on interaction.edit_original_response because the invocation channel
+            may be deleted during the overhaul, which deletes the original response message.
+            We instead write progress to the invoker's DM (and fall back to the original response).
+            """
             width = 20
             filled = int((step / max(total, 1)) * width)
             bar = "█" * filled + "░" * (width - filled)
-            await interaction.edit_original_response(content=f"[{bar}] {step}/{total}  {label}")
+            content = f"[{bar}] {step}/{total}  {label}"
+            # Prefer DM progress message.
+            if progress_msg is not None:
+                try:
+                    await progress_msg.edit(content=content)
+                    return
+                except Exception:
+                    pass
+            try:
+                await interaction.edit_original_response(content=content)
+            except Exception:
+                # If the original response is gone (channel deleted), just stop updating there.
+                return
 
         async def _final(summary: str) -> None:
-            await interaction.edit_original_response(content=summary)
+            if progress_msg is not None:
+                try:
+                    await progress_msg.edit(content=summary)
+                    return
+                except Exception:
+                    pass
+            try:
+                await interaction.edit_original_response(content=summary)
+            except Exception:
+                return
 
         guild = interaction.guild
         if guild is None:
@@ -394,6 +426,19 @@ class ServerTemplateOverhaulCog(commands.Cog):
 
         results: List[str] = []
         warnings: List[str] = []
+        # Clear persisted panel records for this guild before rebuilding to avoid restoring
+        # stale message_ids and custom_ids after a full nuke.
+        panel_store = getattr(self.bot, 'panel_store', None)
+        if panel_store is not None:
+            try:
+                existing = await panel_store.list_guild(guild.id)
+                for rec in existing:
+                    key = rec.get('panel_key')
+                    if key:
+                        await panel_store.delete(guild.id, str(key))
+            except Exception:
+                pass
+
 
         # ------------------------
         # 0) NUKE CURRENT STRUCTURE

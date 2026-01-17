@@ -15,6 +15,11 @@ class ChannelBootstrapper:
         self.state_store = state_store
 
     async def ensure_first_posts(self, guild: discord.Guild) -> None:
+        # Global kill-switch: bootstrap posts are off by default to prevent redeploy spam.
+        settings = getattr(self.bot, "settings", None)
+        if settings is not None and not getattr(settings, "bootstrap_enabled", False):
+            return
+
         # Ensure we only bootstrap once per guild (persistent across restarts).
         # The content includes a hidden marker as a secondary safeguard.
         done = await self.state_store.is_done(guild.id, self.BOOTSTRAP_KEY)
