@@ -19,6 +19,21 @@ def default_config() -> dict[str, Any]:
 
     return {
         "version": DEFAULT_CONFIG_VERSION,
+        # Optional authorization mapping. Used by capability-based checks.
+        # Keys are role IDs as strings; values are capability strings.
+        "authz": {
+            "baseline_capabilities": [],
+            "role_capabilities": {},
+            "discord_permission_capabilities": {
+                # Conservative defaults. Operators can expand via published config.
+                "administrator": ["moderation.*", "governance.*"],
+                "ban_members": ["moderation.ban"],
+                "kick_members": ["moderation.kick"],
+                "moderate_members": ["moderation.timeout"],
+                "manage_messages": ["moderation.delete"],
+                "manage_guild": ["governance.config.publish"],
+            },
+        },
         "guild_settings": {
             "enabled": True,
             "dm_notify": True,

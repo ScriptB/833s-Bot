@@ -50,11 +50,25 @@ async def is_staff(interaction: Union[discord.Interaction, commands.Context]) ->
     if not isinstance(member, discord.Member):
         return False
     
-    # Check for Staff/Moderator roles or permissions
+    # Capability-based authorization (preferred).
+    try:
+        from .security.capabilities import resolve_capabilities, has_cap
+
+        bot = interaction.client if isinstance(interaction, discord.Interaction) else interaction.bot
+        res = await resolve_capabilities(bot=bot, member=member)
+        if has_cap(res, "*") or has_cap(res, "moderation.*"):
+            return True
+        # Staff implies ability to perform at least one moderation action.
+        if any(has_cap(res, c) for c in ("moderation.warn", "moderation.timeout", "moderation.delete", "moderation.kick", "moderation.ban")):
+            return True
+    except Exception:
+        # Fall back to legacy checks.
+        pass
+
+    # Legacy role-name and permission checks.
     staff_roles = ["Staff", "Moderator", "Admin", "Owner"]
     has_staff_role = any(role.name in staff_roles for role in member.roles)
     has_staff_perms = member.guild_permissions.manage_messages or member.guild_permissions.kick_members
-    
     return has_staff_role or has_staff_perms
 
 
@@ -67,7 +81,23 @@ async def is_admin(interaction: Union[discord.Interaction, commands.Context]) ->
     if not isinstance(member, discord.Member):
         return False
     
-    # Check for Admin role or Administrator permission
+    # Capability-based authorization (preferred).
+    try:
+        from .security.capabilities import resolve_capabilities, has_cap
+
+        bot = interaction.client if isinstance(interaction, discord.Interaction) else interaction.bot
+        res = await resolve_capabilities(bot=bot, member=member)
+        if has_cap(res, "*"):
+            return True
+        if has_cap(res, "governance.*") or has_cap(res, "moderation.*"):
+            return True
+        # Explicit admin-ish capabilities.
+        if any(has_cap(res, c) for c in ("governance.overhaul", "governance.config.publish")):
+            return True
+    except Exception:
+        pass
+
+    # Legacy role-name and permission checks.
     admin_role = discord.utils.get(member.guild.roles, name="Admin")
     return admin_role in member.roles or member.guild_permissions.administrator
 
@@ -88,23 +118,12 @@ async def is_owner(interaction: Union[discord.Interaction, commands.Context]) ->
 
 async def is_root(interaction: Union[discord.Interaction, commands.Context]) -> bool:
     """Check if user is Root Operator."""
-    # This would integrate with the existing RootStore
-    # For now, we'll implement a basic check
-    if not interaction.guild:
-        return False
-    
-    member = interaction.user if isinstance(interaction, discord.Interaction) else interaction.author
-    if not isinstance(member, discord.Member):
-        return False
-    
-    # Root operators should also be able to use Owner commands
-    if await is_owner(interaction):
-        return True
-    
-    # TODO: Integrate with RootStore when available
-    # For now, check for a dedicated Root role
-    root_role = discord.utils.get(member.guild.roles, name="Root")
-    return root_role in member.roles
+    # Root is bot-level governance authority.
+    # Source of truth is the universal root check (guild owner, app owner/team, stored root operators).
+    from .security.auth import is_root_actor
+
+    bot = interaction.client if isinstance(interaction, discord.Interaction) else interaction.bot
+    return await is_root_actor(bot, interaction)
 
 
 async def get_user_tier(interaction: Union[discord.Interaction, commands.Context]) -> PermissionTier:
@@ -206,6 +225,45 @@ def require_owner():
 def require_root():
     """Require Root tier."""
     return require_tier(PermissionTier.ROOT)
+
+
+def require_capability(required: str):
+    """Require a capability string (supports wildcards in stored grants).
+
+    This is the preferred guard for new governance commands.
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            interaction_or_ctx = None
+            for arg in args:
+                if isinstance(arg, (discord.Interaction, commands.Context)):
+                    interaction_or_ctx = arg
+                    break
+
+            if not interaction_or_ctx or not getattr(interaction_or_ctx, "guild", None):
+                return await _send_permission_error(interaction_or_ctx, "Unable to verify permissions.")
+
+            member = interaction_or_ctx.user if isinstance(interaction_or_ctx, discord.Interaction) else interaction_or_ctx.author
+            if not isinstance(member, discord.Member):
+                return await _send_permission_error(interaction_or_ctx, "Unable to verify permissions.")
+
+            try:
+                from .security.capabilities import resolve_capabilities, has_cap
+
+                bot = interaction_or_ctx.client if isinstance(interaction_or_ctx, discord.Interaction) else interaction_or_ctx.bot
+                res = await resolve_capabilities(bot=bot, member=member)
+                if has_cap(res, "*") or has_cap(res, required):
+                    return await func(*args, **kwargs)
+            except Exception:
+                pass
+
+            return await _send_permission_error(interaction_or_ctx, "You do not have permission to use this command.")
+
+        return wrapper
+
+    return decorator
 
 
 # Specialized decorators for specific use cases

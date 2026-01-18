@@ -252,8 +252,10 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.admin", "AdminCog")
         await _load_cog("guardian.cogs.setup_autoconfig", "SetupAutoConfigCog")
         await _load_cog("guardian.cogs.dm_cleanup", "DMCleanupCog")
-        await _load_cog("guardian.cogs.admin_management", "AdminManagementCog")
+        # Admin elevation via bot commands is intentionally disabled.
+        # Authority must be derived from Discord roles/permissions and published governance config.
         await _load_cog("guardian.cogs.root_management", "RootManagementCog")
+        await _load_cog("guardian.cogs.authz", "AuthzCog")
         
         # Community + onboarding
         await _load_cog("guardian.cogs.welcome", "WelcomeCog")
