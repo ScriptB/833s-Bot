@@ -258,7 +258,7 @@ class SetupWizardCog(commands.Cog):
     
     def _check_user_permissions(self, interaction: discord.Interaction) -> SetupCheck:
         """Check if user has permission to run setup."""
-        if not has_required_guild_perms(interaction):
+        if not interaction.guild or not interaction.member or not has_required_guild_perms(interaction.member):
             return SetupCheck(
                 name="User Permissions",
                 status="fail",
