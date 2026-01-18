@@ -5,7 +5,6 @@ from typing import Dict, Any, Tuple, Optional, Callable
 import logging
 
 from ..interfaces import validate_panel_store, has_required_guild_perms, sanitize_user_text
-from ..lookup import find_text_channel
 
 log = logging.getLogger("guardian.panel_registry")
 
@@ -22,9 +21,7 @@ class PanelRegistry:
         validate_panel_store(panel_store)
         self._fallback_channels: Dict[str, str] = {
             "verify_panel": "verify",
-            # Your template doesn't include a dedicated #roles text channel.
-            # Default to the role-routing hub.
-            "role_panel": "choose-your-games",
+            "role_panel": "roles", 
             "ticket_panel": "tickets"
         }
     
@@ -54,7 +51,7 @@ class PanelRegistry:
             # Get or find target channel
             if target_channel is None:
                 channel_name = self._fallback_channels.get(panel_key, f"{panel_key}")
-                target_channel = find_text_channel(guild, channel_name)
+                target_channel = discord.utils.get(guild.text_channels, name=channel_name)
                 
                 if not target_channel:
                     log.warning(f"Channel '{channel_name}' not found for panel {panel_key} in guild {guild.id}")

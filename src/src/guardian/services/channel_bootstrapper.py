@@ -3,62 +3,28 @@ from __future__ import annotations
 import asyncio
 import discord
 
-from ..lookup import find_text_channel
-from .bootstrap_state_store import BootstrapStateStore
-
 
 class ChannelBootstrapper:
-    BOOTSTRAP_KEY = "channel_bootstrap_v1"
-
-    def __init__(self, bot: discord.Client, state_store: BootstrapStateStore) -> None:
+    def __init__(self, bot: discord.Client) -> None:
         self.bot = bot
-        self.state_store = state_store
 
     async def ensure_first_posts(self, guild: discord.Guild) -> None:
-        # Bootstrap posts are never auto-run unless BOOTSTRAP_ENABLED=true AND BOOTSTRAP_AUTORUN=true
-        settings = getattr(self.bot, "settings", None)
-        if settings is None:
-            return
-        if not getattr(settings, "bootstrap_enabled", False):
-            return
-        if not getattr(settings, "bootstrap_autorun", False):
-            return
-
-        # Ensure we only bootstrap once per guild (persistent across restarts).
-        # The content includes a hidden marker as a secondary safeguard.
-        done = await self.state_store.is_done(guild.id, self.BOOTSTRAP_KEY)
-        if done:
-            return
-
-        # Match your current template.
         targets = {
             "rules": self._rules_text(),
-            "welcome": self._welcome_text(),
             "introductions": self._introductions_text(),
-            "tickets": self._tickets_text(),
-            "server-info": self._server_info_text(),
+            "support-start": self._help_text(),
+            "help-verification": self._help_verification_text(),
+            "start-here": self._start_here_text(),
         }
         for name, body in targets.items():
-            ch = find_text_channel(guild, name)
+            ch = discord.utils.get(guild.text_channels, name=name)
             if not isinstance(ch, discord.TextChannel):
                 continue
             try:
-                # Check for existing bootstrap posts (marker + content heuristic)
+                # Check for existing bootstrap posts (without marker)
                 already = False
                 async for m in ch.history(limit=15, oldest_first=True):
-                    if m.author == guild.me and m.content and (
-                        "[833s-guardian:bootstrap:v1]" in m.content
-                        or any(
-                        text in m.content
-                        for text in [
-                            "Server Rules",
-                            "Welcome to 833s",
-                            "Introduce Yourself",
-                            "Tickets",
-                            "Server Info",
-                        ]
-                        )
-                    ):
+                    if m.author == guild.me and m.content and any(text in m.content for text in ["Server Rules", "Introduce Yourself", "Help & Support", "Verification Help", "Welcome to 833s"]):
                         already = True
                         break
                 if already:
@@ -72,48 +38,41 @@ class ChannelBootstrapper:
             except discord.HTTPException:
                 continue
 
-        # Mark as done even if some channels were missing; this prevents repeated spam.
-        await self.state_store.mark_done(guild.id, self.BOOTSTRAP_KEY)
-
     def _rules_text(self) -> str:
         return (
-            "||[833s-guardian:bootstrap:v1]||\n"
             "**Server Rules (Summary)**\n"
             "1) Respect others.\n"
             "2) No spam, scams, or malicious links.\n"
             "3) Keep content in the right channels.\n"
             "4) Follow staff instructions during moderation.\n"
-            "Use /ticket in #tickets for private support."
+            "Use /ticket_panel in #support-start for private support."
         )
 
     def _introductions_text(self) -> str:
         return (
-            "||[833s-guardian:bootstrap:v1]||\n"
             "**Introduce Yourself**\n"
             "Name / nickname, interests, what you play/build, and what you want from 833s.\n"
             "Optional: add a project link or screenshot."
         )
 
-    def _welcome_text(self) -> str:
+    def _help_text(self) -> str:
         return (
-            "||[833s-guardian:bootstrap:v1]||\n"
-            "**Welcome to 833’s**\n"
-            "This server is structured. Use the right channels, keep things tidy, and the systems will scale.\n"
-            "Start in #verify, then read #rules and #server-info."
+            "**Help & Support**\n"
+            "Use the buttons in #support-start for private support.\n"
+            "For quick help: describe the issue + screenshots + what you tried."
         )
 
-    def _tickets_text(self) -> str:
+    def _help_verification_text(self) -> str:
         return (
-            "||[833s-guardian:bootstrap:v1]||\n"
-            "**Tickets**\n"
-            "Use /ticket to open a private support thread.\n"
-            "Include what happened, what you expected, and screenshots if relevant."
+            "**Verification Help**\n"
+            "Complete verification to unlock server features.\n"
+            "Follow the instructions in #verify channel.\n"
+            "Contact staff if you encounter any issues."
         )
 
-    def _server_info_text(self) -> str:
+    def _start_here_text(self) -> str:
         return (
-            "||[833s-guardian:bootstrap:v1]||\n"
-            "**Server Info**\n"
-            "This server is built around structured routing (games, dev, pets).\n"
-            "If you are unsure where something belongs, check the category names and pinned messages first."
+            "**Welcome to 833s**\n"
+            "Complete onboarding in #verify to unlock the server.\n"
+            "After verification: check #community-guide and #announcements."
         )

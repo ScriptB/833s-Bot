@@ -6,7 +6,6 @@ from discord.ext import commands
 from typing import Optional
 
 from ..services.panel_store import PanelStore
-from ..lookup import find_text_channel
 from ..services.role_config_store import RoleConfigStore
 from ..permissions import require_admin
 
@@ -232,7 +231,7 @@ class RolePanelCog(commands.Cog):
             return
         
         # Find or create role panel channel
-        channel = find_text_channel(guild, "choose-your-games") or find_text_channel(guild, "server-info")
+        channel = discord.utils.get(guild.text_channels, name="roles")
         if not channel:
             try:
                 channel = await guild.create_text_channel(

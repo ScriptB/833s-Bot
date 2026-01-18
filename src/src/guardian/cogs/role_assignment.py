@@ -11,7 +11,6 @@ from discord.ext import commands
 from ..services.api_wrapper import safe_add_role, safe_remove_role
 from ..security.permissions import user_command
 from ..constants import COLORS
-from ..lookup import find_role, find_text_channel
 
 log = logging.getLogger("guardian.role_assignment")
 
@@ -156,7 +155,7 @@ class RoleAssignmentCog(commands.Cog):
         
         # Add roles
         for role_name in roles_to_add:
-            role = find_role(interaction.guild, role_name)
+            role = discord.utils.get(interaction.guild.roles, name=role_name)
             if role:
                 result = await safe_add_role(member, role, reason="User selected via role menu")
                 if result.success:
@@ -168,7 +167,7 @@ class RoleAssignmentCog(commands.Cog):
         
         # Remove roles
         for role_name in roles_to_remove:
-            role = find_role(interaction.guild, role_name)
+            role = discord.utils.get(interaction.guild.roles, name=role_name)
             if role:
                 result = await safe_remove_role(member, role, reason="User deselected via role menu")
                 if result.success:
@@ -226,11 +225,9 @@ class RoleAssignmentCog(commands.Cog):
     
     async def deploy_role_panel(self, guild: discord.Guild) -> Optional[discord.Message]:
         """Deploy the role assignment panel."""
-        # Your template does not include a dedicated #reaction-roles channel.
-        # Default to the role routing hub.
-        channel = find_text_channel(guild, "choose-your-games") or find_text_channel(guild, "server-info")
+        channel = discord.utils.get(guild.text_channels, name="reaction-roles")
         if not channel:
-            log.warning(f"No suitable channel found to deploy role assignment panel in guild {guild.id}")
+            log.warning(f"reaction-roles channel not found in guild {guild.id}")
             return None
         
         embed = discord.Embed(
@@ -281,7 +278,7 @@ class RoleAssignmentCog(commands.Cog):
             log.info(f"Deployed role panel in guild {guild.id}")
             return message
         except discord.Forbidden:
-            log.error(f"No permission to send messages in role panel channel in guild {guild.id}")
+            log.error(f"No permission to send messages in reaction-roles channel in guild {guild.id}")
             return None
         except Exception as e:
             log.exception(f"Error deploying role panel in guild {guild.id}: {e}")

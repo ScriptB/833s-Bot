@@ -25,7 +25,6 @@ from .services.cases_store import CasesStore
 from .services.reputation_store import ReputationStore
 from .services.suggestions_store import SuggestionsStore
 from .services.channel_bootstrapper import ChannelBootstrapper
-from .services.bootstrap_state_store import BootstrapStateStore
 from .services.status_reporter import StatusReporter
 from .services.guild_logger import GuildLogger
 from .services.panel_registry import PanelRegistry
@@ -36,6 +35,11 @@ from .services.role_config_store import RoleConfigStore
 from .services.profiles_store import ProfilesStore
 from .services.titles_store import TitlesStore
 from .services.root_store import RootStore
+from .services.moderation_config_store import ModerationConfigStore
+from .services.moderation_audit_store import ModerationAuditStore
+from .services.moderation_idempotency_store import ModerationIdempotencyStore
+from .moderation.pipeline import ModerationPipeline, RulesetCache
+from .moderation.action_engine import ActionEngine
 from .ui.persistent import register_all_views
 from .observability import observability
 from .migration import initialize_migration_system
@@ -136,7 +140,24 @@ class GuardianBot(commands.Bot):
         self.panel_store = PanelStore(settings.sqlite_path)
         log.info("PanelStore loaded: %s", PanelStore.__name__)
         self.role_config_store = RoleConfigStore(settings.sqlite_path)
-        self.bootstrap_state_store = BootstrapStateStore(settings.sqlite_path)
+
+        # Moderation governance subsystem (new)
+        self.moderation_config_store = ModerationConfigStore(settings.sqlite_path, cache_ttl)
+        self.moderation_audit_store = ModerationAuditStore(settings.sqlite_path, cache_ttl)
+        self.moderation_idempotency_store = ModerationIdempotencyStore(settings.sqlite_path, cache_ttl)
+        self.moderation_ruleset_cache = RulesetCache()
+        self.moderation_pipeline = ModerationPipeline(
+            bot=self,
+            config_store=self.moderation_config_store,
+            audit_store=self.moderation_audit_store,
+            cache=self.moderation_ruleset_cache,
+        )
+        self.moderation_action_engine = ActionEngine(
+            bot=self,
+            audit_store=self.moderation_audit_store,
+            idempotency_store=self.moderation_idempotency_store,
+            warnings_store=self.warnings_store,
+        )
         
         # Initialize panel registry
         self.panel_registry = PanelRegistry(self, self.panel_store)
@@ -144,7 +165,7 @@ class GuardianBot(commands.Bot):
         # Initialize bot-specific services
         self.drift_verifier = DriftVerifier(self)
         self._sync_mgr = _CommandSyncManager(self)
-        self.channel_bootstrapper = ChannelBootstrapper(self, self.bootstrap_state_store)
+        self.channel_bootstrapper = ChannelBootstrapper(self)
         self.status_reporter = StatusReporter(self)
         self.guild_logger = GuildLogger(self)
 
@@ -170,7 +191,9 @@ class GuardianBot(commands.Bot):
             self.root_store,
             self.panel_store,
             self.role_config_store,
-            self.bootstrap_state_store,
+            self.moderation_config_store,
+            self.moderation_audit_store,
+            self.moderation_idempotency_store,
         ]
         
         await initialize_database(self.settings.sqlite_path, stores)
@@ -235,11 +258,7 @@ class GuardianBot(commands.Bot):
         # Community + onboarding
         await _load_cog("guardian.cogs.welcome", "WelcomeCog")
         await _load_cog("guardian.cogs.onboarding", "OnboardingCog")
-        # Legacy ticket panel implementation (kept optional to avoid overlapping systems).
-        if getattr(self.settings, "legacy_tickets_enabled", False):
-            await _load_cog("guardian.cogs.tickets", "TicketsCog")
-        else:
-            log.info("Legacy TicketsCog disabled; using TicketSystemCog only")
+        await _load_cog("guardian.cogs.tickets", "TicketsCog")
         await _load_cog("guardian.cogs.suggestions", "SuggestionsCog")
 
 
@@ -248,6 +267,9 @@ class GuardianBot(commands.Bot):
         await _load_cog("guardian.cogs.starboard", "StarboardCog")
         await _load_cog("guardian.cogs.reputation", "ReputationCog")
         await _load_cog("guardian.cogs.utilities", "UtilitiesCog")
+
+        # Moderation governance (AutoMod + audit + config)
+        await _load_cog("guardian.cogs.moderation_system", "ModerationSystemCog")
 
         # Community systems (non-moderation)
         if self.settings.profiles_enabled:
@@ -264,16 +286,14 @@ class GuardianBot(commands.Bot):
         
         # Production-ready systems
         await _load_cog("guardian.cogs.setup_wizard", "SetupWizardCog")
-        # Server template overhaul command (idempotent structural deploy)
-        await _load_cog("guardian.cogs.server_template_overhaul", "ServerTemplateOverhaulCog")
         await _load_cog("guardian.cogs.ticket_system", "TicketSystemCog")
         await _load_cog("guardian.cogs.role_assignment", "RoleAssignmentCog")
         await _load_cog("guardian.cogs.activity_manager", "ActivityCog")
         await _load_cog("guardian.cogs.health_check", "HealthCheckCog")
-        if getattr(self.settings, "reaction_roles_enabled", True):
-            await _load_cog("guardian.cogs.reaction_roles_new", "ReactionRolesCog")
-        else:
-            log.info("Reaction roles disabled by settings; skipping ReactionRolesCog")
+        await _load_cog("guardian.cogs.reaction_roles_new", "ReactionRolesCog")
+
+        # Moderation system (automod + governance)
+        await _load_cog("guardian.cogs.moderation_system", "ModerationSystemCog")
         
         # Persistent panels
         await _load_cog("guardian.cogs.verify_panel", "VerifyPanelCog")
@@ -318,8 +338,6 @@ class GuardianBot(commands.Bot):
             log.info("🔍 Running startup self-check...")
             
             # Check critical cogs
-            rr_enabled = bool(getattr(self.settings, "reaction_roles_enabled", True))
-
             critical_cogs = {
                 'VerifyPanelCog': self.get_cog('VerifyPanelCog') is not None,
                 'RolePanelCog': self.get_cog('RolePanelCog') is not None,
@@ -327,8 +345,7 @@ class GuardianBot(commands.Bot):
                 'TicketSystemCog': self.get_cog('TicketSystemCog') is not None,
                 'RoleAssignmentCog': self.get_cog('RoleAssignmentCog') is not None,
                 'HealthCheckCog': self.get_cog('HealthCheckCog') is not None,
-                # Reaction roles are optional. When disabled, they should not cause a startup failure.
-                'ReactionRolesCog': (not rr_enabled) or (self.get_cog('ReactionRolesCog') is not None),
+                'ReactionRolesCog': self.get_cog('ReactionRolesCog') is not None,
             }
             
             failed_cogs = [name for name, loaded in critical_cogs.items() if not loaded]
@@ -349,7 +366,7 @@ class GuardianBot(commands.Bot):
                 'roles': any(cmd.name == 'roles' for cmd in commands),
                 'myroles': any(cmd.name == 'myroles' for cmd in commands),
                 'health': any(cmd.name == 'health' for cmd in commands),
-                'reactionroles': (not rr_enabled) or any(cmd.name == 'reactionroles' for cmd in commands),
+                'reactionroles': any(cmd.name == 'reactionroles' for cmd in commands),
             }
             
             failed_commands = [name for name, available in critical_commands.items() if not available]
@@ -377,14 +394,13 @@ class GuardianBot(commands.Bot):
                 log.error("❌ Self-check failed - Activity manager not available")
             
             # Validate command permissions
-            actual = {cmd.name for cmd in commands}
-            if validate_command_permissions(actual):
+            if validate_command_permissions():
                 log.info("✅ Command permissions validation passed")
             else:
                 log.error("❌ Self-check failed - Command permissions validation failed")
             
             # Overall result
-            if not failed_cogs and not failed_commands and validate_command_permissions(actual):
+            if not failed_cogs and not failed_commands and validate_command_permissions():
                 log.info("🎉 Startup self-check passed - All systems operational")
             else:
                 log.warning("⚠️ Startup self-check completed with issues - Some systems may be degraded")
@@ -414,7 +430,6 @@ class GuardianBot(commands.Bot):
     async def on_ready(self):
         try:
             for g in list(self.guilds):
-                # Bootstrap posting is manual-only to prevent redeploy spam. Use the dedicated bootstrap command if needed.
-                # await self.channel_bootstrapper.ensure_first_posts(g)
+                await self.channel_bootstrapper.ensure_first_posts(g)
         except Exception as e:
             log.warning("Failed to ensure first posts for guilds: %s", e)

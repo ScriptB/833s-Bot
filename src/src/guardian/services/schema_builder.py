@@ -5,7 +5,6 @@ import discord
 from typing import Dict, Iterable
 
 from .schema import ServerSchema
-from ..lookup import find_text_channel, find_voice_channel, find_category
 
 
 def _ow(**kwargs) -> discord.PermissionOverwrite:
@@ -204,7 +203,7 @@ class SchemaBuilder:
                 if status:
                     await status.update(guild, ch_i, f"Ensuring channels in {cat_spec.name} ({ch_i}/{len(cat_spec.channels)})")
                 if ch_spec.kind == "text":
-                    ch = find_text_channel(guild, ch_spec.name)
+                    ch = discord.utils.get(guild.text_channels, name=ch_spec.name)
                     if not ch:
                         try:
                             ch = await guild.create_text_channel(
@@ -292,7 +291,7 @@ class SchemaBuilder:
 
                 else:
                     # voice
-                    vc = find_voice_channel(guild, ch_spec.name)
+                    vc = discord.utils.get(guild.voice_channels, name=ch_spec.name)
                     if not vc:
                         try:
                             vc = await guild.create_voice_channel(name=ch_spec.name, category=cat, reason="833s Guardian schema apply")
@@ -311,7 +310,7 @@ class SchemaBuilder:
         try:
             # Move categories in the exact order they appear
             for pos, cat_spec in enumerate(schema.categories):
-                cat = find_category(guild, cat_spec.name)
+                cat = discord.utils.get(guild.categories, name=cat_spec.name)
                 if cat:
                     await cat.edit(position=pos, reason="833s Guardian schema apply")
                     await asyncio.sleep(0.15)

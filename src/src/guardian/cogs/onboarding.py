@@ -3,8 +3,6 @@ from __future__ import annotations
 import discord
 from discord.ext import commands
 
-from ..lookup import find_text_channel, find_role
-
 from ..ui.onboarding import OnboardingView
 
 
@@ -18,7 +16,7 @@ class OnboardingCog(commands.Cog):
         for guild in self.bot.guilds:
             try:
                 # Find existing onboarding messages
-                verify_channel = find_text_channel(guild, "verify")
+                verify_channel = discord.utils.get(guild.text_channels, name="verify")
                 if verify_channel:
                     async for message in verify_channel.history(limit=20):
                         if "Mandatory Onboarding" in (message.embeds[0].title if message.embeds else ""):
@@ -33,7 +31,7 @@ class OnboardingCog(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
         guild = member.guild
-        quarantine = find_role(guild, "Quarantine")
+        quarantine = discord.utils.get(guild.roles, name="Quarantine")
         if quarantine:
             try:
                 await member.add_roles(quarantine, reason="Onboarding quarantine")
@@ -45,7 +43,7 @@ class OnboardingCog(commands.Cog):
         except Exception:
             pass
 
-        ch = find_text_channel(guild, "verify")
+        ch = discord.utils.get(guild.text_channels, name="verify")
         if not ch:
             return
         try:

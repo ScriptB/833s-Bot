@@ -53,13 +53,6 @@ class Settings:
     prompts_enabled: bool
     events_enabled: bool
     community_memory_enabled: bool
-    # Optional systems
-    reaction_roles_enabled: bool
-    reaction_roles_channel_name: str
-    reaction_roles_panel_key: str
-    legacy_tickets_enabled: bool
-    bootstrap_enabled: bool
-    bootstrap_autorun: bool
     # discord.py logs a warning (and prefix commands won't work reliably) when
     # message content intent is disabled. This project primarily uses slash
     # commands, but we default this on to avoid confusion.
@@ -103,10 +96,4 @@ def load_settings() -> Settings:
         prompts_enabled=_get_bool("PROMPTS_ENABLED", True),
         events_enabled=_get_bool("EVENTS_ENABLED", True),
         community_memory_enabled=_get_bool("COMMUNITY_MEMORY_ENABLED", True),
-        reaction_roles_enabled=_get_bool("REACTION_ROLES_ENABLED", True),
-        reaction_roles_channel_name=(os.getenv("REACTION_ROLES_CHANNEL_NAME", "choose-your-games").strip() or "choose-your-games"),
-        reaction_roles_panel_key=(os.getenv("REACTION_ROLES_PANEL_KEY", "reaction_roles_panel").strip() or "reaction_roles_panel"),
-        legacy_tickets_enabled=_get_bool("LEGACY_TICKETS_ENABLED", False),
-        bootstrap_enabled=_get_bool("BOOTSTRAP_ENABLED", False),
-        bootstrap_autorun=_get_bool("BOOTSTRAP_AUTORUN", False),
     )

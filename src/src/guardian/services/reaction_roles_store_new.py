@@ -8,22 +8,8 @@ from .base import BaseService
 
 log = logging.getLogger("guardian.reaction_roles_store")
 
-class ReactionRolesStore(BaseService[dict]):
+class ReactionRolesStore(BaseService):
     """Reaction roles configuration store following Discord.py best practices."""
-
-    # NOTE: This store is used during cog_load(). It must be instantiable.
-    # BaseService is abstract and requires _get_query and _from_row.
-    # Reaction roles does not use BaseService.get(), but we implement the
-    # required methods to avoid TypeError at runtime.
-
-    @property
-    def _get_query(self) -> str:
-        # Minimal query to satisfy BaseService; not used by this store.
-        return "SELECT guild_id, role_id, group_key, enabled FROM reaction_roles_config WHERE guild_id = ? LIMIT 1"
-
-    def _from_row(self, row: aiosqlite.Row) -> dict:
-        # Minimal conversion; not used by this store.
-        return dict(row)
     
     def __init__(self, sqlite_path: str, cache_ttl_seconds: int = 300) -> None:
         super().__init__(sqlite_path, cache_ttl_seconds)

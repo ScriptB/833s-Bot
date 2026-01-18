@@ -8,7 +8,6 @@ from datetime import datetime
 
 from .api_wrapper import safe_send_message, safe_edit_message, APIResult
 from ..interfaces import validate_panel_store, has_required_guild_perms, sanitize_user_text
-from ..lookup import find_text_channel
 
 log = logging.getLogger("guardian.enhanced_panel_registry")
 
@@ -115,7 +114,7 @@ class EnhancedPanelRegistry:
             
             # Find target channel
             if target_channel is None:
-                target_channel = find_text_channel(guild, config.channel_name)
+                target_channel = discord.utils.get(guild.text_channels, name=config.channel_name)
                 if target_channel is None:
                     log.warning(f"Channel '{config.channel_name}' not found for panel {panel_key} in guild {guild.id}")
                     return None
@@ -327,7 +326,7 @@ class EnhancedPanelRegistry:
             }
             
             # Check if channel exists
-            channel = find_text_channel(guild, config.channel_name)
+            channel = discord.utils.get(guild.text_channels, name=config.channel_name)
             if channel:
                 panel_status["channel_exists"] = True
                 panel_status["channel_id"] = channel.id

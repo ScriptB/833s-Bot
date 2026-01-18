@@ -13,7 +13,6 @@ from ..services.api_wrapper import safe_send_message, safe_edit_message, safe_cr
 from ..security.permissions import staff_command, requires_manage_channels
 from ..constants import COLORS
 from ..permissions import require_verified, require_ticket_owner_or_staff
-from ..lookup import find_text_channel, find_role, find_category
 
 log = logging.getLogger("guardian.ticket_system")
 
@@ -155,7 +154,7 @@ class TicketSystemCog(commands.Cog):
         
         # Add support roles
         for role_name in self.config.support_roles:
-            role = find_role(interaction.guild, role_name)
+            role = discord.utils.get(interaction.guild.roles, name=role_name)
             if role:
                 overwrites[role] = discord.PermissionOverwrite(
                     read_messages=True,
@@ -332,7 +331,7 @@ class TicketSystemCog(commands.Cog):
     
     async def _get_ticket_category(self, guild: discord.Guild) -> Optional[discord.CategoryChannel]:
         """Get or create the ticket category."""
-        category = find_category(guild, self.config.category_name)
+        category = discord.utils.get(guild.categories, name=self.config.category_name)
         
         if category is None:
             try:
@@ -390,9 +389,9 @@ class TicketSystemCog(commands.Cog):
     async def _notify_staff(self, guild: discord.Guild, ticket_channel: discord.TextChannel, user: discord.Member):
         """Notify staff about new ticket."""
         # Find a staff channel or use the first available
-        staff_channel = find_text_channel(guild, "staff-chat")
+        staff_channel = discord.utils.get(guild.text_channels, name="staff-chat")
         if not staff_channel:
-            staff_channel = find_text_channel(guild, "staff")
+            staff_channel = discord.utils.get(guild.text_channels, name="staff")
         
         if staff_channel:
             embed = discord.Embed(
@@ -459,9 +458,9 @@ class TicketSystemCog(commands.Cog):
     
     async def deploy_ticket_panel(self, guild: discord.Guild) -> Optional[discord.Message]:
         """Deploy the ticket creation panel."""
-        channel = find_text_channel(guild, "tickets")
+        channel = discord.utils.get(guild.text_channels, name="support-start")
         if not channel:
-            log.warning(f"tickets channel not found in guild {guild.id}")
+            log.warning(f"support-start channel not found in guild {guild.id}")
             return None
         
         embed = discord.Embed(

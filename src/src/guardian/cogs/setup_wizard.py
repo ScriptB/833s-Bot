@@ -11,7 +11,6 @@ from discord.ext import commands
 from ..services.api_wrapper import APIResult, safe_send_message, safe_create_channel
 from ..interfaces import has_required_guild_perms
 from ..constants import COLORS
-from ..lookup import find_text_channel
 
 log = logging.getLogger("guardian.setup_wizard")
 
@@ -214,7 +213,7 @@ class SetupWizardCog(commands.Cog):
         issues = []
         
         # Check verify panel
-        verify_channel = find_text_channel(guild, "verify")
+        verify_channel = discord.utils.get(guild.text_channels, name="verify")
         if verify_channel:
             try:
                 async for message in verify_channel.history(limit=10):
@@ -228,7 +227,7 @@ class SetupWizardCog(commands.Cog):
             issues.append("verify channel missing")
         
         # Check reaction roles panel
-        rr_channel = find_text_channel(guild, "choose-your-games") or find_text_channel(guild, "server-info")
+        rr_channel = discord.utils.get(guild.text_channels, name="reaction-roles")
         if rr_channel:
             try:
                 async for message in rr_channel.history(limit=10):

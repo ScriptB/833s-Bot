@@ -8,15 +8,8 @@ from .base import BaseService
 
 log = logging.getLogger("guardian.reaction_roles_store")
 
-class SimpleReactionRolesStore(BaseService[dict]):
+class SimpleReactionRolesStore(BaseService):
     """Simple, fast reaction roles store."""
-
-    @property
-    def _get_query(self) -> str:
-        return "SELECT guild_id, role_id, group_key, enabled FROM reaction_roles_config WHERE guild_id = ? LIMIT 1"
-
-    def _from_row(self, row: aiosqlite.Row) -> dict:
-        return dict(row)
     
     def __init__(self, sqlite_path: str, cache_ttl_seconds: int = 300) -> None:
         super().__init__(sqlite_path, cache_ttl_seconds)

@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 import discord
 
-from ..lookup import find_role
-
 
 class InterestSelect(discord.ui.Select):
     def __init__(self) -> None:
@@ -84,10 +82,9 @@ class OnboardingView(discord.ui.View):
             await interaction.response.send_message("Member missing.", ephemeral=True)
             return
 
-        quarantine = find_role(guild, "Quarantine")
-        # Your template uses Verified/Member (with optional emoji).
-        verified = find_role(guild, "Verified") or find_role(guild, "Verified Member")
-        member_role = find_role(guild, "Member")
+        quarantine = discord.utils.get(guild.roles, name="Quarantine")
+        verified = discord.utils.get(guild.roles, name="Verified Member")
+        member_role = discord.utils.get(guild.roles, name="Member")
 
         try:
             if verified:
@@ -100,7 +97,7 @@ class OnboardingView(discord.ui.View):
             pass
 
         for rn in self.interests:
-            r = find_role(guild, rn)
+            r = discord.utils.get(guild.roles, name=rn)
             if r:
                 try:
                     await member.add_roles(r, reason="Onboarding interests")
