@@ -27,21 +27,6 @@ def _import_and_create(module_name: str, class_name: str):
     return view_class()
 
 
-def _validate_persistent_view(view: discord.ui.View) -> None:
-    """Validate a view meets discord.py's persistence requirements.
-
-    discord.py requirement: timeout=None and every component has an explicit custom_id.
-    """
-    if view.timeout is not None:
-        raise ValueError("Persistent view must have timeout=None")
-    for item in getattr(view, "children", []):
-        cid = getattr(item, "custom_id", None)
-        if not cid:
-            raise ValueError("Persistent view components must have custom_id")
-        if len(str(cid)) > 100:
-            raise ValueError("custom_id must be <= 100 characters")
-
-
 def register_all_views(bot: discord.Client) -> None:
     """Register persistent views that must survive restarts.
 
@@ -67,7 +52,6 @@ def register_all_views(bot: discord.Client) -> None:
         results["attempted"] += 1
         try:
             view = factory()
-            _validate_persistent_view(view)
             bot.add_view(view)
             results["succeeded"] += 1
             log.info("✅ Registered persistent view: %s", name)

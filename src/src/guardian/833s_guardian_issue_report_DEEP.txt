@@ -1,0 +1,2355 @@
+833's Guardian  DEEP Static Analysis Report
+Generated: 2026-01-15 00:08:40Z (UTC)
+Source zip SHA-256: 4ec2f7a05debdb2beb63b6c9724429819ac587f1a312093b3d3f422e4b4e4064
+Repo root: /mnt/data/833s-Bot-main/833s-Bot-main
+
+CERTAINTY NOTE
+Insufficient data to verify 100% coverage of every possible issue.
+This report is the maximum-depth static analysis performed here: every .py file was parsed and scanned line-by-line,
+plus cross-file consistency checks. Runtime-only failures still cannot be proven without executing the bot in a real guild.
+
+SUMMARY
+Total issues flagged: 213
+High: 68  Medium: 141  Low: 4
+Top issue categories (by count):
+  - BROAD_EXCEPT: 137
+  - SQL_FSTRING: 37
+  - SWALLOWED_EXCEPTION: 21
+  - BARE_EXCEPT: 10
+  - TODO_FIXME: 2
+  - MISSING_DEP_PSUTIL: 1
+  - DUAL_TICKET_SYSTEM: 1
+  - DUP_DICT_KEY: 1
+  - ROLE_PANEL_DEFAULT_CHANNEL: 1
+  - DUP_IMPORT: 1
+  - HARDCODED_SNOWFLAKE: 1
+
+INDEX  Issues by file
+- pyproject.toml  (1)
+- src/guardian/base_cog.py  (1)
+- src/guardian/bot.py  (9)
+- src/guardian/cogs/activity_manager.py  (6)
+- src/guardian/cogs/admin_management.py  (4)
+- src/guardian/cogs/dm_cleanup.py  (6)
+- src/guardian/cogs/health_check.py  (2)
+- src/guardian/cogs/levels_full.py  (2)
+- src/guardian/cogs/onboarding.py  (3)
+- src/guardian/cogs/prefix_community.py  (6)
+- src/guardian/cogs/profiles.py  (6)
+- src/guardian/cogs/reaction_roles_new.py  (22)
+- src/guardian/cogs/role_assignment.py  (2)
+- src/guardian/cogs/role_panel.py  (2)
+- src/guardian/cogs/root_management.py  (6)
+- src/guardian/cogs/setup_wizard.py  (4)
+- src/guardian/cogs/simple_reaction_roles.py  (22)
+- src/guardian/cogs/ticket_system.py  (5)
+- src/guardian/cogs/tickets.py  (4)
+- src/guardian/cogs/titles.py  (2)
+- src/guardian/cogs/verify_panel.py  (1)
+- src/guardian/config.py  (1)
+- src/guardian/database.py  (5)
+- src/guardian/interfaces.py  (2)
+- src/guardian/migration.py  (3)
+- src/guardian/monitoring.py  (3)
+- src/guardian/observability.py  (4)
+- src/guardian/permissions.py  (3)
+- src/guardian/security/auth.py  (2)
+- src/guardian/security/permissions.py  (1)
+- src/guardian/services/api_wrapper.py  (2)
+- src/guardian/services/base.py  (1)
+- src/guardian/services/community_memory_store.py  (4)
+- src/guardian/services/discord_safety.py  (4)
+- src/guardian/services/drift_verifier.py  (3)
+- src/guardian/services/enhanced_panel_registry.py  (9)
+- src/guardian/services/guild_store.py  (1)
+- src/guardian/services/panel_registry.py  (9)
+- src/guardian/services/panel_store.py  (1)
+- src/guardian/services/reaction_roles_store.py  (8)
+- src/guardian/services/reaction_roles_store_new.py  (3)
+- src/guardian/services/root_store.py  (1)
+- src/guardian/services/schema.py  (1)
+- src/guardian/services/schema_builder.py  (3)
+- src/guardian/services/simple_reaction_roles_store.py  (3)
+- src/guardian/services/status_reporter.py  (4)
+- src/guardian/services/task_queue.py  (1)
+- src/guardian/startup_diagnostics.py  (6)
+- src/guardian/testing/patch_discord.py  (1)
+- src/guardian/testing/selftest_runner.py  (5)
+- src/guardian/ui/persistent.py  (2)
+- src/guardian/utils.py  (1)
+
+DETAILED FINDINGS
+
+================================================================================
+[High] MISSING_DEP_PSUTIL
+File: pyproject.toml
+Message: psutil imported but not declared in pyproject.toml dependencies
+Evidence:
+Imported in: src/guardian/monitoring.py
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/base_cog.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] DUAL_TICKET_SYSTEM
+File: src/guardian/bot.py
+Line: 241
+Message: Both TicketsCog and TicketSystemCog referenced; overlapping ticket implementations likely
+Evidence:
+  239:         await _load_cog("guardian.cogs.welcome", "WelcomeCog")
+  240:         await _load_cog("guardian.cogs.onboarding", "OnboardingCog")
+  241:         await _load_cog("guardian.cogs.tickets", "TicketsCog")
+  242:         await _load_cog("guardian.cogs.suggestions", "SuggestionsCog")
+  243: 
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/activity_manager.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/admin_management.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/dm_cleanup.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/health_check.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/onboarding.py
+Line: 43
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   41:         try:
+   42:             await self.bot.onboarding_store.get(guild.id, member.id)  # type: ignore[attr-defined]
+   43:         except Exception:
+   44:             pass
+   45: 
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/prefix_community.py
+Line: 66
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   64:             try:
+   65:                 await ctx.reply("Use this in the bot commands channel.")
+   66:             except Exception:
+   67:                 pass
+   68:             return False
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/prefix_community.py
+Line: 75
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   73:                 try:
+   74:                     await ctx.reply("You must be verified to use this command.")
+   75:                 except Exception:
+   76:                     pass
+   77:                 return False
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/prefix_community.py
+Line: 83
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   81:             try:
+   82:                 await ctx.reply(f"Requires level {min_level} (you are level {lvl}).")
+   83:             except Exception:
+   84:                 pass
+   85:             return False
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/profiles.py
+Line: 54
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   52:         try:
+   53:             await self.bot.community_memory_store.add(interaction.guild.id, "profile_about", {"user_id": interaction.user.id})  # type: ignore[attr-defined]
+   54:         except Exception:
+   55:             pass
+   56:         await interaction.followup.send("Profile updated.", ephemeral=True)
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/profiles.py
+Line: 67
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   65:         try:
+   66:             await self.bot.community_memory_store.add(interaction.guild.id, "profile_pronouns", {"user_id": interaction.user.id})  # type: ignore[attr-defined]
+   67:         except Exception:
+   68:             pass
+   69:         await interaction.followup.send("Profile updated.", ephemeral=True)
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/profiles.py
+Line: 81
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   79:         try:
+   80:             await self.bot.community_memory_store.add(interaction.guild.id, "profile_interests", {"user_id": interaction.user.id})  # type: ignore[attr-defined]
+   81:         except Exception:
+   82:             pass
+   83:         await interaction.followup.send("Profile updated.", ephemeral=True)
+
+================================================================================
+[High] BARE_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 53
+Message: Bare except used (catch-all). Replace with specific exceptions.
+Evidence:
+   51:                     ephemeral=True
+   52:                 )
+   53:         except:
+   54:             pass  # If we can't send an error message, just log it
+   55: 
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 53
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   51:                     ephemeral=True
+   52:                 )
+   53:         except:
+   54:             pass  # If we can't send an error message, just log it
+   55: 
+
+================================================================================
+[High] BARE_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 68
+Message: Bare except used (catch-all). Replace with specific exceptions.
+Evidence:
+   66:                     embed=None
+   67:                 )
+   68:             except:
+   69:                 pass
+   70:         self.stop()
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 68
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   66:                     embed=None
+   67:                 )
+   68:             except:
+   69:                 pass
+   70:         self.stop()
+
+================================================================================
+[High] BARE_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 365
+Message: Bare except used (catch-all). Replace with specific exceptions.
+Evidence:
+  363:                     ephemeral=True
+  364:                 )
+  365:         except:
+  366:             pass
+  367: 
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 365
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+  363:                     ephemeral=True
+  364:                 )
+  365:         except:
+  366:             pass
+  367: 
+
+================================================================================
+[High] BARE_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 558
+Message: Bare except used (catch-all). Replace with specific exceptions.
+Evidence:
+  556:                         except:
+  557:                             panel_status = "Missing"
+  558:             except:
+  559:                 pass
+  560: 
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 558
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+  556:                         except:
+  557:                             panel_status = "Missing"
+  558:             except:
+  559:                 pass
+  560: 
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/reaction_roles_new.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/role_assignment.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/role_panel.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/root_management.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/setup_wizard.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] BARE_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 44
+Message: Bare except used (catch-all). Replace with specific exceptions.
+Evidence:
+   42:             else:
+   43:                 await interaction.response.send_message("❌ An error occurred. Please try again.", ephemeral=True)
+   44:         except:
+   45:             pass  # If we can't even send an error message, just log it
+   46: 
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 44
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   42:             else:
+   43:                 await interaction.response.send_message("❌ An error occurred. Please try again.", ephemeral=True)
+   44:         except:
+   45:             pass  # If we can't even send an error message, just log it
+   46: 
+
+================================================================================
+[High] BARE_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 61
+Message: Bare except used (catch-all). Replace with specific exceptions.
+Evidence:
+   59:                     embed=None
+   60:                 )
+   61:             except:
+   62:                 pass
+   63:         self.stop()
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 61
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   59:                     embed=None
+   60:                 )
+   61:             except:
+   62:                 pass
+   63:         self.stop()
+
+================================================================================
+[High] BARE_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 303
+Message: Bare except used (catch-all). Replace with specific exceptions.
+Evidence:
+  301:             else:
+  302:                 await interaction.response.send_message("❌ Failed to update roles. Please try again.", ephemeral=True)
+  303:         except:
+  304:             pass
+  305: 
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 303
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+  301:             else:
+  302:                 await interaction.response.send_message("❌ Failed to update roles. Please try again.", ephemeral=True)
+  303:         except:
+  304:             pass
+  305: 
+
+================================================================================
+[High] BARE_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 483
+Message: Bare except used (catch-all). Replace with specific exceptions.
+Evidence:
+  481:                         except:
+  482:                             panel_status = "Missing"
+  483:             except:
+  484:                 pass
+  485: 
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 483
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+  481:                         except:
+  482:                             panel_status = "Missing"
+  483:             except:
+  484:                 pass
+  485: 
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/simple_reaction_roles.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/ticket_system.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/tickets.py
+Line: 22
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   20:                 # Register persistent view for all guilds
+   21:                 self.bot.add_view(TicketCreateView(self.bot, 0))
+   22:             except Exception:
+   23:                 pass
+   24: 
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/cogs/titles.py
+Line: 83
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   81:         try:
+   82:             await self.bot.community_memory_store.add(interaction.guild.id, "title_equipped", {"user_id": interaction.user.id, "title": title})  # type: ignore[attr-defined]
+   83:         except Exception:
+   84:             pass
+   85:         await interaction.followup.send("Title equipped.", ephemeral=True)
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/cogs/verify_panel.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/database.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/interfaces.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/migration.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/monitoring.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/observability.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/security/permissions.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/api_wrapper.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/base.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/community_memory_store.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/services/drift_verifier.py
+Line: 28
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   26:             try:
+   27:                 await self._task
+   28:             except Exception:
+   29:                 pass
+   30: 
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/enhanced_panel_registry.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/guild_store.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/panel_registry.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/panel_store.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/reaction_roles_store.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/reaction_roles_store_new.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/root_store.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/schema.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/services/schema_builder.py
+Line: 119
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+  117:                 # ensure the bot's *managed* role stays; "Bot" role is separate. This is fine.
+  118:                 pass
+  119:             except Exception:
+  120:                 pass
+  121: 
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/schema_builder.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/services/simple_reaction_roles_store.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/services/status_reporter.py
+Line: 54
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   52:         try:
+   53:             await self.bot.change_presence(activity=discord.Game(name=f"{st.phase} ({st.step}/{st.total})"))
+   54:         except Exception:
+   55:             pass
+   56: 
+
+================================================================================
+[High] SWALLOWED_EXCEPTION
+File: src/guardian/services/status_reporter.py
+Line: 73
+Message: Exception handler contains pass with no logging; failures become silent
+Evidence:
+   71:         try:
+   72:             await self.bot.change_presence(activity=discord.Game(name="Online • /help_commands"))
+   73:         except Exception:
+   74:             pass
+   75: 
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/startup_diagnostics.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/testing/patch_discord.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/testing/selftest_runner.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/ui/persistent.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[High] SQL_FSTRING
+File: src/guardian/utils.py
+Message: SQL keywords detected in f-string; verify parameterization to avoid injection
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/bot.py
+Line: 224
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  222:                     available = [attr for attr in dir(mod) if not attr.startswith('_')]
+  223:                     log.error("Available attributes in %s: %s", import_path, available)
+  224:                 except Exception as e:
+  225:                     log.error("Failed to import cog %s.%s: %s", import_path, class_name, e)
+  226:                 failed.append(f"{import_path}.{class_name} (AttributeError)")
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/bot.py
+Line: 227
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  225:                     log.error("Failed to import cog %s.%s: %s", import_path, class_name, e)
+  226:                 failed.append(f"{import_path}.{class_name} (AttributeError)")
+  227:             except Exception as e:
+  228:                 log.exception("Failed to load cog: %s.%s", import_path, class_name)
+  229:                 failed.append(f"{import_path}.{class_name} ({type(e).__name__})")
+
+================================================================================
+[Medium] DUP_DICT_KEY
+File: src/guardian/bot.py
+Line: 333
+Message: Duplicate dict key literal 'verifypanel' (earlier value overwritten)
+Evidence:
+  331:             # Check critical commands
+  332:             commands = list(self.tree.get_commands())
+  333:             critical_commands = {
+  334:                 'verifypanel': any(cmd.name == 'verifypanel' for cmd in commands),
+  335:                 'rolepanel': any(cmd.name == 'rolepanel' for cmd in commands),
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/bot.py
+Line: 384
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  382:                 log.warning("⚠️ Startup self-check completed with issues - Some systems may be degraded")
+  383:                 
+  384:         except Exception as e:
+  385:             log.error(f"❌ Startup self-check failed with exception: {e}")
+  386: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/bot.py
+Line: 391
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  389:             try:
+  390:                 await self.drift_verifier.stop()
+  391:             except Exception as e:
+  392:                 log.warning("Failed to stop drift verifier: %s", e)
+  393:             await self.task_queue.stop()
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/bot.py
+Line: 402
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  400:         try:
+  401:             await context.reply("Something went wrong running that command.")
+  402:         except Exception as e:
+  403:             log.warning("Failed to send error reply: %s", e)
+  404: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/bot.py
+Line: 410
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  408:             for g in list(self.guilds):
+  409:                 await self.channel_bootstrapper.ensure_first_posts(g)
+  410:         except Exception as e:
+  411:             log.warning("Failed to ensure first posts for guilds: %s", e)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/activity_manager.py
+Line: 213
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  211:             try:
+  212:                 await self.bot.wait_until_ready()
+  213:             except Exception as e:
+  214:                 log.error(f"Failed to wait for bot readiness: {e}")
+  215:                 return
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/activity_manager.py
+Line: 276
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  274:             # Expected Discord API errors
+  275:             log.warning(f"Discord API error setting activity {activity.name}: {e}")
+  276:         except Exception as e:
+  277:             # Unexpected errors - log once per cycle
+  278:             if not hasattr(self, '_last_activity_error') or time.time() - self._last_activity_error > 60:
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/activity_manager.py
+Line: 324
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  322:             except asyncio.CancelledError:
+  323:                 break
+  324:             except Exception as e:
+  325:                 log.error(f"Error in activity cycling loop: {e}")
+  326:                 # Wait a bit before trying again
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/activity_manager.py
+Line: 493
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  491:         except ValueError:
+  492:             await interaction.followup.send("❌ Invalid activity type.", ephemeral=True)
+  493:         except Exception as e:
+  494:             await interaction.followup.send(f"❌ Error adding activity: {str(e)}", ephemeral=True)
+  495:     
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/activity_manager.py
+Line: 545
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  543:         except ValueError:
+  544:             await interaction.followup.send("❌ Invalid activity type.", ephemeral=True)
+  545:         except Exception as e:
+  546:             await interaction.followup.send(f"❌ Error setting activity: {str(e)}", ephemeral=True)
+  547: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/admin_management.py
+Line: 84
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   82:             try:
+   83:                 await mod_logs_channel.send(embed=embed)
+   84:             except Exception as e:
+   85:                 self.bot.log.warning(f"Failed to log admin action to mod-logs: {e}")
+   86:     
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/admin_management.py
+Line: 182
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  180:                 ephemeral=True
+  181:             )
+  182:         except Exception as e:
+  183:             self.bot.log.error(f"Error elevating admin: {e}")
+  184:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/admin_management.py
+Line: 276
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  274:                 ephemeral=True
+  275:             )
+  276:         except Exception as e:
+  277:             self.bot.log.error(f"Error revoking admin: {e}")
+  278:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/dm_cleanup.py
+Line: 73
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   71:                 ephemeral=True
+   72:             )
+   73:         except Exception as e:
+   74:             await interaction.followup.send(
+   75:                 f"❌ Unexpected error during cleanup: {type(e).__name__}: {e}",
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/dm_cleanup.py
+Line: 103
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  101:                         await asyncio.sleep(1)
+  102:                         continue
+  103:                     except Exception:
+  104:                         # Unexpected error with this message
+  105:                         continue
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/dm_cleanup.py
+Line: 113
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  111:             # API error fetching history
+  112:             raise
+  113:         except Exception:
+  114:             # Unexpected error
+  115:             raise
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/dm_cleanup.py
+Line: 168
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  166:                         await interaction.followup.send(embed=progress_embed, ephemeral=True)
+  167:                         
+  168:                 except Exception as e:
+  169:                     failed_channels += 1
+  170:                     continue
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/dm_cleanup.py
+Line: 189
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  187:                 await interaction.followup.send(embed=final_embed, ephemeral=True)
+  188:                 
+  189:         except Exception as e:
+  190:             error_embed_msg = error_embed("❌ Bulk DM Cleanup Failed")
+  191:             error_embed_msg.description = f"Failed to perform bulk cleanup: {type(e).__name__}: {e}"
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/health_check.py
+Line: 173
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  171:             await interaction.followup.send(embed=embed, ephemeral=True)
+  172:             
+  173:         except Exception as e:
+  174:             log.error(f"Health check failed: {e}")
+  175:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/levels_full.py
+Line: 34
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   32:         try:
+   33:             ignored = set(json.loads(cfg.ignore_channels_json or "[]"))
+   34:         except Exception:
+   35:             ignored = set()
+   36:         if message.channel.id in ignored:
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/levels_full.py
+Line: 194
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  192:         try:
+  193:             arr = list(set(json.loads(cfg.ignore_channels_json or "[]")))
+  194:         except Exception:
+  195:             arr = []
+  196:         if ignored and channel.id not in arr:
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/onboarding.py
+Line: 28
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   26:                             self.bot.add_view(view, message_id=message.id)
+   27:                             break
+   28:             except Exception:
+   29:                 continue
+   30: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/onboarding.py
+Line: 43
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   41:         try:
+   42:             await self.bot.onboarding_store.get(guild.id, member.id)  # type: ignore[attr-defined]
+   43:         except Exception:
+   44:             pass
+   45: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/prefix_community.py
+Line: 66
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   64:             try:
+   65:                 await ctx.reply("Use this in the bot commands channel.")
+   66:             except Exception:
+   67:                 pass
+   68:             return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/prefix_community.py
+Line: 75
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   73:                 try:
+   74:                     await ctx.reply("You must be verified to use this command.")
+   75:                 except Exception:
+   76:                     pass
+   77:                 return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/prefix_community.py
+Line: 83
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   81:             try:
+   82:                 await ctx.reply(f"Requires level {min_level} (you are level {lvl}).")
+   83:             except Exception:
+   84:                 pass
+   85:             return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/profiles.py
+Line: 54
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   52:         try:
+   53:             await self.bot.community_memory_store.add(interaction.guild.id, "profile_about", {"user_id": interaction.user.id})  # type: ignore[attr-defined]
+   54:         except Exception:
+   55:             pass
+   56:         await interaction.followup.send("Profile updated.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/profiles.py
+Line: 67
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   65:         try:
+   66:             await self.bot.community_memory_store.add(interaction.guild.id, "profile_pronouns", {"user_id": interaction.user.id})  # type: ignore[attr-defined]
+   67:         except Exception:
+   68:             pass
+   69:         await interaction.followup.send("Profile updated.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/profiles.py
+Line: 81
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   79:         try:
+   80:             await self.bot.community_memory_store.add(interaction.guild.id, "profile_interests", {"user_id": interaction.user.id})  # type: ignore[attr-defined]
+   81:         except Exception:
+   82:             pass
+   83:         await interaction.followup.send("Profile updated.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 192
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  190:                     await confirm_interaction.followup.send(embed=embed, ephemeral=True)
+  191:                     
+  192:                 except Exception as e:
+  193:                     log.error(f"Add roles confirm error: {e}", exc_info=True)
+  194:                     await confirm_interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 213
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  211:             )
+  212:             
+  213:         except Exception as e:
+  214:             log.error(f"Add roles error: {e}", exc_info=True)
+  215:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 284
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  282:                     await confirm_interaction.followup.send(embed=embed, ephemeral=True)
+  283:                     
+  284:                 except Exception as e:
+  285:                     log.error(f"Remove roles confirm error: {e}", exc_info=True)
+  286:                     await confirm_interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 304
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  302:             )
+  303:             
+  304:         except Exception as e:
+  305:             log.error(f"Remove roles error: {e}", exc_info=True)
+  306:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 318
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  316:             log.info(f"Publish panel called: guild={interaction.guild.id}, user={interaction.user.id}")
+  317:             await self.cog.publish_member_panel(interaction)
+  318:         except Exception as e:
+  319:             log.error(f"Publish panel error: {e}", exc_info=True)
+  320:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 335
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  333:             )
+  334:             self.stop()
+  335:         except Exception as e:
+  336:             log.error(f"Close panel error: {e}", exc_info=True)
+  337: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 451
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  449:                         ephemeral=True
+  450:                     )
+  451:                 except Exception as e:
+  452:                     log.error(f"Member role selection error: {e}", exc_info=True)
+  453:                     await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 516
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  514:                     ephemeral=True
+  515:                 )
+  516:         except Exception as e:
+  517:             log.error(f"Reaction roles command error: {e}", exc_info=True)
+  518:             await interaction.followup.send(
+
+================================================================================
+[Medium] BARE_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 556
+Message: Bare except used (catch-all). Replace with specific exceptions.
+Evidence:
+  554:                             panel_status = "Deployed"
+  555:                             last_publish = f"<t:{int(panel.updated_at.timestamp())}>"
+  556:                         except:
+  557:                             panel_status = "Missing"
+  558:             except:
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 576
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  574:             log.info(f"Manager view sent: guild={interaction.guild.id}, user={interaction.user.id}")
+  575:             
+  576:         except Exception as e:
+  577:             log.error(f"Open manager error: {e}", exc_info=True)
+  578:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 693
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  691:                 log.info(f"Panel created: guild={guild.id}, message_id={message.id}")
+  692: 
+  693:         except Exception as e:
+  694:             log.error(f"Publish panel error: {e}", exc_info=True)
+  695:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 740
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  738:             await interaction.followup.send(embed=embed, ephemeral=True)
+  739:             
+  740:         except Exception as e:
+  741:             log.error(f"List roles error: {e}", exc_info=True)
+  742:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/reaction_roles_new.py
+Line: 789
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  787:                 )
+  788:                 
+  789:         except Exception as e:
+  790:             log.error(f"Clear user roles error: {e}", exc_info=True)
+  791:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/role_assignment.py
+Line: 283
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  281:             log.error(f"No permission to send messages in reaction-roles channel in guild {guild.id}")
+  282:             return None
+  283:         except Exception as e:
+  284:             log.exception(f"Error deploying role panel in guild {guild.id}: {e}")
+  285:             return None
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/role_panel.py
+Line: 205
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  203:                     
+  204:                     self.bot.logger.info(f"✅ Restored role panel {panel.panel_key} in guild {panel.guild_id}")
+  205:                 except Exception as e:
+  206:                     self.bot.logger.exception(f"❌ Failed to restore role panel {panel.panel_key} in guild {panel.guild_id}: {e}")
+  207:     
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/root_management.py
+Line: 63
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   61:                 ephemeral=True
+   62:             )
+   63:         except Exception as e:
+   64:             self.bot.log.error(f"Error creating root request: {e}")
+   65:             await interaction.response.send_message(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/root_management.py
+Line: 102
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  100:                 ephemeral=True
+  101:             )
+  102:         except Exception as e:
+  103:             self.bot.log.error(f"Error approving root request: {e}")
+  104:             await interaction.response.send_message(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/root_management.py
+Line: 135
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  133:                 ephemeral=True
+  134:             )
+  135:         except Exception as e:
+  136:             self.bot.log.error(f"Error rejecting root request: {e}")
+  137:             await interaction.response.send_message(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/root_management.py
+Line: 184
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  182:                 )
+  183:                 
+  184:         except Exception as e:
+  185:             self.bot.log.error(f"Error removing root: {e}")
+  186:             await interaction.response.send_message(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/root_management.py
+Line: 248
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  246:             await interaction.response.send_message(embed=embed, ephemeral=True)
+  247:             
+  248:         except Exception as e:
+  249:             self.bot.log.error(f"Error listing roots: {e}")
+  250:             await interaction.response.send_message(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/setup_wizard.py
+Line: 102
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  100:             await interaction.followup.send(embed=embed, ephemeral=True, view=SetupWizardView())
+  101:             
+  102:         except Exception as e:
+  103:             await interaction.followup.send(f"❌ Error applying fixes: {str(e)}", ephemeral=True)
+  104: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/setup_wizard.py
+Line: 298
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  296:                     else:
+  297:                         updated_checks.append(check)
+  298:                 except Exception as e:
+  299:                     log.error(f"Failed to auto-fix {check.name}: {e}")
+  300:                     updated_checks.append(SetupCheck(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 166
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  164:                     await confirm_interaction.followup.send(embed=embed, ephemeral=True)
+  165:                     
+  166:                 except Exception as e:
+  167:                     log.error(f"Add roles confirm error: {e}")
+  168:                     await confirm_interaction.followup.send("❌ Operation failed. Please try again.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 180
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  178:             await interaction.followup.send("Select roles and group to add:", view=view, ephemeral=True)
+  179:             
+  180:         except Exception as e:
+  181:             log.error(f"Add roles error: {e}")
+  182:             await interaction.followup.send("❌ Failed to open role selection.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 243
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  241:                     await confirm_interaction.followup.send(embed=embed, ephemeral=True)
+  242:                     
+  243:                 except Exception as e:
+  244:                     log.error(f"Remove roles confirm error: {e}")
+  245:                     await confirm_interaction.followup.send("❌ Operation failed. Please try again.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 256
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  254:             await interaction.followup.send("Select roles to remove:", view=view, ephemeral=True)
+  255:             
+  256:         except Exception as e:
+  257:             log.error(f"Remove roles error: {e}")
+  258:             await interaction.followup.send("❌ Failed to open role removal.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 267
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  265:             log.info(f"Publish panel called: guild={interaction.guild.id}, user={interaction.user.id}")
+  266:             await self.cog.publish_panel(interaction)
+  267:         except Exception as e:
+  268:             log.error(f"Publish panel error: {e}")
+  269:             await interaction.followup.send("❌ Failed to publish panel.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 277
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  275:             await interaction.response.edit_message(content="🔐 Management panel closed.", view=None, embed=None)
+  276:             self.stop()
+  277:         except Exception as e:
+  278:             log.error(f"Close panel error: {e}")
+  279: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 393
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  391:                 except discord.Forbidden:
+  392:                     await interaction.followup.send("❌ I don't have permission to manage your roles.", ephemeral=True)
+  393:                 except Exception as e:
+  394:                     log.error(f"Member role selection error: {e}", exc_info=True)
+  395:                     await interaction.followup.send("❌ Failed to update roles. Please try again.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 450
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  448:                     ephemeral=True
+  449:                 )
+  450:         except Exception as e:
+  451:             log.error(f"Reaction roles command error: {e}")
+  452:             await interaction.followup.send("❌ Command failed. Please try again.", ephemeral=True)
+
+================================================================================
+[Medium] BARE_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 481
+Message: Bare except used (catch-all). Replace with specific exceptions.
+Evidence:
+  479:                             panel_status = "Deployed"
+  480:                             last_publish = f"<t:{int(panel.updated_at.timestamp())}>"
+  481:                         except:
+  482:                             panel_status = "Missing"
+  483:             except:
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 502
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  500:             log.info(f"Manager view sent: guild={interaction.guild.id}, user={interaction.user.id}")
+  501:             
+  502:         except Exception as e:
+  503:             log.error(f"Open manager error: {e}", exc_info=True)
+  504:             await interaction.followup.send("❌ Failed to open manager.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 605
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  603:                 log.info(f"Panel created: guild={guild.id}, message_id={message.id}")
+  604: 
+  605:         except Exception as e:
+  606:             log.error(f"Publish panel error: {e}")
+  607:             await interaction.followup.send("❌ Failed to publish panel.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 643
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  641:             await interaction.followup.send(embed=embed, ephemeral=True)
+  642:             
+  643:         except Exception as e:
+  644:             log.error(f"List roles error: {e}")
+  645:             await interaction.followup.send("❌ Failed to list roles.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/simple_reaction_roles.py
+Line: 683
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  681:                 )
+  682:                 
+  683:         except Exception as e:
+  684:             log.error(f"Clear user roles error: {e}")
+  685:             await interaction.followup.send("❌ Failed to clear roles.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/ticket_system.py
+Line: 247
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  245:             log.info(f"Ticket #{ticket_number:04d} created by {interaction.user.id} in {interaction.guild.id}")
+  246:             
+  247:         except Exception as e:
+  248:             log.exception(f"Error creating ticket for {interaction.user.id}: {e}")
+  249:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/ticket_system.py
+Line: 325
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  323:             log.info(f"Ticket #{ticket_info['ticket_number']:04d} closed by {interaction.user.id}")
+  324:             
+  325:         except Exception as e:
+  326:             log.exception(f"Error closing ticket {interaction.channel.id}: {e}")
+  327:             await interaction.followup.send(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/ticket_system.py
+Line: 352
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  350:                     return None
+  351:                     
+  352:             except Exception as e:
+  353:                 log.exception(f"Error creating ticket category: {e}")
+  354:                 return None
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/ticket_system.py
+Line: 437
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  435:             return f"Transcript contains {len(messages)} messages"
+  436:             
+  437:         except Exception as e:
+  438:             log.warning(f"Failed to create transcript for ticket {ticket_info['ticket_number']}: {e}")
+  439:             return "Transcript unavailable"
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/tickets.py
+Line: 22
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   20:                 # Register persistent view for all guilds
+   21:                 self.bot.add_view(TicketCreateView(self.bot, 0))
+   22:             except Exception:
+   23:                 pass
+   24: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/tickets.py
+Line: 38
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   36:                             self.bot.add_view(TicketCreateView(self.bot, guild.id), message_id=message.id)
+   37:                             break
+   38:             except Exception:
+   39:                 continue
+   40: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/tickets.py
+Line: 65
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   63:                     existing = m
+   64:                     break
+   65:         except Exception:
+   66:             existing = None
+   67: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/cogs/titles.py
+Line: 83
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   81:         try:
+   82:             await self.bot.community_memory_store.add(interaction.guild.id, "title_equipped", {"user_id": interaction.user.id, "title": title})  # type: ignore[attr-defined]
+   83:         except Exception:
+   84:             pass
+   85:         await interaction.followup.send("Title equipped.", ephemeral=True)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/database.py
+Line: 35
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   33:         log.info("Database initialization completed")
+   34:         
+   35:     except Exception as e:
+   36:         log.error(f"Failed to initialize database: {e}")
+   37:         raise
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/database.py
+Line: 58
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   56:             raise FileNotFoundError(f"Backup file not created at {backup_path}")
+   57:             
+   58:     except Exception as e:
+   59:         log.error(f"Failed to backup database: {e}")
+   60:         raise
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/database.py
+Line: 71
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   69:             await db.commit()
+   70:         log.info("Database optimization completed")
+   71:     except Exception as e:
+   72:         log.error(f"Failed to optimize database: {e}")
+   73:         raise
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/database.py
+Line: 101
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   99:                 "tables": tables,
+  100:             }
+  101:     except Exception as e:
+  102:         log.error(f"Failed to get database info: {e}")
+  103:         raise
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/interfaces.py
+Line: 172
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  170:                     continue
+  171:                 raise
+  172:             except Exception:
+  173:                 raise
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/migration.py
+Line: 220
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  218:                 return True
+  219:                 
+  220:             except Exception as e:
+  221:                 # Rollback on error
+  222:                 await db.rollback()
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/migration.py
+Line: 264
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  262:                 return True
+  263:                 
+  264:             except Exception as e:
+  265:                 # Rollback on error
+  266:                 await db.rollback()
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/monitoring.py
+Line: 91
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   89:             return embed
+   90:             
+   91:         except Exception as e:
+   92:             log.error(f"Failed to get health status: {e}")
+   93:             return discord.Embed(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/monitoring.py
+Line: 117
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  115:             self.metrics.memory_usage = process.memory_info().rss / 1024 / 1024
+  116:             
+  117:         except Exception as e:
+  118:             log.error(f"Failed to update metrics: {e}")
+  119:     
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/observability.py
+Line: 318
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  316:                 result = await func(*args, **kwargs)
+  317:                 return result
+  318:             except Exception as e:
+  319:                 success = False
+  320:                 error = e
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/observability.py
+Line: 366
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  364:                 result = await func(*args, **kwargs)
+  365:                 return result
+  366:             except Exception as e:
+  367:                 success = False
+  368:                 error = e
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/observability.py
+Line: 430
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  428:                 )
+  429:                 super().emit(record)
+  430:         except Exception:
+  431:             # Fallback to standard logging
+  432:             super().emit(record)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/permissions.py
+Line: 175
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  173:             else:
+  174:                 await interaction_or_ctx.response.send_message(f"❌ {message}", ephemeral=True)
+  175:         except Exception as e:
+  176:             log.error(f"Failed to send permission error for interaction: {e}")
+  177:     elif isinstance(interaction_or_ctx, commands.Context):
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/permissions.py
+Line: 180
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  178:         try:
+  179:             await interaction_or_ctx.reply(f"❌ {message}")
+  180:         except Exception as e:
+  181:             log.error(f"Failed to send permission error for context: {e}")
+  182: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/security/auth.py
+Line: 31
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   29:         return owner_ids
+   30:         
+   31:     except Exception:
+   32:         # Fallback to configured owner_id if we can't get app info
+   33:         return {getattr(bot, 'owner_id', 0)}
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/security/auth.py
+Line: 77
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   75:         try:
+   76:             return await bot.root_store.is_root(author.id)
+   77:         except Exception:
+   78:             # If root store is not available, fall back to configured owner_id
+   79:             return author.id == getattr(bot, 'owner_id', 0)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/api_wrapper.py
+Line: 142
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  140:                 )
+  141:                 
+  142:             except Exception as error:
+  143:                 last_error = error
+  144:                 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/community_memory_store.py
+Line: 40
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   38:         try:
+   39:             data = json.loads(row["data_json"] or "{}")
+   40:         except Exception:
+   41:             data = {}
+   42:         return MemoryEntry(
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/community_memory_store.py
+Line: 79
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   77:                 try:
+   78:                     data = json.loads(r[4] or "{}")
+   79:                 except Exception:
+   80:                     data = {}
+   81:                 out.append(MemoryEntry(int(r[0]), int(r[1]), str(r[2]), int(r[3]), data))
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/community_memory_store.py
+Line: 108
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  106:                 try:
+  107:                     data = json.loads(r[4] or "{}")
+  108:                 except Exception:
+  109:                     data = {}
+  110:                 out.append(MemoryEntry(int(r[0]), int(r[1]), str(r[2]), int(r[3]), data))
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/discord_safety.py
+Line: 20
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   18:     except (discord.NotFound, discord.HTTPException):
+   19:         return interaction.response.is_done()
+   20:     except Exception:
+   21:         log.exception("safe_defer failed")
+   22:         return interaction.response.is_done()
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/discord_safety.py
+Line: 41
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   39:     except (discord.NotFound, discord.HTTPException):
+   40:         return False
+   41:     except Exception:
+   42:         log.exception("safe_send failed")
+   43:         return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/discord_safety.py
+Line: 65
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   63:     except (discord.NotFound, discord.HTTPException):
+   64:         return False
+   65:     except Exception:
+   66:         log.exception("safe_edit_message failed")
+   67:         return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/discord_safety.py
+Line: 76
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   74:     except (discord.NotFound, discord.HTTPException):
+   75:         return False
+   76:     except Exception:
+   77:         log.exception("safe_delete_message failed")
+   78:         return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/drift_verifier.py
+Line: 28
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   26:             try:
+   27:                 await self._task
+   28:             except Exception:
+   29:                 pass
+   30: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/drift_verifier.py
+Line: 40
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   38:                     roles = await builder.ensure_roles(guild, schema)
+   39:                     await builder.ensure_categories_channels(guild, schema, roles)
+   40:                 except Exception:
+   41:                     continue
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/enhanced_panel_registry.py
+Line: 146
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  144:                         await self.panel_store.delete(guild.id, panel_key)
+  145:                         log.info(f"Cleaned up stale panel record for {panel_key} in guild {guild.id}")
+  146:                 except Exception as e:
+  147:                     log.warning(f"Error checking existing panel {panel_key}: {e}")
+  148:             
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/enhanced_panel_registry.py
+Line: 177
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  175:                 return None
+  176:                 
+  177:         except Exception as e:
+  178:             log.exception(f"Error deploying panel {panel_key} in guild {guild.id}: {e}")
+  179:             return None
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/enhanced_panel_registry.py
+Line: 201
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  199:             log.debug(f"No permission to fetch message {message_id} in channel {channel_id} for guild {guild.id}")
+  200:             return None
+  201:         except Exception as e:
+  202:             log.warning(f"Unexpected error fetching message {message_id}: {e}")
+  203:             return None
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/enhanced_panel_registry.py
+Line: 235
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  233:                 return result is not None
+  234:                 
+  235:         except Exception as e:
+  236:             log.exception(f"Error repairing panel {panel_key} in guild {guild.id}: {e}")
+  237:             return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/enhanced_panel_registry.py
+Line: 260
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  258:                 guild_results = await self.repair_all_guild_panels(guild)
+  259:                 all_results[guild.id] = guild_results
+  260:             except Exception as e:
+  261:                 log.error(f"Failed to repair panels for guild {guild.id}: {e}")
+  262:                 all_results[guild.id] = {}
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/enhanced_panel_registry.py
+Line: 280
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  278:                         # For now, we'll let the cogs handle view registration
+  279:                         log.debug(f"Panel {panel_key} should have persistent view registered")
+  280:                     except Exception as e:
+  281:                         log.warning(f"Error getting persistent view for {panel_key}: {e}")
+  282:         
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/enhanced_panel_registry.py
+Line: 302
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  300:                 except discord.Forbidden:
+  301:                     log.warning(f"No permission to delete panel message for {panel_key} in guild {guild.id}")
+  302:                 except Exception as e:
+  303:                     log.warning(f"Error deleting panel message for {panel_key}: {e}")
+  304:             
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/enhanced_panel_registry.py
+Line: 310
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  308:             return True
+  309:             
+  310:         except Exception as e:
+  311:             log.exception(f"Error removing panel {panel_key} in guild {guild.id}: {e}")
+  312:             return False
+
+================================================================================
+[Medium] ROLE_PANEL_DEFAULT_CHANNEL
+File: src/guardian/services/panel_registry.py
+Line: 24
+Message: role_panel defaults to channel name 'roles' (template mismatch likely)
+Evidence:
+   22:         self._fallback_channels: Dict[str, str] = {
+   23:             "verify_panel": "verify",
+   24:             "role_panel": "roles", 
+   25:             "ticket_panel": "tickets"
+   26:         }
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/panel_registry.py
+Line: 84
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   82:             return message
+   83:             
+   84:         except Exception as e:
+   85:             log.error(f"Failed to deploy panel {panel_key} in guild {guild.id}: {e}")
+   86:             return None
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/panel_registry.py
+Line: 128
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  126:                 return False
+  127:                 
+  128:         except Exception as e:
+  129:             log.exception(f"Failed to repair panel {panel_key} in guild {guild_id}: {e}")
+  130:             return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/panel_registry.py
+Line: 142
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  140:             return message is not None
+  141:             
+  142:         except Exception as e:
+  143:             log.exception(f"Failed to redeploy panel {panel_key} in guild {guild_id}: {e}")
+  144:             return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/panel_registry.py
+Line: 160
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  158:                 all_panels = await self.panel_store.list_all_panels()
+  159:                 results["total_panels"] = len(all_panels)
+  160:             except Exception as e:
+  161:                 log.error(f"Failed to list panels for repair: {e}")
+  162:                 results["errors"].append("Database unavailable - skipping panel repair")
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/panel_registry.py
+Line: 188
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  186:                             results["failed"] += 1
+  187:                             
+  188:                 except Exception as e:
+  189:                     log.error(f"Failed to repair panels for guild {guild_id}: {e}")
+  190:                     results["failed"] += len(panels)
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/panel_registry.py
+Line: 193
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  191:                     results["errors"].append(f"Guild {guild_id} repair failed")
+  192:                         
+  193:         except Exception as e:
+  194:             log.error(f"Critical error during panel repair startup: {e}")
+  195:             results["errors"].append("Critical repair failure")
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/panel_registry.py
+Line: 228
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  226:                 result["message"] = f"Failed to deploy panel {panel_key}"
+  227:                 
+  228:         except Exception as e:
+  229:             log.exception(f"Force redeploy failed for panel {panel_key} in guild {guild_id}: {e}")
+  230:             result["message"] = f"Error: {e}"
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/reaction_roles_store.py
+Line: 94
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   92:                         )
+   93:                     )
+   94:                 except Exception as e:
+   95:                     errors.append(f"Role {config.get('role_id', 'unknown')}: {e}")
+   96:             
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/reaction_roles_store.py
+Line: 112
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  110:                         (guild_id, role_id)
+  111:                     )
+  112:                 except Exception as e:
+  113:                     errors.append(f"Role {role_id}: {e}")
+  114:             
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/reaction_roles_store.py
+Line: 129
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  127:                 await db.commit()
+  128:                 return True
+  129:         except Exception as e:
+  130:             log.error(f"Failed to set enabled status for role {role_id}: {e}")
+  131:             return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/reaction_roles_store.py
+Line: 143
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  141:                 await db.commit()
+  142:                 return True
+  143:         except Exception as e:
+  144:             log.error(f"Failed to set group for role {role_id}: {e}")
+  145:             return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/reaction_roles_store.py
+Line: 157
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  155:                 await db.commit()
+  156:                 return True
+  157:         except Exception as e:
+  158:             log.error(f"Failed to set label for role {role_id}: {e}")
+  159:             return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/reaction_roles_store.py
+Line: 171
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  169:                 await db.commit()
+  170:                 return True
+  171:         except Exception as e:
+  172:             log.error(f"Failed to set emoji for role {role_id}: {e}")
+  173:             return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/reaction_roles_store.py
+Line: 217
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  215:                 await db.commit()
+  216:                 return True
+  217:         except Exception as e:
+  218:             log.error(f"Failed to move role {role_id}: {e}")
+  219:             return False
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/reaction_roles_store_new.py
+Line: 52
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   50:                     )
+   51:                     results["added"].append(role_id)
+   52:                 except Exception as e:
+   53:                     results["errors"].append(f"Role {role_id}: {str(e)}")
+   54:             
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/reaction_roles_store_new.py
+Line: 74
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   72:                     else:
+   73:                         results["errors"].append(f"Role {role_id}: Not found in configuration")
+   74:                 except Exception as e:
+   75:                     results["errors"].append(f"Role {role_id}: {str(e)}")
+   76:             
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/schema_builder.py
+Line: 119
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  117:                 # ensure the bot's *managed* role stays; "Bot" role is separate. This is fine.
+  118:                 pass
+  119:             except Exception:
+  120:                 pass
+  121: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/simple_reaction_roles_store.py
+Line: 51
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   49:                         (guild_id, role_id, group_key)
+   50:                     )
+   51:                 except Exception as e:
+   52:                     errors.append(f"Role {role_id}: {str(e)}")
+   53:             
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/simple_reaction_roles_store.py
+Line: 69
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   67:                         (guild_id, role_id)
+   68:                     )
+   69:                 except Exception as e:
+   70:                     errors.append(f"Role {role_id}: {str(e)}")
+   71:             
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/status_reporter.py
+Line: 54
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   52:         try:
+   53:             await self.bot.change_presence(activity=discord.Game(name=f"{st.phase} ({st.step}/{st.total})"))
+   54:         except Exception:
+   55:             pass
+   56: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/status_reporter.py
+Line: 73
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   71:         try:
+   72:             await self.bot.change_presence(activity=discord.Game(name="Online • /help_commands"))
+   73:         except Exception:
+   74:             pass
+   75: 
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/services/task_queue.py
+Line: 82
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   80:                     await fn()
+   81:                     self._stats.tasks_executed += 1
+   82:                 except Exception:
+   83:                     self._stats.tasks_failed += 1
+   84:                     log.exception("Queued task failed")
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/startup_diagnostics.py
+Line: 73
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   71:                 log.info(f"✅ All critical cogs loaded: {critical_cogs}")
+   72:                 
+   73:         except Exception as e:
+   74:             self.results["critical_failures"].append(f"Failed to check loaded cogs: {e}")
+   75:     
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/startup_diagnostics.py
+Line: 95
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+   93:                 self.results["warnings"].append("Bot tree not available")
+   94:                 
+   95:         except Exception as e:
+   96:             self.results["warnings"].append(f"Failed to check registered commands: {e}")
+   97:     
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/startup_diagnostics.py
+Line: 117
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  115:         except ImportError as e:
+  116:             self.results["critical_failures"].append(f"PanelStore import failed: {e}")
+  117:         except Exception as e:
+  118:             self.results["warnings"].append(f"Failed to check PanelStore schema: {e}")
+  119:     
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/startup_diagnostics.py
+Line: 143
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  141:                     self.results["warnings"].append("No persistent views registered")
+  142:                 
+  143:         except Exception as e:
+  144:             self.results["warnings"].append(f"Failed to check persistent views: {e}")
+  145:     
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/startup_diagnostics.py
+Line: 157
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  155:                 self.results["critical_failures"].append("PanelStore not available")
+  156:                 
+  157:         except Exception as e:
+  158:             self.results["critical_failures"].append(f"Database connection failed: {e}")
+  159:     
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/testing/selftest_runner.py
+Line: 208
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  206:                 result.status = "PASS"
+  207:                 
+  208:             except Exception as e:
+  209:                 result.status = "FAIL"
+  210:                 result.error = e
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/testing/selftest_runner.py
+Line: 244
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  242:                 result.status = "PASS"
+  243:                 
+  244:             except Exception as e:
+  245:                 result.status = "FAIL"
+  246:                 result.error = e
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/testing/selftest_runner.py
+Line: 293
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  291:                 result.status = "PASS"
+  292:                 
+  293:             except Exception as e:
+  294:                 result.status = "FAIL"
+  295:                 result.error = e
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/testing/selftest_runner.py
+Line: 452
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  450:                 return "test"
+  451:             return annotation()
+  452:         except Exception:
+  453:             return None
+  454:     
+
+================================================================================
+[Medium] BROAD_EXCEPT
+File: src/guardian/ui/persistent.py
+Line: 110
+Message: Broad Exception handler; verify it doesn't hide real failures
+Evidence:
+  108:             registration_results['succeeded'] += 1
+  109:             log.info(f"✅ Registered persistent {view_name}")
+  110:         except Exception as e:
+  111:             registration_results['failed'] += 1
+  112:             error_msg = f"❌ Failed to register {view_name}: {type(e).__name__}: {str(e)}"
+
+================================================================================
+[Low] DUP_IMPORT
+File: src/guardian/bot.py
+Line: 39
+Message: Duplicate from-import in module
+Evidence:
+   38: from .services.root_store import RootStore
+   39: from .ui.persistent import register_all_views
+   40: from .observability import observability
+
+================================================================================
+[Low] TODO_FIXME
+File: src/guardian/cogs/setup_wizard.py
+Line: 372
+Message: TODO/FIXME/HACK marker
+Evidence:
+# TODO: Integrate with panel_registry to deploy missing panels
+
+================================================================================
+[Low] HARDCODED_SNOWFLAKE
+File: src/guardian/config.py
+Message: Hardcoded 17-19 digit ID detected (may reduce portability)
+Evidence:
+1008255853859721216
+
+================================================================================
+[Low] TODO_FIXME
+File: src/guardian/permissions.py
+Line: 104
+Message: TODO/FIXME/HACK marker
+Evidence:
+# TODO: Integrate with RootStore when available

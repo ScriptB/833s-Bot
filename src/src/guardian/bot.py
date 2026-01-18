@@ -20,9 +20,12 @@ from .services.level_rewards_store import LevelRewardsStore
 from .services.starboard_store import StarboardStore
 from .services.server_config_store import ServerConfigStore
 from .services.onboarding_store import OnboardingStore
+from .services.drift_verifier import DriftVerifier
 from .services.cases_store import CasesStore
 from .services.reputation_store import ReputationStore
 from .services.suggestions_store import SuggestionsStore
+from .services.channel_bootstrapper import ChannelBootstrapper
+from .services.bootstrap_state_store import BootstrapStateStore
 from .services.status_reporter import StatusReporter
 from .services.guild_logger import GuildLogger
 from .services.panel_registry import PanelRegistry
@@ -133,12 +136,15 @@ class GuardianBot(commands.Bot):
         self.panel_store = PanelStore(settings.sqlite_path)
         log.info("PanelStore loaded: %s", PanelStore.__name__)
         self.role_config_store = RoleConfigStore(settings.sqlite_path)
+        self.bootstrap_state_store = BootstrapStateStore(settings.sqlite_path)
         
         # Initialize panel registry
         self.panel_registry = PanelRegistry(self, self.panel_store)
         
         # Initialize bot-specific services
+        self.drift_verifier = DriftVerifier(self)
         self._sync_mgr = _CommandSyncManager(self)
+        self.channel_bootstrapper = ChannelBootstrapper(self, self.bootstrap_state_store)
         self.status_reporter = StatusReporter(self)
         self.guild_logger = GuildLogger(self)
 
@@ -182,6 +188,7 @@ class GuardianBot(commands.Bot):
         # Initialize panel registry renderers (will be done by cogs)
         
         # Start background services
+        # self.drift_verifier.start()  # DISABLED - Prevents automatic channel recreation
         self.task_queue.start()
         observability.log_startup_event("task_queue", "OK")
         
@@ -228,6 +235,11 @@ class GuardianBot(commands.Bot):
         # Community + onboarding
         await _load_cog("guardian.cogs.welcome", "WelcomeCog")
         await _load_cog("guardian.cogs.onboarding", "OnboardingCog")
+        # Legacy ticket panel implementation (kept optional to avoid overlapping systems).
+        if getattr(self.settings, "legacy_tickets_enabled", False):
+            await _load_cog("guardian.cogs.tickets", "TicketsCog")
+        else:
+            log.info("Legacy TicketsCog disabled; using TicketSystemCog only")
         await _load_cog("guardian.cogs.suggestions", "SuggestionsCog")
 
 
@@ -382,7 +394,10 @@ class GuardianBot(commands.Bot):
 
     async def close(self) -> None:
         try:
-            # Drift verifier removed: channel/schema enforcement must be invoked manually.
+            try:
+                await self.drift_verifier.stop()
+            except Exception as e:
+                log.warning("Failed to stop drift verifier: %s", e)
             await self.task_queue.stop()
         finally:
             await super().close()
@@ -401,6 +416,5 @@ class GuardianBot(commands.Bot):
             for g in list(self.guilds):
                 # Bootstrap posting is manual-only to prevent redeploy spam. Use the dedicated bootstrap command if needed.
                 # await self.channel_bootstrapper.ensure_first_posts(g)
-                pass
         except Exception as e:
             log.warning("Failed to ensure first posts for guilds: %s", e)

@@ -466,17 +466,60 @@ class ServerTemplateOverhaulCog(commands.Cog):
                 return
 
         async def _unset_system_channels() -> None:
-            # Unset channels like rules/public updates/system that can prevent deletion on Community servers.
+            """Detach system channels that can block deletions on Community servers.
+
+            This must be compatible across discord.py versions. Some keyword arguments
+            (e.g. safety_alerts_channel) are not present in older releases and can
+            trigger errors inside guild.edit.
+            """
+
+            import inspect
+
             try:
-                await guild.edit(
-                    rules_channel=None,
-                    public_updates_channel=None,
-                    system_channel=None,
-                    safety_alerts_channel=None,
-                    reason='833s template overhaul (nuke: detach system channels)',
-                )
+                sig = inspect.signature(guild.edit)
+                allowed = set(sig.parameters.keys())
+
+                # Candidate fields across discord.py versions.
+                candidates = {
+                    "rules_channel": None,
+                    "public_updates_channel": None,
+                    "system_channel": None,
+                    # Present only in newer versions; filter via signature.
+                    "safety_alerts_channel": None,
+                }
+                payload = {k: v for k, v in candidates.items() if k in allowed}
+                if not payload:
+                    return
+
+                payload["reason"] = "833s template overhaul (nuke: detach system channels)"
+                await guild.edit(**payload)
             except Exception as e:
-                warnings.append(f'Failed unsetting system channels before nuke: {type(e).__name__}')
+                # Some Community configurations reject unsetting system channels to None.
+                # Fallback: redirect them to a temporary channel, then delete the original channels.
+                warnings.append(f"Failed unsetting system channels before nuke: {type(e).__name__}")
+                try:
+                    # Create a temp channel only if we can; this prevents rules/announcements deletions
+                    # from being blocked by system-channel bindings.
+                    tmp_name = "tmp-system"
+                    tmp = discord.utils.get(guild.text_channels, name=tmp_name)
+                    if tmp is None:
+                        tmp = await guild.create_text_channel(tmp_name, reason="833s template overhaul (temp system channel)")
+
+                    sig = inspect.signature(guild.edit)
+                    allowed = set(sig.parameters.keys())
+                    candidates = {
+                        "rules_channel": tmp,
+                        "public_updates_channel": tmp,
+                        "system_channel": tmp,
+                        "safety_alerts_channel": tmp,
+                    }
+                    payload = {k: v for k, v in candidates.items() if k in allowed}
+                    if payload:
+                        payload["reason"] = "833s template overhaul (nuke: redirect system channels)"
+                        await guild.edit(**payload)
+                except Exception:
+                    # If even redirect fails, continue; deletions may still partially succeed.
+                    return
 
 
         guild = interaction.guild
@@ -522,15 +565,28 @@ class ServerTemplateOverhaulCog(commands.Cog):
                 key=lambda c: (str(c.type), c.position),
             )
             for ch in channels:
-                try:
-                    await ch.delete(reason="833s template overhaul (nuke)")
-                except discord.Forbidden:
-                    warnings.append(f"Forbidden deleting channel: {getattr(ch, 'name', ch.id)}")
-                except discord.HTTPException as e:
-                    failed_http.append(ch)
-                    warnings.append(f"Failed deleting channel {getattr(ch, 'name', ch.id)}: HTTPException")
-                except Exception as e:
-                    warnings.append(f"Failed deleting channel {getattr(ch, 'name', ch.id)}: {type(e).__name__}")
+                # Deletions can be rate-limited and some system-configured channels
+                # can momentarily resist deletion until after guild.edit detaches them.
+                # Use bounded retries with short sleeps to reduce HTTPException churn.
+                for attempt in range(3):
+                    try:
+                        await ch.delete(reason="833s template overhaul (nuke)")
+                        break
+                    except discord.Forbidden:
+                        warnings.append(f"Forbidden deleting channel: {getattr(ch, 'name', ch.id)}")
+                        break
+                    except discord.HTTPException:
+                        if attempt == 2:
+                            failed_http.append(ch)
+                            warnings.append(f"Failed deleting channel {getattr(ch, 'name', ch.id)}: HTTPException")
+                        else:
+                            await asyncio.sleep(0.8 + (0.4 * attempt))
+                    except Exception as e:
+                        warnings.append(f"Failed deleting channel {getattr(ch, 'name', ch.id)}: {type(e).__name__}")
+                        break
+
+                # Small delay to reduce burst deletes hitting hard rate limits.
+                await asyncio.sleep(0.15)
 
 
 
@@ -546,10 +602,23 @@ class ServerTemplateOverhaulCog(commands.Cog):
                     _ = ch.id
                 except Exception:
                     continue
-                try:
-                    await ch.delete(reason="833s template overhaul (nuke retry)")
-                except Exception:
-                    pass
+                for attempt in range(3):
+                    try:
+                        await ch.delete(reason="833s template overhaul (nuke retry)")
+                        break
+                    except discord.Forbidden:
+                        break
+                    except discord.HTTPException:
+                        if attempt == 2:
+                            # Let the later failed_http retry handle it as a last shot.
+                            if ch not in failed_http:
+                                failed_http.append(ch)
+                        else:
+                            await asyncio.sleep(1.0 + (0.5 * attempt))
+                    except Exception:
+                        break
+
+                await asyncio.sleep(0.25)
 
 
 
